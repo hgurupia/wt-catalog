@@ -716,7 +716,7 @@ function ocrHandle(f){if(!f)return;const rd=new FileReader();rd.onload=()=>{cons
   const im=$('#ocr-img');im.classList.remove('ph');im.textContent='';im.style.backgroundImage='url('+data+')';im.style.backgroundSize='cover';im.style.backgroundPosition='center';
   $('#ocr-status').textContent='Leyendo la etiqueta con IA…';$('#ocr-form').style.display='none';
   try{
-    const r=await fetch(OCR_URL,{method:'POST',headers:{'content-type':'application/json','x-gate':SB_KEY},body:JSON.stringify({image:data,media_type:'image/jpeg'})});
+    const r=await fetch(OCR_URL,{method:'POST',headers:{'content-type':'application/json','apikey':SB_KEY,'authorization':'Bearer '+SB_KEY,'x-gate':SB_KEY},body:JSON.stringify({image:data,media_type:'image/jpeg'})});
     const j=await r.json().catch(()=>({error:'respuesta inválida'}));
     if(!r.ok||j.error){$('#ocr-status').textContent='No se pudo leer: '+(j.error||('HTTP '+r.status))+'. (¿Ya desplegaste la función y su llave?)';return;}
     const F=j.fields||{};
