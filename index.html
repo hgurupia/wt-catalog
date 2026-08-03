@@ -731,7 +731,7 @@ function ocrCard(it){
     +'<div style="height:8px"></div>'
     +'<div class="row2"><div><label class="fld">Tipo</label><input class="in oi-cat" list="dl-cat"></div><div><label class="fld">Género</label><select class="in oi-gender"><option value="">—</option><option>Men</option><option>Ladies</option><option>Youth</option><option>Kid</option><option>Baby</option><option>Unisex</option></select></div></div>'
     +'<div style="height:8px"></div>'
-    +'<div><label class="fld">UPC (código de barras, si tiene)</label><input class="in oi-upc" inputmode="numeric"></div>';
+    +'<div><label class="fld">UPC (código de barras, si tiene)</label><div style="display:flex;gap:6px"><input class="in oi-upc" inputmode="numeric" style="flex:1;min-width:0"><button type="button" class="btn b oi-scan" style="width:auto;flex:0 0 auto;padding:0 14px;margin:0">📷 Escanear</button></div></div>';
   it=it||{};
   d.querySelector('.oi-brand').value=it.brand||'';
   d.querySelector('.oi-style').value=it.style||'';
@@ -743,6 +743,7 @@ function ocrCard(it){
   d.querySelector('.oi-upc').value=(''+(it.upc||'')).replace(/\D/g,'');
   d.querySelector('.oi-qty').value=(+it.qty||0);
   d.querySelector('.oi-del').addEventListener('click',()=>{d.remove();renumberOcr();});
+  d.querySelector('.oi-scan').addEventListener('click',()=>{ocrUpcTarget=d.querySelector('.oi-upc');goScan('ocrupc');});
   return d;
 }
 function renumberOcr(){document.querySelectorAll('#ocr-list .ocr-item .oi-n').forEach((b,i)=>b.textContent='Producto '+(i+1));}
@@ -770,7 +771,7 @@ $('#ocr-save').addEventListener('click',async()=>{
 });
 
 /* =================== SCAN (camera) =================== */
-let reader=null,camStream=null,scanPurpose='map',lastCode='';
+let reader=null,camStream=null,scanPurpose='map',lastCode='',ocrUpcTarget=null;
 function startScan(purpose){
   scanPurpose=purpose;lastCode='';
   $('#scanhint').innerHTML=purpose==='assign'?'Escanea el UPC para <b>asignarlo</b> a este producto':'Apunta al <b>código de barras</b>';
@@ -791,6 +792,7 @@ async function onCode(code){
   navigator.vibrate&&navigator.vibrate(70);
   if(scanPurpose==='assign'){stopCam();assignUPC(code);return;}
   if(scanPurpose==='new'){stopCam();$('#n-upc').value=code;$('#n-upcbadge').textContent='✓ leído';back();return;}
+  if(scanPurpose==='ocrupc'){stopCam();if(ocrUpcTarget){ocrUpcTarget.value=(''+code).replace(/\D/g,'');}ocrUpcTarget=null;back();toast('UPC escaneado ✓','ok');return;}
   // map
   toast('UPC: '+code);
   const matches=await DB.byUPC(code);
