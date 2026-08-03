@@ -228,7 +228,8 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
     <p class="qlabel" style="margin:0">Entrada = recibí · Salida = vendí/quité</p>
     <button class="btn ghost block" id="fix-qty">✏️ Corregir cantidad (fijar la exacta)</button>
     <button class="btn o block" id="assign-upc" style="display:none">🏷️ Asignar UPC (escanear)</button>
-    <button class="btn ghost block" id="print-lbl">🖨️ Imprimir etiqueta</button>
+    <button class="btn ghost block" id="print-lbl">🖨️ Imprimir etiquetas (producto)</button>
+    <button class="btn ghost block" id="print-bulk">📦 Etiqueta de bulto (×2)</button>
   </div>
 </section>
 
@@ -306,6 +307,7 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
         <input class="in" id="n-qty" type="number" inputmode="numeric" value="1" min="0" style="font-size:26px;font-weight:900;text-align:center;max-width:120px">
         <button class="stp" id="nq-plus">+</button>
       </div>
+      <button class="btn ghost block" id="wiz-print" style="margin-top:6px">🖨️ Imprimir etiquetas (1 por unidad)</button>
     </div>
 
   </div>
@@ -651,19 +653,35 @@ $('#wiz-save').addEventListener('click',async()=>{
 });
 
 /* =================== LABEL PRINT (90×30 mm) =================== */
-$('#print-lbl').addEventListener('click',()=>{if(current)printLabels(current);});
-function printLabels(d){
-  const pa=$('#printArea');pa.innerHTML='';
-  pa.appendChild(itemLabel(d));
-  const b1=bulkLabel(d),b2=bulkLabel(d);pa.appendChild(b1);pa.appendChild(b2);
-  // barcodes (con respaldo a CODE128 si el UPC no valida)
-  if(window.JsBarcode&&d.upc){pa.querySelectorAll('svg.bc').forEach(svg=>{
+$('#print-lbl').addEventListener('click',()=>{
+  if(!current)return;
+  const n=prompt('¿Cuántas etiquetas de producto? (1 por unidad)', current.qty||1);
+  if(n===null)return; printItems(current, Math.max(1,+n||1));
+});
+$('#print-bulk').addEventListener('click',()=>{if(current)printBulk(current,2);});
+$('#wiz-print').addEventListener('click',()=>{
+  const d={brand:$('#n-brand').value.trim(),style:$('#n-style').value.trim(),size:$('#n-size').value.trim(),color:$('#n-color').value.trim(),upc:(nmode()==='noupc'?'':$('#n-upc').value.trim()),sku:newSku(),qty:+$('#n-qty').value||0};
+  if(!d.brand||!d.style){toast('Falta Marca/Estilo','err');return;}
+  printItems(d, Math.max(1,d.qty||1));
+});
+function renderBarcodes(d){
+  if(!(window.JsBarcode&&d.upc))return;
+  $('#printArea').querySelectorAll('svg.bc').forEach(svg=>{
     let ok=false;
     try{JsBarcode(svg,d.upc,{format:barFmt(d.upc),displayValue:false,margin:0,width:1.6,height:44});ok=true;}catch(e){}
     if(!ok){try{JsBarcode(svg,d.upc,{format:'CODE128',displayValue:false,margin:0,width:1.4,height:44});ok=true;}catch(e){}}
     if(!ok)svg.remove();
-  });}
-  setTimeout(()=>window.print(),150);
+  });
+}
+function printItems(d,count){
+  count=Math.max(1,count|0);const pa=$('#printArea');pa.innerHTML='';
+  for(let i=0;i<count;i++)pa.appendChild(itemLabel(d));
+  renderBarcodes(d);setTimeout(()=>window.print(),150);
+}
+function printBulk(d,count){
+  count=Math.max(1,count|0);const pa=$('#printArea');pa.innerHTML='';
+  for(let i=0;i<count;i++)pa.appendChild(bulkLabel(d));
+  renderBarcodes(d);setTimeout(()=>window.print(),150);
 }
 function barFmt(u){u=(u||'').replace(/\D/g,'');if(u.length===12)return'UPC';if(u.length===13)return'EAN13';if(u.length===8)return'EAN8';return'CODE128';}
 function itemLabel(d){const el=document.createElement('div');el.className='lbl';
