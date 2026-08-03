@@ -723,7 +723,7 @@ function ocrHandle(f){if(!f)return;const rd=new FileReader();rd.onload=()=>{cons
     $('#o-brand').value=F.brand||'';$('#o-style').value=F.style||'';$('#o-color').value=F.color||'';$('#o-size').value=F.size||'';$('#o-cat').value=F.cat||'';$('#o-gender').value=F.gender||'';$('#o-upc').value=(''+(F.upc||'')).replace(/\D/g,'');$('#o-qty').value=+F.qty||0;
     if(F.raw_text){$('#ocr-note').textContent='📝 Leído: '+(''+F.raw_text).slice(0,140);$('#ocr-note').style.display='block';}else $('#ocr-note').style.display='none';
     $('#ocr-status').textContent='✓ Listo — revisa y corrige antes de subir:';$('#ocr-form').style.display='block';
-  }catch(e){$('#ocr-status').textContent='Error de conexión con el lector: '+String(e).slice(0,80);}
+  }catch(e){const net=(e&&e.name==='TypeError');$('#ocr-status').textContent=net?'⚠️ El lector de etiquetas todavía no está activo (la función OCR no está desplegada en el servidor) o no hay internet. Puedes cargar el producto a mano con el asistente ✚.':('Error de conexión con el lector: '+String(e).slice(0,80));}
 };img.src=rd.result;};rd.readAsDataURL(f);}
 $('#ocr-save').addEventListener('click',async()=>{
   const brand=$('#o-brand').value.trim(),style=$('#o-style').value.trim(),color=$('#o-color').value.trim(),size=$('#o-size').value.trim(),cat=$('#o-cat').value.trim(),gender=$('#o-gender').value,upc=$('#o-upc').value.trim().replace(/\D/g,''),qty=+$('#o-qty').value||0;
