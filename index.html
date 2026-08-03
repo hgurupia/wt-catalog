@@ -112,6 +112,8 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
 .res .t span{font-size:11.5px;color:var(--slate)}
 .res .q{font-weight:900;color:var(--navy);font-size:15px}
 .res .q.g{color:var(--green)}.res .q.r{color:var(--red)}
+.res.sel{border-color:var(--sky);background:#eef7fc}
+.res .chk{font-size:20px;width:26px;text-align:center;flex:none}
 .list{display:flex;flex-direction:column;gap:8px}
 /* toast */
 #toast{position:fixed;left:50%;bottom:calc(20px + var(--safe-b));transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;padding:12px 18px;border-radius:14px;font-size:14px;font-weight:700;opacity:0;transition:.25s;z-index:60;box-shadow:0 12px 30px -10px rgba(0,0,0,.5);max-width:90%;text-align:center}
@@ -170,9 +172,10 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
     <button class="big-btn search" id="home-search"><span class="ic">🔎</span><span>Buscar por nombre / SKU<span class="cap">Cuando no tiene código de barras</span></span></button>
     <button class="big-btn newp" id="home-new"><span class="ic">➕</span><span>Producto nuevo (foto)<span class="cap">No está en la base todavía</span></span></button>
     <div class="grid2">
-      <div class="stat"><b id="st-prods">0</b><span>productos en la base</span></div>
-      <div class="stat"><b id="st-units">0</b><span>unidades totales</span></div>
+      <div class="stat" id="stat-prods" style="cursor:pointer"><b id="st-prods">0</b><span>productos · toca para ver ▸</span></div>
+      <div class="stat" id="stat-units" style="cursor:pointer"><b id="st-units">0</b><span>unidades · toca para ver ▸</span></div>
     </div>
+    <button class="btn ghost block" id="home-inv">📇 Ver inventario (editar / borrar)</button>
     <button class="btn ghost block" id="home-hist" style="margin-top:2px">📋 Historial de cargas (quién y cuándo)</button>
     <button class="btn ghost block" id="admin-sync">⚙️ Sincronizar catálogo a la base</button>
   </div>
@@ -184,6 +187,28 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
   <div class="body">
     <p class="muted" style="margin:0">Cada entrada, salida, corrección o producto nuevo — con quién lo hizo y a qué hora.</p>
     <div class="list" id="histlist"></div>
+  </div>
+</section>
+
+<!-- ============ INVENTARIO (tabla) ============ -->
+<section class="screen" id="s-inv">
+  <div class="top"><button class="bk" data-back>‹</button><h1 style="flex:1">Inventario</h1><button class="btn" id="inv-selmode" style="background:rgba(255,255,255,.14);color:#fff;padding:8px 12px;font-size:13px">☑︎ Seleccionar</button></div>
+  <div class="body">
+    <input class="in" id="invq" placeholder="Filtrar por marca, estilo, color, talla, SKU, UPC…" autocomplete="off">
+    <div class="seg" id="invsort">
+      <button class="on" data-sort="reciente">Reciente</button>
+      <button data-sort="marca">Marca</button>
+      <button data-sort="producto">Producto</button>
+    </div>
+    <p class="muted" id="invcount" style="margin:0"></p>
+    <div class="list" id="invlist"></div>
+  </div>
+  <div class="wiznav" id="bulkbar" style="display:none;flex-wrap:wrap;gap:8px">
+    <button class="btn r" id="bulk-del" style="flex:1 1 100%">🗑️ Eliminar (<span id="bulk-n">0</span>)</button>
+    <button class="btn ghost" id="bulk-cat" style="flex:1">✏️ Tipo</button>
+    <button class="btn ghost" id="bulk-gender" style="flex:1">✏️ Género</button>
+    <button class="btn ghost" id="bulk-brand" style="flex:1">✏️ Marca</button>
+    <button class="btn ghost" id="bulk-color" style="flex:1">✏️ Color</button>
   </div>
 </section>
 
@@ -239,7 +264,22 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
     <p class="qlabel" style="margin:0">Entrada = recibí · Salida = vendí/quité</p>
     <button class="btn ghost block" id="fix-qty">✏️ Corregir cantidad (fijar la exacta)</button>
     <button class="btn o block" id="assign-upc" style="display:none">🏷️ Asignar UPC (escanear)</button>
+    <button class="btn ghost block" id="edit-toggle">✏️ Editar datos del producto</button>
+    <div id="edit-panel" style="display:none">
+      <div class="card">
+        <div class="row2"><div><label class="fld">Marca</label><input class="in" id="e-brand"></div><div><label class="fld">Estilo</label><input class="in" id="e-style"></div></div>
+        <div style="height:8px"></div>
+        <div class="row2"><div><label class="fld">Color</label><input class="in" id="e-color"></div><div><label class="fld">Talla</label><input class="in" id="e-size"></div></div>
+        <div style="height:8px"></div>
+        <div class="row2"><div><label class="fld">Tipo</label><input class="in" id="e-cat" list="dl-cat"></div><div><label class="fld">Género</label><select class="in" id="e-gender"><option value="">—</option><option>Men</option><option>Ladies</option><option>Youth</option><option>Kid</option><option>Baby</option><option>Unisex</option></select></div></div>
+        <div style="height:8px"></div>
+        <label class="fld">UPC</label><input class="in" id="e-upc" inputmode="numeric">
+        <div style="height:10px"></div>
+        <button class="btn n block" id="edit-save">Guardar cambios</button>
+      </div>
+    </div>
     <button class="btn ghost block" id="print-lbl">🖨️ Imprimir etiquetas (1 por unidad)</button>
+    <button class="btn ghost block" id="del-prod" style="color:var(--red);border-color:#f6c4c4">🗑️ Eliminar producto de la base</button>
   </div>
 </section>
 
@@ -407,6 +447,34 @@ const DB={
     }
     const rows=localDB()||[];rows.unshift(o);saveLocal(rows);logLocalMove(o.sku,o.qty,'nuevo');
   },
+  async list(limit){
+    limit=limit||1000;
+    if(MODE==='online'){const r=await fetch(SB_URL+'/rest/v1/wt_inventory?select=*&order=updated_at.desc.nullslast&limit='+limit,{headers:sbHeaders()});return r.ok?await r.json():[];}
+    return (localDB()||[]).slice(0,limit);
+  },
+  async update(sku,obj){
+    if(MODE==='online'){const r=await fetch(SB_URL+'/rest/v1/wt_inventory?sku=eq.'+encodeURIComponent(sku),{method:'PATCH',headers:sbHeaders({Prefer:'return=minimal'}),body:JSON.stringify(obj)});if(!r.ok)throw new Error(await r.text());return;}
+    const rows=localDB()||[];const d=rows.find(x=>x.sku===sku);if(d){Object.assign(d,obj);saveLocal(rows);}
+  },
+  async remove(sku){
+    if(MODE==='online'){
+      const r=await fetch(SB_URL+'/rest/v1/wt_inventory?sku=eq.'+encodeURIComponent(sku),{method:'DELETE',headers:sbHeaders({Prefer:'return=minimal'})});
+      if(!r.ok)throw new Error(await r.text());
+      fetch(SB_URL+'/rest/v1/wt_movements',{method:'POST',headers:sbHeaders(),body:JSON.stringify({sku:sku,delta:0,kind:'eliminado',who:WHO})});
+      return;
+    }
+    let rows=localDB()||[];rows=rows.filter(x=>x.sku!==sku);saveLocal(rows);logLocalMove(sku,0,'eliminado');
+  },
+  async updateMany(skus,obj){
+    if(!skus.length)return;
+    if(MODE==='online'){const csv=skus.map(encodeURIComponent).join(',');const r=await fetch(SB_URL+'/rest/v1/wt_inventory?sku=in.('+csv+')',{method:'PATCH',headers:sbHeaders({Prefer:'return=minimal'}),body:JSON.stringify(obj)});if(!r.ok)throw new Error(await r.text());return;}
+    const rows=localDB()||[],s=new Set(skus);rows.forEach(d=>{if(s.has(d.sku))Object.assign(d,obj);});saveLocal(rows);
+  },
+  async removeMany(skus){
+    if(!skus.length)return;
+    if(MODE==='online'){const csv=skus.map(encodeURIComponent).join(',');const r=await fetch(SB_URL+'/rest/v1/wt_inventory?sku=in.('+csv+')',{method:'DELETE',headers:sbHeaders({Prefer:'return=minimal'})});if(!r.ok)throw new Error(await r.text());return;}
+    let rows=localDB()||[];const s=new Set(skus);rows=rows.filter(d=>!s.has(d.sku));saveLocal(rows);
+  },
   async movements(limit){
     limit=limit||200;
     if(MODE==='online'){
@@ -512,6 +580,72 @@ function renderHistory(ms){
   }).join('');
 }
 
+/* =================== INVENTARIO (tabla · editar/borrar/bulk) =================== */
+let INVROWS=[], INVSORT='reciente', INVMODE=false, INVSEL=new Set(), INVSHOWN=[];
+$('#stat-prods').addEventListener('click',openInv);
+$('#stat-units').addEventListener('click',openInv);
+$('#home-inv').addEventListener('click',openInv);
+function openInv(){
+  INVMODE=false;INVSEL.clear();$('#bulkbar').style.display='none';$('#bulk-n').textContent='0';$('#inv-selmode').textContent='☑︎ Seleccionar';
+  INVSORT='reciente';$$('#invsort button').forEach(b=>b.classList.toggle('on',b.dataset.sort==='reciente'));
+  go('s-inv');$('#invq').value='';
+  $('#invlist').innerHTML='<p class="muted" style="text-align:center;padding:24px">Cargando…</p>';
+  DB.list(2000).then(rows=>{INVROWS=rows;applyInv();}).catch(()=>{$('#invlist').innerHTML='<p class="muted" style="text-align:center;padding:24px">No se pudo cargar.</p>';});
+}
+$$('#invsort button').forEach(b=>b.addEventListener('click',()=>{INVSORT=b.dataset.sort;$$('#invsort button').forEach(x=>x.classList.toggle('on',x===b));applyInv();}));
+$('#invq').addEventListener('input',applyInv);
+function invTitle(d){return [d.brand,d.style,d.color,d.size].filter(Boolean).join(' ')||d.sku;}
+function applyInv(){
+  let rows=INVROWS.slice();
+  const t=norm($('#invq').value).trim();
+  if(t){const toks=t.split(/\s+/);rows=rows.filter(d=>{const hay=norm([d.brand,d.style,d.color,d.size,d.sku,d.cat,d.gender,d.upc].join(' '));return toks.every(tk=>hay.includes(tk));});}
+  if(INVSORT==='marca')rows.sort((a,b)=>norm((a.brand||'')+' '+(a.style||'')).localeCompare(norm((b.brand||'')+' '+(b.style||''))));
+  else if(INVSORT==='producto')rows.sort((a,b)=>norm(invTitle(a)).localeCompare(norm(invTitle(b))));
+  renderInv(rows);
+}
+function renderInv(rows){
+  $('#invcount').textContent=rows.length+(rows.length!==INVROWS.length?(' de '+INVROWS.length):'')+' productos'+(INVMODE?(' · '+INVSEL.size+' seleccionados'):'');
+  const shown=rows.slice(0,400);INVSHOWN=shown;
+  if(!rows.length){$('#invlist').innerHTML='<p class="muted" style="text-align:center;padding:24px">Sin resultados.</p>';return;}
+  $('#invlist').innerHTML=shown.map((d,i)=>{
+    const sel=INVSEL.has(d.sku);
+    const chk=INVMODE?'<div class="chk">'+(sel?'☑️':'⬜️')+'</div>':'';
+    return '<div class="res'+(sel?' sel':'')+'" data-i="'+i+'">'+chk
+      +'<img src="'+esc(d.img||'')+'" onerror="this.style.visibility=\'hidden\'">'
+      +'<div class="t"><b>'+esc(d.brand||'')+' '+esc(d.style||'')+'</b><span>'+esc([d.color,d.size,d.cat,d.gender].filter(Boolean).join(' · '))+'<br>'+esc(d.sku)+(d.upc?'':' · <i>sin UPC</i>')+'</span></div>'
+      +'<div class="q">'+(d.qty==null?'':d.qty)+'</div></div>';
+  }).join('')+(rows.length>400?'<p class="muted" style="text-align:center;padding:10px">Mostrando 400 — usa el filtro para el resto</p>':'');
+  $$('#invlist .res').forEach(el=>el.addEventListener('click',async()=>{
+    const d=INVSHOWN[+el.dataset.i];if(!d)return;
+    if(INVMODE){if(INVSEL.has(d.sku))INVSEL.delete(d.sku);else INVSEL.add(d.sku);$('#bulk-n').textContent=INVSEL.size;applyInv();return;}
+    const fresh=await DB.bySku(d.sku)||d;openProduct(fresh);
+  }));
+}
+$('#inv-selmode').addEventListener('click',()=>{
+  INVMODE=!INVMODE;INVSEL.clear();$('#bulk-n').textContent='0';
+  $('#bulkbar').style.display=INVMODE?'flex':'none';
+  $('#inv-selmode').textContent=INVMODE?'✕ Cancelar':'☑︎ Seleccionar';
+  applyInv();
+});
+$('#bulk-del').addEventListener('click',async()=>{
+  const skus=[...INVSEL];if(!skus.length){toast('Selecciona productos','err');return;}
+  if(!confirm('¿ELIMINAR '+skus.length+' productos de la base? Lo verán borrado TODOS. No se puede deshacer.'))return;
+  try{await DB.removeMany(skus);const s=new Set(skus);INVROWS=INVROWS.filter(d=>!s.has(d.sku));for(let i=CATALOG.length-1;i>=0;i--)if(s.has(CATALOG[i].sku))CATALOG.splice(i,1);INVSEL.clear();$('#bulk-n').textContent='0';toast(skus.length+' eliminados','ok');applyInv();}
+  catch(e){toast('Error: '+String(e).slice(0,80),'err');}
+});
+function bulkEdit(field,label){
+  const skus=[...INVSEL];if(!skus.length){toast('Selecciona productos','err');return;}
+  const val=prompt('Nuevo '+label+' para '+skus.length+' productos:');
+  if(val===null)return;
+  const obj={};obj[field]=val.trim();
+  DB.updateMany(skus,obj).then(()=>{const s=new Set(skus);INVROWS.forEach(d=>{if(s.has(d.sku))Object.assign(d,obj);});CATALOG.forEach(d=>{if(s.has(d.sku))Object.assign(d,obj);});toast(label+' actualizado en '+skus.length,'ok');applyInv();})
+    .catch(e=>toast('Error: '+String(e).slice(0,80),'err'));
+}
+$('#bulk-cat').addEventListener('click',()=>bulkEdit('cat','Tipo'));
+$('#bulk-gender').addEventListener('click',()=>bulkEdit('gender','Género'));
+$('#bulk-brand').addEventListener('click',()=>bulkEdit('brand','Marca'));
+$('#bulk-color').addEventListener('click',()=>bulkEdit('color','Color'));
+
 /* =================== SCAN (camera) =================== */
 let reader=null,camStream=null,scanPurpose='map',lastCode='';
 function startScan(purpose){
@@ -588,6 +722,7 @@ function openProduct(d){
   $('#p-chips').innerHTML=chips.map(c=>c.startsWith('<')?c:'<span class="chip">'+esc(c)+'</span>').join('');
   $('#p-qty').textContent=d.qty??0;
   $('#assign-upc').style.display=d.upc?'none':'flex';
+  $('#e-brand').value=d.brand||'';$('#e-style').value=d.style||'';$('#e-color').value=d.color||'';$('#e-size').value=d.size||'';$('#e-cat').value=d.cat||'';$('#e-gender').value=d.gender||'';$('#e-upc').value=d.upc||'';$('#edit-panel').style.display='none';
   updDelta();
   nav=['s-home','s-prod'];show('s-prod');
 }
@@ -617,6 +752,20 @@ $('#fix-qty').addEventListener('click',async()=>{
   catch(e){toast('Error: '+String(e).slice(0,80),'err')}
 });
 $('#assign-upc').addEventListener('click',()=>goScan('assign'));
+$('#edit-toggle').addEventListener('click',()=>{const p=$('#edit-panel');p.style.display=p.style.display==='none'?'block':'none';});
+$('#edit-save').addEventListener('click',async()=>{
+  if(!current)return;
+  const obj={brand:$('#e-brand').value.trim(),style:$('#e-style').value.trim(),color:$('#e-color').value.trim(),size:$('#e-size').value.trim(),cat:$('#e-cat').value.trim(),gender:$('#e-gender').value,upc:$('#e-upc').value.trim()};
+  obj.title=[obj.brand,obj.style,obj.color,obj.size].filter(Boolean).join(' ');
+  try{await DB.update(current.sku,obj);Object.assign(current,obj);const c=CATALOG.find(x=>x.sku===current.sku);if(c)Object.assign(c,obj);openProduct(current);toast('Datos guardados','ok');}
+  catch(e){toast('Error: '+String(e).slice(0,80),'err');}
+});
+$('#del-prod').addEventListener('click',async()=>{
+  if(!current)return;
+  if(!confirm('¿ELIMINAR "'+[current.brand,current.style].filter(Boolean).join(' ')+'" ('+current.sku+') de la base?\nLo verán borrado TODOS. No se puede deshacer.'))return;
+  try{await DB.remove(current.sku);const i=CATALOG.findIndex(x=>x.sku===current.sku);if(i>=0)CATALOG.splice(i,1);toast('Producto eliminado','ok');nav=['s-home'];go('s-home');}
+  catch(e){toast('Error: '+String(e).slice(0,80),'err');}
+});
 async function assignUPC(code){ // desde producto abierto
   if(!current)return;await assignTo(current,code);
 }
