@@ -725,15 +725,18 @@ function ocrCard(it){
   d.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b class="oi-n">Producto</b><button type="button" class="oi-del" style="border:none;background:#fdeaea;color:#c0392b;border-radius:8px;padding:4px 12px;font-weight:800;font-size:15px">✕</button></div>'
     +'<div class="row2"><div><label class="fld">Marca</label><input class="in oi-brand" list="dl-brand"></div><div><label class="fld">Estilo</label><input class="in oi-style"></div></div>'
     +'<div style="height:8px"></div>'
-    +'<div class="row2"><div><label class="fld">Color</label><input class="in oi-color" list="dl-color"></div><div><label class="fld">Talla</label><input class="in oi-size"></div></div>'
+    +'<div class="row2"><div><label class="fld">Color</label><input class="in oi-color" list="dl-color"></div><div><label class="fld">Cód. color</label><input class="in oi-cc" inputmode="numeric"></div></div>'
+    +'<div style="height:8px"></div>'
+    +'<div class="row2"><div><label class="fld">Talla</label><input class="in oi-size"></div><div><label class="fld">Cantidad</label><input class="in oi-qty" type="number" inputmode="numeric"></div></div>'
     +'<div style="height:8px"></div>'
     +'<div class="row2"><div><label class="fld">Tipo</label><input class="in oi-cat" list="dl-cat"></div><div><label class="fld">Género</label><select class="in oi-gender"><option value="">—</option><option>Men</option><option>Ladies</option><option>Youth</option><option>Kid</option><option>Baby</option><option>Unisex</option></select></div></div>'
     +'<div style="height:8px"></div>'
-    +'<div class="row2"><div><label class="fld">UPC</label><input class="in oi-upc" inputmode="numeric"></div><div><label class="fld">Cantidad</label><input class="in oi-qty" type="number" inputmode="numeric"></div></div>';
+    +'<div><label class="fld">UPC (código de barras, si tiene)</label><input class="in oi-upc" inputmode="numeric"></div>';
   it=it||{};
   d.querySelector('.oi-brand').value=it.brand||'';
   d.querySelector('.oi-style').value=it.style||'';
   d.querySelector('.oi-color').value=it.color||'';
+  d.querySelector('.oi-cc').value=(''+(it.cc||'')).replace(/\D/g,'');
   d.querySelector('.oi-size').value=it.size||'';
   d.querySelector('.oi-cat').value=it.cat||'';
   d.querySelector('.oi-gender').value=it.gender||'';
@@ -752,10 +755,10 @@ $('#ocr-save').addEventListener('click',async()=>{
   let created=0,summed=0,skipped=0,errs=0;
   for(const c of cards){
     const gv=q=>(c.querySelector(q).value||'').trim();
-    const brand=gv('.oi-brand'),style=gv('.oi-style'),color=gv('.oi-color'),size=gv('.oi-size'),cat=gv('.oi-cat'),gender=c.querySelector('.oi-gender').value,upc=gv('.oi-upc').replace(/\D/g,''),qty=+c.querySelector('.oi-qty').value||0;
+    const brand=gv('.oi-brand'),style=gv('.oi-style'),color=gv('.oi-color'),cc=gv('.oi-cc').replace(/\D/g,''),size=gv('.oi-size'),cat=gv('.oi-cat'),gender=c.querySelector('.oi-gender').value,upc=gv('.oi-upc').replace(/\D/g,''),qty=+c.querySelector('.oi-qty').value||0;
     if(!brand&&!style&&!color&&!size){skipped++;continue;}
     const sku='WT-'+(slug(brand).slice(0,4).toUpperCase()||'NA')+'-'+(slug(style).toUpperCase()||'NA')+'-'+(slug(color).slice(0,3).toUpperCase()||'NA')+'-'+(size.toUpperCase()||'NA');
-    const o={sku,upc,brand,style,color,cc:'',size,cat,gender,qty,cost:0,img:'',title:[brand,style,color,size].filter(Boolean).join(' ')};
+    const o={sku,upc,brand,style,color,cc,size,cat,gender,qty,cost:0,img:'',title:[brand,style,color,size].filter(Boolean).join(' ')};
     try{const ex=await DB.bySku(sku);
       if(ex){await DB.adjust(sku,qty,'entrada');summed++;}
       else{await DB.create(o);CATALOG.unshift(o);created++;}
