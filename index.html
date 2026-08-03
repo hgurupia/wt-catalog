@@ -150,9 +150,6 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
     <div class="card">
       <label class="fld">Tu nombre (para saber quién carga)</label>
       <input class="in" id="who" placeholder="Ej: Harold" autocomplete="name">
-      <div style="height:12px"></div>
-      <label class="fld">PIN de acceso</label>
-      <input class="in" id="pin" type="tel" inputmode="numeric" placeholder="••••" maxlength="8">
     </div>
     <button class="btn n block" id="enter">Entrar</button>
     <p class="muted" style="text-align:center" id="lockmode">Conectando a la base…</p>
@@ -333,7 +330,6 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
 /* =================== CONFIG =================== */
 const SB_URL='https://vkqsmwbhwekfwmdzihjj.supabase.co';
 const SB_KEY='sb_publishable_LnPrM-j7CDuJd8bQ4kfucg_9fFJYiAG';
-const ACCESS_PIN='2468';                 // ← PIN compartido (cámbialo aquí)
 const CATALOG=window.WT_CATALOG||[];
 const $=s=>document.querySelector(s);
 const $$=s=>document.querySelectorAll(s);
@@ -446,13 +442,14 @@ DB.ping().then(()=>{
   $('#lockmode').style.color=online?'var(--green)':'var(--orange)';
 });
 if(WHO)$('#who').value=WHO;
-$('#enter').addEventListener('click',()=>{
-  const w=$('#who').value.trim();const p=$('#pin').value.trim();
+function doEnter(){
+  const w=$('#who').value.trim();
   if(!w){toast('Escribe tu nombre','err');return;}
-  if(p!==ACCESS_PIN){toast('PIN incorrecto','err');return;}
   WHO=w;localStorage.setItem('wt_who',w);
   nav=['s-home'];go('s-home');
-});
+}
+$('#enter').addEventListener('click',doEnter);
+$('#who').addEventListener('keydown',e=>{if(e.key==='Enter')doEnter();});
 
 /* =================== HOME =================== */
 async function refreshHome(){
