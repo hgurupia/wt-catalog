@@ -210,8 +210,14 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
   <div class="top"><button class="bk" data-back>‹</button><h1>Producto</h1></div>
   <div class="body">
     <div class="card">
-      <img class="prod-img" id="p-img">
-      <h2 class="pt" id="p-title">—</h2>
+      <div class="prod-img ph" id="p-img">👕</div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn b" id="p-photo" style="flex:1;padding:11px;font-size:13.5px">📷 Foto</button>
+        <button class="btn ghost" id="p-upload" style="flex:1;padding:11px;font-size:13.5px">🖼️ Subir imagen</button>
+      </div>
+      <input type="file" id="p-file" accept="image/*" capture="environment" style="display:none">
+      <input type="file" id="p-file2" accept="image/*" style="display:none">
+      <h2 class="pt" id="p-title" style="margin-top:10px">—</h2>
       <div class="chips" id="p-chips"></div>
       <div class="qlabel">Cantidad en la base</div>
       <div class="qtybox">
@@ -380,6 +386,13 @@ const DB={
     }
     const rows=localDB()||[];const d=rows.find(x=>x.sku===sku);if(d){d.upc=upc;saveLocal(rows)}
   },
+  async setImg(sku,img){
+    if(MODE==='online'){
+      const r=await fetch(SB_URL+'/rest/v1/wt_inventory?sku=eq.'+encodeURIComponent(sku),{method:'PATCH',headers:sbHeaders({Prefer:'return=minimal'}),body:JSON.stringify({img:img})});
+      if(!r.ok)throw new Error(await r.text());return;
+    }
+    const rows=localDB()||[];const d=rows.find(x=>x.sku===sku);if(d){d.img=img;saveLocal(rows)}
+  },
   async create(o){
     if(MODE==='online'){
       const r=await fetch(SB_URL+'/rest/v1/wt_inventory',{method:'POST',headers:sbHeaders({Prefer:'return=representation'}),body:JSON.stringify(o)});
@@ -530,7 +543,7 @@ function renderResults(rows){
 let moveN=1;
 function openProduct(d){
   current=Object.assign({},d);moveN=1;
-  $('#p-img').src=d.img||'';$('#p-img').onerror=function(){this.classList.add('ph');this.src='';this.textContent='👕'};
+  setProdImg(d.img);
   $('#p-title').textContent=[d.brand,d.style].filter(Boolean).join(' ')||d.sku;
   const chips=[];if(d.size)chips.push('Talla '+d.size);if(d.color)chips.push(d.color);if(d.cat)chips.push(d.cat);
   chips.push('<span class="chip '+(d.upc?'upc':'noupc')+'">'+(d.upc?('UPC '+esc(d.upc)):'sin UPC')+'</span>');
@@ -540,6 +553,12 @@ function openProduct(d){
   updDelta();
   nav=['s-home','s-prod'];show('s-prod');
 }
+function setProdImg(url){const im=$('#p-img');if(url){im.classList.remove('ph');im.textContent='';im.style.backgroundImage='url('+url+')';im.style.backgroundSize='cover';im.style.backgroundPosition='center';}else{im.classList.add('ph');im.style.backgroundImage='';im.textContent='👕';}}
+function prodImgFile(f){if(!f||!current)return;const rd=new FileReader();rd.onload=()=>{const img=new Image();img.onload=async()=>{const sc=Math.min(1,900/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=img.width*sc;c.height=img.height*sc;c.getContext('2d').drawImage(img,0,0,c.width,c.height);const data=c.toDataURL('image/jpeg',.82);try{await DB.setImg(current.sku,data);current.img=data;const cc=CATALOG.find(x=>x.sku===current.sku);if(cc)cc.img=data;setProdImg(data);toast('Imagen guardada','ok');}catch(e){toast('Error: '+String(e).slice(0,70),'err');}};img.src=rd.result;};rd.readAsDataURL(f);}
+$('#p-photo').addEventListener('click',()=>$('#p-file').click());
+$('#p-upload').addEventListener('click',()=>$('#p-file2').click());
+$('#p-file').addEventListener('change',e=>{prodImgFile(e.target.files[0]);e.target.value='';});
+$('#p-file2').addEventListener('change',e=>{prodImgFile(e.target.files[0]);e.target.value='';});
 function updDelta(){$('#p-qty').textContent=current?current.qty:0;$('#in-n').textContent=moveN>1?(' '+moveN):'';$('#out-n').textContent=moveN>1?(' '+moveN):'';$('#deltahint').textContent='Vas a mover '+moveN+' unidad'+(moveN>1?'es':'');}
 $('#q-plus').addEventListener('click',()=>{moveN++;updDelta()});
 $('#q-minus').addEventListener('click',()=>{if(moveN>1)moveN--;updDelta()});
