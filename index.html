@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0d2f4b">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Cargar Inventario WT</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230d2f4b'/><text x='50' y='68' font-size='58' text-anchor='middle' fill='%234aa8d8' font-family='Arial' font-weight='bold'>W</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
@@ -122,16 +125,10 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
   body *{visibility:hidden}
   #printArea,#printArea *{visibility:visible}
   #printArea{display:block;position:absolute;left:0;top:0}
-  .lbl{width:90mm;height:30mm;padding:2.2mm 3mm;page-break-after:always;display:flex;gap:2.5mm;box-sizing:border-box;overflow:hidden;font-family:Arial,Helvetica,sans-serif;color:#000}
-  .lbl .l{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center}
-  .lbl .l .b1{font-size:3.6mm;font-weight:800;line-height:1.05;text-transform:uppercase}
-  .lbl .l .b2{font-size:3mm;font-weight:700;margin-top:.6mm}
-  .lbl .l .b3{font-size:2.5mm;margin-top:.6mm}
-  .lbl .r{width:38mm;display:flex;flex-direction:column;align-items:center;justify-content:center}
-  .lbl .r svg{width:100%;height:15mm}
-  .lbl .r .u{font-size:2.5mm;letter-spacing:.3mm;margin-top:.3mm}
-  .lbl.bulk .big{font-size:9mm;font-weight:900;text-align:center;line-height:1}
-  .lbl.bulk .cap{font-size:2.4mm;text-transform:uppercase;letter-spacing:.5mm;text-align:center}
+  .lbl{width:90mm;height:30mm;box-sizing:border-box;padding:1.5mm 2mm;page-break-after:always;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:Arial,Helvetica,sans-serif;color:#000;overflow:hidden}
+  .lbl .l1{font-size:3.6mm;font-weight:800;text-transform:uppercase;line-height:1.05;text-align:center}
+  .lbl .l2{font-size:2.7mm;font-weight:600;margin-top:.5mm;text-align:center;line-height:1.1}
+  .lbl .bc{height:15mm;width:auto;max-width:85mm;margin-top:1mm}
 }
 </style>
 </head>
@@ -231,8 +228,7 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
     <p class="qlabel" style="margin:0">Entrada = recibí · Salida = vendí/quité</p>
     <button class="btn ghost block" id="fix-qty">✏️ Corregir cantidad (fijar la exacta)</button>
     <button class="btn o block" id="assign-upc" style="display:none">🏷️ Asignar UPC (escanear)</button>
-    <button class="btn ghost block" id="print-lbl">🖨️ Imprimir etiquetas (producto)</button>
-    <button class="btn ghost block" id="print-bulk">📦 Etiqueta de bulto (×2)</button>
+    <button class="btn ghost block" id="print-lbl">🖨️ Imprimir etiquetas (1 por unidad)</button>
   </div>
 </section>
 
@@ -672,44 +668,38 @@ $('#print-lbl').addEventListener('click',()=>{
   const n=prompt('¿Cuántas etiquetas de producto? (1 por unidad)', current.qty||1);
   if(n===null)return; printItems(current, Math.max(1,+n||1));
 });
-$('#print-bulk').addEventListener('click',()=>{if(current)printBulk(current,2);});
 $('#wiz-print').addEventListener('click',()=>{
-  const d={brand:$('#n-brand').value.trim(),style:$('#n-style').value.trim(),size:$('#n-size').value.trim(),color:$('#n-color').value.trim(),upc:(nmode()==='noupc'?'':$('#n-upc').value.trim()),sku:newSku(),qty:+$('#n-qty').value||0};
+  const d={brand:$('#n-brand').value.trim(),style:$('#n-style').value.trim(),color:$('#n-color').value.trim(),size:$('#n-size').value.trim(),gender:$('#n-gender').value||'',cat:$('#n-cat').value.trim(),upc:(nmode()==='noupc'?'':$('#n-upc').value.trim()),sku:newSku(),qty:+$('#n-qty').value||0};
   printItems(d, Math.max(1,d.qty||1));
 });
-function renderBarcodes(d){
-  if(!(window.JsBarcode&&d.upc))return;
+function barFmt(u){u=(u||'').replace(/\D/g,'');if(u.length===12)return'UPC';if(u.length===13)return'EAN13';if(u.length===8)return'EAN8';return'CODE128';}
+function renderBarcodes(){
+  if(!window.JsBarcode)return;
   $('#printArea').querySelectorAll('svg.bc').forEach(svg=>{
+    const code=svg.dataset.code||'', fmt=svg.dataset.fmt||'CODE128';
+    if(!code){svg.remove();return;}
     let ok=false;
-    try{JsBarcode(svg,d.upc,{format:barFmt(d.upc),displayValue:false,margin:0,width:1.6,height:44});ok=true;}catch(e){}
-    if(!ok){try{JsBarcode(svg,d.upc,{format:'CODE128',displayValue:false,margin:0,width:1.4,height:44});ok=true;}catch(e){}}
-    if(!ok)svg.remove();
+    try{JsBarcode(svg,code,{format:fmt,displayValue:true,fontSize:20,textMargin:1,margin:0,height:60,width:2});ok=true;}catch(e){}
+    if(!ok){try{JsBarcode(svg,code,{format:'CODE128',displayValue:true,fontSize:18,textMargin:1,margin:0,height:60,width:1.6});ok=true;}catch(e){}}
+    if(ok){const w=parseFloat(svg.getAttribute('width')),h=parseFloat(svg.getAttribute('height'));if(w&&h){svg.setAttribute('viewBox','0 0 '+w+' '+h);svg.removeAttribute('width');svg.removeAttribute('height');svg.setAttribute('preserveAspectRatio','xMidYMid meet');}}
+    else svg.remove();
   });
+}
+function itemLabel(d){
+  const el=document.createElement('div');el.className='lbl';
+  const line1=[d.brand,d.style].filter(Boolean).join(' ')||d.sku||'—';
+  const line2=[d.color,d.size,d.gender,d.cat].filter(Boolean).join(' · ');
+  const hasUpc=!!(d.upc&&(''+d.upc).trim());
+  const code=hasUpc?(''+d.upc).trim():(d.sku||'');
+  el.innerHTML='<div class="l1">'+esc(line1)+'</div>'+(line2?'<div class="l2">'+esc(line2)+'</div>':'');
+  if(code){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('class','bc');svg.dataset.code=code;svg.dataset.fmt=hasUpc?barFmt(d.upc):'CODE128';el.appendChild(svg);}
+  return el;
 }
 function printItems(d,count){
   count=Math.max(1,count|0);const pa=$('#printArea');pa.innerHTML='';
   for(let i=0;i<count;i++)pa.appendChild(itemLabel(d));
-  renderBarcodes(d);setTimeout(()=>window.print(),150);
+  renderBarcodes();setTimeout(()=>window.print(),160);
 }
-function printBulk(d,count){
-  count=Math.max(1,count|0);const pa=$('#printArea');pa.innerHTML='';
-  for(let i=0;i<count;i++)pa.appendChild(bulkLabel(d));
-  renderBarcodes(d);setTimeout(()=>window.print(),150);
-}
-function barFmt(u){u=(u||'').replace(/\D/g,'');if(u.length===12)return'UPC';if(u.length===13)return'EAN13';if(u.length===8)return'EAN8';return'CODE128';}
-function itemLabel(d){const el=document.createElement('div');el.className='lbl';
-  el.innerHTML=`<div class="l"><div class="b1">${esc(d.brand)} ${esc(d.style)}</div>
-    <div class="b2">Talla ${esc(d.size||'-')} · ${esc(d.color||'-')}</div>
-    <div class="b3">${esc(d.sku)}</div></div>
-    <div class="r">${d.upc?'<svg class="bc"></svg><div class="u">'+esc(d.upc)+'</div>':'<div class="u" style="font-size:3mm">'+esc(d.sku)+'</div>'}</div>`;
-  return el;}
-function bulkLabel(d){const el=document.createElement('div');el.className='lbl bulk';
-  el.innerHTML=`<div class="l"><div class="cap">Resumen del bulto</div>
-    <div class="b1">${esc(d.brand)} ${esc(d.style)}</div>
-    <div class="b2">Talla ${esc(d.size||'-')} · ${esc(d.color||'-')}</div>
-    <div class="b3">${esc(d.sku)}${d.upc?(' · '+esc(d.upc)):''}</div></div>
-    <div class="r"><div class="cap">Piezas</div><div class="big">${d.qty??0}</div></div>`;
-  return el;}
 
 /* =================== UTIL =================== */
 function esc(s){return (s==null?'':(''+s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
