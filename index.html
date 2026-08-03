@@ -111,6 +111,7 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
 .res .t b{font-size:14px;color:var(--navy);display:block}
 .res .t span{font-size:11.5px;color:var(--slate)}
 .res .q{font-weight:900;color:var(--navy);font-size:15px}
+.res .q.g{color:var(--green)}.res .q.r{color:var(--red)}
 .list{display:flex;flex-direction:column;gap:8px}
 /* toast */
 #toast{position:fixed;left:50%;bottom:calc(20px + var(--safe-b));transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;padding:12px 18px;border-radius:14px;font-size:14px;font-weight:700;opacity:0;transition:.25s;z-index:60;box-shadow:0 12px 30px -10px rgba(0,0,0,.5);max-width:90%;text-align:center}
@@ -172,7 +173,17 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
       <div class="stat"><b id="st-prods">0</b><span>productos en la base</span></div>
       <div class="stat"><b id="st-units">0</b><span>unidades totales</span></div>
     </div>
-    <button class="btn ghost block" id="admin-sync" style="margin-top:2px">⚙️ Sincronizar catálogo a la base</button>
+    <button class="btn ghost block" id="home-hist" style="margin-top:2px">📋 Historial de cargas (quién y cuándo)</button>
+    <button class="btn ghost block" id="admin-sync">⚙️ Sincronizar catálogo a la base</button>
+  </div>
+</section>
+
+<!-- ============ HISTORIAL ============ -->
+<section class="screen" id="s-hist">
+  <div class="top"><button class="bk" data-back>‹</button><h1>Historial de cargas</h1></div>
+  <div class="body">
+    <p class="muted" style="margin:0">Cada entrada, salida, corrección o producto nuevo — con quién lo hizo y a qué hora.</p>
+    <div class="list" id="histlist"></div>
   </div>
 </section>
 
@@ -343,6 +354,7 @@ const sbHeaders=(extra={})=>Object.assign({apikey:SB_KEY,Authorization:'Bearer '
 function localDB(){try{return JSON.parse(localStorage.getItem('wt_local')||'null')}catch(e){return null}}
 function saveLocal(rows){localStorage.setItem('wt_local',JSON.stringify(rows))}
 function seedLocalIfEmpty(){if(!localDB())saveLocal(CATALOG.map(c=>Object.assign({},c)))}
+function logLocalMove(sku,delta,kind){try{const m=JSON.parse(localStorage.getItem('wt_moves')||'[]');m.push({sku:sku,delta:delta,kind:kind,who:WHO,ts:new Date().toISOString()});localStorage.setItem('wt_moves',JSON.stringify(m.slice(-1000)));}catch(e){}}
 
 const DB={
   async ping(){
@@ -368,7 +380,7 @@ const DB={
       const r=await fetch(SB_URL+'/rest/v1/rpc/wt_adjust_qty',{method:'POST',headers:sbHeaders(),body:JSON.stringify({p_sku:sku,p_delta:delta,p_kind:kind,p_who:WHO})});
       if(!r.ok)throw new Error(await r.text());return await r.json();
     }
-    const rows=localDB()||[];const d=rows.find(x=>x.sku===sku);if(!d)throw new Error('no existe');d.qty=Math.max(0,(+d.qty||0)+delta);saveLocal(rows);return d.qty;
+    const rows=localDB()||[];const d=rows.find(x=>x.sku===sku);if(!d)throw new Error('no existe');d.qty=Math.max(0,(+d.qty||0)+delta);saveLocal(rows);logLocalMove(sku,delta,kind);return d.qty;
   },
   async setUPC(sku,upc){
     if(MODE==='online'){
@@ -377,7 +389,7 @@ const DB={
       fetch(SB_URL+'/rest/v1/wt_movements',{method:'POST',headers:sbHeaders(),body:JSON.stringify({sku:sku,delta:0,kind:'upc',who:WHO})});
       return;
     }
-    const rows=localDB()||[];const d=rows.find(x=>x.sku===sku);if(d){d.upc=upc;saveLocal(rows)}
+    const rows=localDB()||[];const d=rows.find(x=>x.sku===sku);if(d){d.upc=upc;saveLocal(rows);logLocalMove(sku,0,'upc');}
   },
   async setImg(sku,img){
     if(MODE==='online'){
@@ -393,7 +405,16 @@ const DB={
       fetch(SB_URL+'/rest/v1/wt_movements',{method:'POST',headers:sbHeaders(),body:JSON.stringify({sku:o.sku,delta:o.qty,kind:'nuevo',who:WHO})});
       return;
     }
-    const rows=localDB()||[];rows.unshift(o);saveLocal(rows);
+    const rows=localDB()||[];rows.unshift(o);saveLocal(rows);logLocalMove(o.sku,o.qty,'nuevo');
+  },
+  async movements(limit){
+    limit=limit||200;
+    if(MODE==='online'){
+      const r=await fetch(SB_URL+'/rest/v1/wt_movements?select=*&order=ts.desc&limit='+limit,{headers:sbHeaders()});
+      return r.ok?await r.json():[];
+    }
+    let m=[];try{m=JSON.parse(localStorage.getItem('wt_moves')||'[]');}catch(e){}
+    return m.slice().reverse().slice(0,limit);
   },
   async seed(rows){
     if(MODE!=='online'){saveLocal(rows.map(r=>Object.assign({},r)));return rows.length}
@@ -467,6 +488,29 @@ $('#admin-sync').addEventListener('click',async()=>{
   try{const n=await DB.seed(CATALOG);toast('Catálogo sincronizado: '+n,'ok');refreshHome();}
   catch(e){toast('Error al sincronizar: '+String(e).slice(0,80),'err')}
 });
+
+/* =================== HISTORIAL =================== */
+const KINDLBL={entrada:'Entrada',salida:'Salida',ajuste:'Corrección',nuevo:'Nuevo',upc:'Asignó UPC'};
+function fmtTs(ts){try{return new Date(ts).toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});}catch(e){return ''+(ts||'');}}
+$('#home-hist').addEventListener('click',async()=>{
+  go('s-hist');
+  $('#histlist').innerHTML='<p class="muted" style="text-align:center;padding:24px">Cargando…</p>';
+  try{const ms=await DB.movements(200);renderHistory(ms);}
+  catch(e){$('#histlist').innerHTML='<p class="muted" style="text-align:center;padding:24px">No se pudo cargar el historial.</p>';}
+});
+function renderHistory(ms){
+  if(!ms||!ms.length){$('#histlist').innerHTML='<p class="muted" style="text-align:center;padding:30px">Sin movimientos todavía. Cada carga aparecerá aquí con quién y cuándo.</p>';return;}
+  $('#histlist').innerHTML=ms.map(m=>{
+    const p=CATALOG.find(x=>x.sku===m.sku)||{};
+    const name=[p.brand,p.style].filter(Boolean).join(' ')||m.sku;
+    const extra=[p.color,p.size].filter(Boolean).join(' · ');
+    const d=+m.delta||0,sign=d>0?'+':'',cls=d>0?'g':(d<0?'r':'');
+    const badge=m.kind==='upc'?'🏷️':(m.kind==='nuevo'?('+'+d):(sign+d));
+    const k=KINDLBL[m.kind]||m.kind||'';
+    return '<div class="res"><div class="q '+cls+'" style="min-width:46px;text-align:center">'+esc(badge)+'</div>'
+     +'<div class="t"><b>'+esc(name)+'</b><span>'+(extra?esc(extra)+' · ':'')+esc(m.sku)+'<br>'+esc(k)+' · <b>'+esc(m.who||'—')+'</b> · '+esc(fmtTs(m.ts))+'</span></div></div>';
+  }).join('');
+}
 
 /* =================== SCAN (camera) =================== */
 let reader=null,camStream=null,scanPurpose='map',lastCode='';
