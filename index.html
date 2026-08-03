@@ -264,8 +264,8 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
     <div class="wstep" data-step="2">
       <h2>Marca y estilo</h2>
       <p class="sub">Con esto buscamos si ya tenemos el mismo estilo en otra talla.</p>
-      <label class="fld">Marca *</label><input class="in" id="n-brand" list="dl-brand" placeholder="Ej: Russell" autocapitalize="words">
-      <label class="fld">Estilo *</label><input class="in" id="n-style" placeholder="Ej: 998HBB1" autocapitalize="characters">
+      <label class="fld">Marca</label><input class="in" id="n-brand" list="dl-brand" placeholder="Ej: Russell" autocapitalize="words">
+      <label class="fld">Estilo</label><input class="in" id="n-style" placeholder="Ej: 998HBB1" autocapitalize="characters">
       <div class="imgnote" id="n-sibnote" style="display:none"></div>
     </div>
 
@@ -274,7 +274,7 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
       <h2>Color, talla, tipo y género</h2>
       <div class="row2">
         <div><label class="fld">Color</label><input class="in" id="n-color" list="dl-color" placeholder="Oxford"></div>
-        <div><label class="fld">Talla *</label><input class="in" id="n-size" placeholder="M" autocapitalize="characters"></div>
+        <div><label class="fld">Talla</label><input class="in" id="n-size" placeholder="M" autocapitalize="characters"></div>
       </div>
       <div class="row2">
         <div><label class="fld">Tipo (prenda)</label><input class="in" id="n-cat" list="dl-cat" placeholder="Polo, T-Shirt…"></div>
@@ -299,6 +299,7 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
     <!-- Step 5: Revisar + Cantidad -->
     <div class="wstep" data-step="5">
       <h2>Revisar y guardar</h2>
+      <p class="sub">Todos los campos son opcionales — guarda aunque falte info y complétala luego en el Excel.</p>
       <div class="rev">
         <div class="im" id="rev-img">📦</div>
         <div style="flex:1"><b id="rev-title" style="font-size:16px;color:var(--navy)">—</b><div class="muted" id="rev-sku"></div></div>
@@ -591,14 +592,14 @@ async function assignTo(prod,code){
 /* =================== NEW PRODUCT WIZARD =================== */
 const WSTEPS=['Código','Marca y estilo','Color y talla','Imagen','Revisar'];
 const WTOT=WSTEPS.length;
-let wstep=1, autoImg='';
+let wstep=1, autoImg='', wizNewId='';
 const nrm=s=>(s||'').toString().trim().toLowerCase();
 function nmode(){const on=$$('#n-mode button.on')[0];return on?on.dataset.nmode:'existing';}
 function setNMode(m){$$('#n-mode button').forEach(b=>b.classList.toggle('on',b.dataset.nmode===m));$('#n-upcwrap').style.display=m==='noupc'?'none':'block';}
 $$('#n-mode button').forEach(b=>b.addEventListener('click',()=>setNMode(b.dataset.nmode)));
 function setPreview(url){const im=$('#n-img');if(url){im.classList.add('has');im.textContent='';im.style.backgroundImage='url('+url+')';}else{im.classList.remove('has');im.style.backgroundImage='';im.textContent='📦';}$('#n-imgclear').style.display=photoData?'block':'none';}
 function resetNew(){photoData='';autoImg='';['n-upc','n-brand','n-style','n-color','n-size','n-cat'].forEach(id=>$('#'+id).value='');$('#n-gender').value='';$('#n-qty').value='1';$('#n-upcbadge').textContent='';$('#n-sibnote').style.display='none';$('#n-imgnote').style.display='none';setPreview('');setNMode('existing');}
-function openWizard(upc){resetNew();if(upc){$('#n-upc').value=upc;$('#n-upcbadge').textContent='✓ del escaneo';setNMode('existing');}go('s-new');showStep(1);}
+function openWizard(upc){resetNew();wizNewId=Date.now().toString(36).toUpperCase();if(upc){$('#n-upc').value=upc;$('#n-upcbadge').textContent='✓ del escaneo';setNMode('existing');}go('s-new');showStep(1);}
 function showStep(n){n=Math.max(1,Math.min(WTOT,n));wstep=n;
   $$('#s-new .wstep').forEach(s=>s.classList.toggle('on',+s.dataset.step===n));
   $('#wizfill').style.width=(n/WTOT*100)+'%';$('#wiz-cur').textContent=n;$('#wiz-tot').textContent=WTOT;$('#wiz-name').textContent=WSTEPS[n-1];
@@ -635,12 +636,10 @@ $('#n-imgclear').addEventListener('click',()=>{photoData='';computeParentImage()
 $('#n-scan').addEventListener('click',()=>goScan('new'));
 $('#nq-plus').addEventListener('click',()=>{$('#n-qty').value=(+$('#n-qty').value||0)+1;});
 $('#nq-minus').addEventListener('click',()=>{$('#n-qty').value=Math.max(0,(+$('#n-qty').value||0)-1);});
-function newSku(){const brand=$('#n-brand').value.trim(),style=$('#n-style').value.trim(),color=$('#n-color').value.trim(),size=$('#n-size').value.trim();return 'WT-'+slug(brand).slice(0,4).toUpperCase()+'-'+slug(style).toUpperCase()+'-'+(slug(color).slice(0,3).toUpperCase()||'NA')+'-'+(size.toUpperCase()||'NA');}
-function validStep(n){
-  if(n===2&&(!$('#n-brand').value.trim()||!$('#n-style').value.trim())){toast('Pon Marca y Estilo','err');return false;}
-  if(n===3&&!$('#n-size').value.trim()){toast('Pon la Talla','err');return false;}
-  return true;
-}
+function newSku(){const brand=$('#n-brand').value.trim(),style=$('#n-style').value.trim(),color=$('#n-color').value.trim(),size=$('#n-size').value.trim();
+  if(!brand&&!style)return 'WT-NUEVO-'+wizNewId;
+  return 'WT-'+(slug(brand).slice(0,4).toUpperCase()||'NA')+'-'+(slug(style).toUpperCase()||'NA')+'-'+(slug(color).slice(0,3).toUpperCase()||'NA')+'-'+(size.toUpperCase()||'NA');}
+function validStep(n){return true;} /* todos los campos opcionales — se completan luego en Excel */
 function buildReview(){
   const finalImg=photoData||autoImg;const ri=$('#rev-img');
   if(finalImg){ri.style.backgroundImage='url('+finalImg+')';ri.textContent='';}else{ri.style.backgroundImage='';ri.textContent='📦';}
@@ -655,7 +654,6 @@ $('#wiz-prev').addEventListener('click',()=>showStep(wstep-1));
 $('#wiz-x').addEventListener('click',()=>{if(wstep>1)showStep(wstep-1);else back();});
 $('#wiz-save').addEventListener('click',async()=>{
   const brand=$('#n-brand').value.trim(),style=$('#n-style').value.trim();
-  if(!brand||!style){showStep(2);toast('Falta Marca/Estilo','err');return;}
   const color=$('#n-color').value.trim(),size=$('#n-size').value.trim();
   const upc=nmode()==='noupc'?'':$('#n-upc').value.trim();
   const sku=newSku();
@@ -677,7 +675,6 @@ $('#print-lbl').addEventListener('click',()=>{
 $('#print-bulk').addEventListener('click',()=>{if(current)printBulk(current,2);});
 $('#wiz-print').addEventListener('click',()=>{
   const d={brand:$('#n-brand').value.trim(),style:$('#n-style').value.trim(),size:$('#n-size').value.trim(),color:$('#n-color').value.trim(),upc:(nmode()==='noupc'?'':$('#n-upc').value.trim()),sku:newSku(),qty:+$('#n-qty').value||0};
-  if(!d.brand||!d.style){toast('Falta Marca/Estilo','err');return;}
   printItems(d, Math.max(1,d.qty||1));
 });
 function renderBarcodes(d){
