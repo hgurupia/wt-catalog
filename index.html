@@ -178,6 +178,7 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
     <button class="big-btn scan" id="home-scan"><span class="ic">📷</span><span>Escanear producto<span class="cap">Lee el UPC y lo busca en la base</span></span></button>
     <button class="big-btn search" id="home-search"><span class="ic">🔎</span><span>Buscar por nombre / SKU<span class="cap">Cuando no tiene código de barras</span></span></button>
     <button class="big-btn newp" id="home-new"><span class="ic">➕</span><span>Producto nuevo (foto)<span class="cap">No está en la base todavía</span></span></button>
+    <button class="big-btn" id="home-ocr" style="background:linear-gradient(135deg,#6b46c1,#8b5cf6)"><span class="ic">🏷️</span><span>Leer etiqueta escrita a mano<span class="cap">Foto de la caja → texto → revisar → subir</span></span></button>
     <div class="grid2">
       <div class="stat" id="stat-prods" style="cursor:pointer"><b id="st-prods">0</b><span>productos · toca para ver ▸</span></div>
       <div class="stat" id="stat-units" style="cursor:pointer"><b id="st-units">0</b><span>unidades · toca para ver ▸</span></div>
@@ -194,6 +195,35 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
   <div class="body">
     <p class="muted" style="margin:0">Cada entrada, salida, corrección o producto nuevo — con quién lo hizo y a qué hora.</p>
     <div class="list" id="histlist"></div>
+  </div>
+</section>
+
+<!-- ============ OCR ETIQUETA MANUSCRITA ============ -->
+<section class="screen" id="s-ocr">
+  <div class="top"><button class="bk" data-back>‹</button><h1>Leer etiqueta (foto)</h1></div>
+  <div class="body">
+    <div class="card" style="text-align:center">
+      <div class="prod-img ph" id="ocr-img" style="aspect-ratio:16/9">🏷️</div>
+      <div style="height:10px"></div>
+      <button class="btn b block" id="ocr-photo">📷 Tomar foto de la etiqueta</button>
+      <button class="btn ghost block" id="ocr-upload" style="margin-top:8px">🖼️ Subir foto</button>
+      <input type="file" id="ocr-file" accept="image/*" capture="environment" style="display:none">
+      <input type="file" id="ocr-file2" accept="image/*" style="display:none">
+    </div>
+    <p class="muted" id="ocr-status" style="text-align:center;margin:0"></p>
+    <div id="ocr-form" style="display:none">
+      <div class="imgnote" id="ocr-note" style="display:none"></div>
+      <div class="card">
+        <div class="row2"><div><label class="fld">Marca</label><input class="in" id="o-brand" list="dl-brand"></div><div><label class="fld">Estilo</label><input class="in" id="o-style"></div></div>
+        <div style="height:8px"></div>
+        <div class="row2"><div><label class="fld">Color</label><input class="in" id="o-color" list="dl-color"></div><div><label class="fld">Talla</label><input class="in" id="o-size"></div></div>
+        <div style="height:8px"></div>
+        <div class="row2"><div><label class="fld">Tipo</label><input class="in" id="o-cat" list="dl-cat"></div><div><label class="fld">Género</label><select class="in" id="o-gender"><option value="">—</option><option>Men</option><option>Ladies</option><option>Youth</option><option>Kid</option><option>Baby</option><option>Unisex</option></select></div></div>
+        <div style="height:8px"></div>
+        <div class="row2"><div><label class="fld">UPC</label><input class="in" id="o-upc" inputmode="numeric"></div><div><label class="fld">Cantidad</label><input class="in" id="o-qty" type="number" inputmode="numeric" value="0"></div></div>
+      </div>
+      <button class="btn o block" id="ocr-save">✓ Subir al inventario</button>
+    </div>
   </div>
 </section>
 
@@ -673,6 +703,39 @@ $('#bulk-cat').addEventListener('click',()=>bulkEdit('cat','Tipo'));
 $('#bulk-gender').addEventListener('click',()=>bulkEdit('gender','Género'));
 $('#bulk-brand').addEventListener('click',()=>bulkEdit('brand','Marca'));
 $('#bulk-color').addEventListener('click',()=>bulkEdit('color','Color'));
+
+/* =================== OCR ETIQUETA MANUSCRITA =================== */
+const OCR_URL=SB_URL+'/functions/v1/ocr-label';
+$('#home-ocr').addEventListener('click',()=>{go('s-ocr');$('#ocr-form').style.display='none';$('#ocr-status').textContent='Toma o sube la foto de la etiqueta.';const im=$('#ocr-img');im.classList.add('ph');im.style.backgroundImage='';im.textContent='🏷️';});
+$('#ocr-photo').addEventListener('click',()=>$('#ocr-file').click());
+$('#ocr-upload').addEventListener('click',()=>$('#ocr-file2').click());
+$('#ocr-file').addEventListener('change',e=>{ocrHandle(e.target.files[0]);e.target.value='';});
+$('#ocr-file2').addEventListener('change',e=>{ocrHandle(e.target.files[0]);e.target.value='';});
+function ocrHandle(f){if(!f)return;const rd=new FileReader();rd.onload=()=>{const img=new Image();img.onload=async()=>{
+  const sc=Math.min(1,1400/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=img.width*sc;c.height=img.height*sc;c.getContext('2d').drawImage(img,0,0,c.width,c.height);const data=c.toDataURL('image/jpeg',.85);
+  const im=$('#ocr-img');im.classList.remove('ph');im.textContent='';im.style.backgroundImage='url('+data+')';im.style.backgroundSize='cover';im.style.backgroundPosition='center';
+  $('#ocr-status').textContent='Leyendo la etiqueta con IA…';$('#ocr-form').style.display='none';
+  try{
+    const r=await fetch(OCR_URL,{method:'POST',headers:{'content-type':'application/json','x-gate':SB_KEY},body:JSON.stringify({image:data,media_type:'image/jpeg'})});
+    const j=await r.json().catch(()=>({error:'respuesta inválida'}));
+    if(!r.ok||j.error){$('#ocr-status').textContent='No se pudo leer: '+(j.error||('HTTP '+r.status))+'. (¿Ya desplegaste la función y su llave?)';return;}
+    const F=j.fields||{};
+    $('#o-brand').value=F.brand||'';$('#o-style').value=F.style||'';$('#o-color').value=F.color||'';$('#o-size').value=F.size||'';$('#o-cat').value=F.cat||'';$('#o-gender').value=F.gender||'';$('#o-upc').value=(''+(F.upc||'')).replace(/\D/g,'');$('#o-qty').value=+F.qty||0;
+    if(F.raw_text){$('#ocr-note').textContent='📝 Leído: '+(''+F.raw_text).slice(0,140);$('#ocr-note').style.display='block';}else $('#ocr-note').style.display='none';
+    $('#ocr-status').textContent='✓ Listo — revisa y corrige antes de subir:';$('#ocr-form').style.display='block';
+  }catch(e){$('#ocr-status').textContent='Error de conexión con el lector: '+String(e).slice(0,80);}
+};img.src=rd.result;};rd.readAsDataURL(f);}
+$('#ocr-save').addEventListener('click',async()=>{
+  const brand=$('#o-brand').value.trim(),style=$('#o-style').value.trim(),color=$('#o-color').value.trim(),size=$('#o-size').value.trim(),cat=$('#o-cat').value.trim(),gender=$('#o-gender').value,upc=$('#o-upc').value.trim().replace(/\D/g,''),qty=+$('#o-qty').value||0;
+  if(upc){try{const m=await DB.byUPC(upc);if(m.length){toast('Ese UPC ya existe — ábrelo para sumar','ok');openProduct(m[0]);return;}}catch(e){}}
+  const sku='WT-'+(slug(brand).slice(0,4).toUpperCase()||'NA')+'-'+(slug(style).toUpperCase()||'NA')+'-'+(slug(color).slice(0,3).toUpperCase()||'NA')+'-'+(size.toUpperCase()||'NA');
+  const o={sku,upc,brand,style,color,cc:'',size,cat,gender,qty,cost:0,img:'',title:[brand,style,color,size].filter(Boolean).join(' ')};
+  try{const ex=await DB.bySku(sku);
+    if(ex){await DB.adjust(sku,qty,'entrada');toast('Sumado a '+sku,'ok');}
+    else{await DB.create(o);CATALOG.unshift(o);toast('Creado '+sku,'ok');}
+    nav=['s-home'];go('s-home');
+  }catch(e){toast('Error: '+String(e).slice(0,80),'err');}
+});
 
 /* =================== SCAN (camera) =================== */
 let reader=null,camStream=null,scanPurpose='map',lastCode='';
