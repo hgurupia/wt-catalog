@@ -119,6 +119,13 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
 #toast{position:fixed;left:50%;bottom:calc(20px + var(--safe-b));transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;padding:12px 18px;border-radius:14px;font-size:14px;font-weight:700;opacity:0;transition:.25s;z-index:60;box-shadow:0 12px 30px -10px rgba(0,0,0,.5);max-width:90%;text-align:center}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 #toast.ok{background:var(--green)}#toast.err{background:var(--red)}
+/* dialog (confirm/prompt propio, funciona en todo móvil) */
+.ovl{position:fixed;inset:0;background:rgba(13,47,75,.55);z-index:90;display:none;align-items:center;justify-content:center;padding:22px}
+.ovl.on{display:flex}
+.dlg{background:#fff;border-radius:18px;padding:20px;max-width:400px;width:100%;box-shadow:0 20px 50px -10px rgba(0,0,0,.5)}
+.dlg h3{margin:0 0 8px;font-size:18px;color:var(--navy);font-weight:800}
+.dlg p{margin:0 0 14px;font-size:14px;color:var(--slate);line-height:1.45;white-space:pre-line}
+.dlg-act{display:flex;gap:10px}.dlg-act .btn{flex:1}
 /* lock / setup */
 .center{flex:1;display:flex;flex-direction:column;justify-content:center;gap:16px;padding:24px}
 /* print labels */
@@ -372,6 +379,15 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
 
 </div>
 <div id="toast"></div>
+<div class="ovl" id="dlg"><div class="dlg">
+  <h3 id="dlg-title">—</h3>
+  <p id="dlg-msg"></p>
+  <input class="in" id="dlg-input" style="display:none;margin-bottom:14px">
+  <div class="dlg-act">
+    <button class="btn ghost" id="dlg-cancel">Cancelar</button>
+    <button class="btn n" id="dlg-ok">Aceptar</button>
+  </div>
+</div></div>
 <div id="printArea"></div>
 
 <script>
@@ -520,6 +536,15 @@ $$('[data-back]').forEach(b=>b.addEventListener('click',back));
 
 /* =================== TOAST =================== */
 let tT;function toast(m,kind){const t=$('#toast');t.textContent=m;t.className='on'+(kind?' '+kind:'');clearTimeout(tT);tT=setTimeout(()=>t.className='',kind==='err'?3200:1900);}
+/* ---- diálogo propio (reemplaza confirm/prompt del navegador) ---- */
+let dlgRes=null;
+function closeDlg(v){$('#dlg').classList.remove('on');const r=dlgRes;dlgRes=null;if(r)r(v);}
+$('#dlg-cancel').addEventListener('click',()=>closeDlg(null));
+$('#dlg-ok').addEventListener('click',()=>{const inp=$('#dlg-input');closeDlg(inp.style.display==='none'?true:inp.value);});
+$('#dlg').addEventListener('click',e=>{if(e.target.id==='dlg')closeDlg(null);});
+$('#dlg-input').addEventListener('keydown',e=>{if(e.key==='Enter'){const inp=$('#dlg-input');closeDlg(inp.value);}});
+function uiConfirm(title,msg,opts){opts=opts||{};return new Promise(r=>{dlgRes=v=>r(v===true);$('#dlg-title').textContent=title;$('#dlg-msg').textContent=msg||'';$('#dlg-input').style.display='none';$('#dlg-cancel').textContent=opts.cancelText||'Cancelar';$('#dlg-ok').textContent=opts.okText||'Aceptar';$('#dlg-ok').className='btn '+(opts.danger?'r':'n');$('#dlg').classList.add('on');});}
+function uiPrompt(title,msg,def){return new Promise(r=>{dlgRes=v=>r(v);$('#dlg-title').textContent=title;$('#dlg-msg').textContent=msg||'';const inp=$('#dlg-input');inp.style.display='block';inp.value=(def==null?'':def);$('#dlg-cancel').textContent='Cancelar';$('#dlg-ok').textContent='Aceptar';$('#dlg-ok').className='btn n';$('#dlg').classList.add('on');setTimeout(()=>{inp.focus();inp.select&&inp.select();},120);});}
 
 /* =================== LOCK / ENTER =================== */
 DB.ping().then(()=>{
@@ -552,7 +577,7 @@ $('#home-search').addEventListener('click',()=>{pendingAssign='';$('#searchtitle
 $('#home-new').addEventListener('click',()=>openWizard(''));
 $('#admin-sync').addEventListener('click',async()=>{
   if(MODE!=='online'){toast('Sin base compartida: primero corre el SQL y reconecta','err');return;}
-  if(!confirm('¿Cargar los '+CATALOG.length+' productos del catálogo en la base compartida?\n\nSolo agrega los que falten — NUNCA toca las cantidades ya cargadas. Seguro de repetir.'))return;
+  if(!(await uiConfirm('Sincronizar catálogo','¿Cargar los '+CATALOG.length+' productos en la base compartida?\n\nSolo agrega los que falten — NUNCA toca las cantidades ya cargadas.',{okText:'Sí, sincronizar'})))return;
   try{const n=await DB.seed(CATALOG);toast('Catálogo sincronizado: '+n,'ok');refreshHome();}
   catch(e){toast('Error al sincronizar: '+String(e).slice(0,80),'err')}
 });
@@ -629,17 +654,20 @@ $('#inv-selmode').addEventListener('click',()=>{
 });
 $('#bulk-del').addEventListener('click',async()=>{
   const skus=[...INVSEL];if(!skus.length){toast('Selecciona productos','err');return;}
-  if(!confirm('¿ELIMINAR '+skus.length+' productos de la base? Lo verán borrado TODOS. No se puede deshacer.'))return;
+  const ok1=await uiConfirm('¿Eliminar '+skus.length+' productos?','Vas a eliminar '+skus.length+' productos seleccionados de la base.',{danger:true,okText:'Sí, continuar'});
+  if(!ok1)return;
+  const ok2=await uiConfirm('⚠️ Confirmar borrado','Los verán borrados TODOS y NO se puede deshacer.\n\n¿Eliminar los '+skus.length+' definitivamente?',{danger:true,okText:'Eliminar definitivamente'});
+  if(!ok2)return;
   try{await DB.removeMany(skus);const s=new Set(skus);INVROWS=INVROWS.filter(d=>!s.has(d.sku));for(let i=CATALOG.length-1;i>=0;i--)if(s.has(CATALOG[i].sku))CATALOG.splice(i,1);INVSEL.clear();$('#bulk-n').textContent='0';toast(skus.length+' eliminados','ok');applyInv();}
   catch(e){toast('Error: '+String(e).slice(0,80),'err');}
 });
-function bulkEdit(field,label){
+async function bulkEdit(field,label){
   const skus=[...INVSEL];if(!skus.length){toast('Selecciona productos','err');return;}
-  const val=prompt('Nuevo '+label+' para '+skus.length+' productos:');
+  const val=await uiPrompt('Cambiar '+label,'Nuevo '+label+' para '+skus.length+' productos:');
   if(val===null)return;
   const obj={};obj[field]=val.trim();
-  DB.updateMany(skus,obj).then(()=>{const s=new Set(skus);INVROWS.forEach(d=>{if(s.has(d.sku))Object.assign(d,obj);});CATALOG.forEach(d=>{if(s.has(d.sku))Object.assign(d,obj);});toast(label+' actualizado en '+skus.length,'ok');applyInv();})
-    .catch(e=>toast('Error: '+String(e).slice(0,80),'err'));
+  try{await DB.updateMany(skus,obj);const s=new Set(skus);INVROWS.forEach(d=>{if(s.has(d.sku))Object.assign(d,obj);});CATALOG.forEach(d=>{if(s.has(d.sku))Object.assign(d,obj);});toast(label+' actualizado en '+skus.length,'ok');applyInv();}
+  catch(e){toast('Error: '+String(e).slice(0,80),'err');}
 }
 $('#bulk-cat').addEventListener('click',()=>bulkEdit('cat','Tipo'));
 $('#bulk-gender').addEventListener('click',()=>bulkEdit('gender','Género'));
@@ -675,15 +703,15 @@ async function onCode(code){
   else if(matches.length>1){stopCam();showMatches(matches,code);}
   else{stopCam();noMatch(code);}
 }
-$('#scan-manual').addEventListener('click',()=>{const c=prompt('Escribe el UPC:');if(c)onCode(c.trim());});
+$('#scan-manual').addEventListener('click',async()=>{const c=await uiPrompt('Escribir UPC','Escribe o pega el código UPC:');if(c)onCode(c.trim());});
 
 function showMatches(matches,code){
   $('#searchtitle').textContent='Varios con ese UPC';
   go('s-search');$('#q').value=code;$('#q').disabled=false;
   renderResults(matches);
 }
-function noMatch(code){
-  const c=confirm('El UPC '+code+' no está en la base.\n\nAceptar = buscar el producto para asignarle este UPC (Opción 2).\nCancelar = crear producto nuevo con este UPC (Opción 3).');
+async function noMatch(code){
+  const c=await uiConfirm('UPC no está en la base','El UPC '+code+' no existe todavía.\n\n¿Qué quieres hacer?',{okText:'Buscar y asignarlo',cancelText:'Crear producto nuevo'});
   if(c){pendingAssign=code;$('#searchtitle').textContent='Elige el producto para el UPC '+code;$('#q').value='';$('#results').innerHTML='';go('s-search');}
   else{openWizard(code);}
 }
@@ -745,7 +773,7 @@ $('#do-in').addEventListener('click',()=>move(moveN,'entrada'));
 $('#do-out').addEventListener('click',()=>move(-moveN,'salida'));
 $('#fix-qty').addEventListener('click',async()=>{
   if(!current)return;
-  const v=prompt('Cantidad EXACTA en inventario para '+current.sku+' (corrige un error de carga):',current.qty);
+  const v=await uiPrompt('Corregir cantidad','Cantidad EXACTA en inventario para '+current.sku+':',current.qty);
   if(v===null)return;const nq=Math.max(0,Math.floor(+v||0));const delta=nq-(+current.qty||0);
   if(delta===0){toast('Sin cambios');return;}
   try{const r=await DB.adjust(current.sku,delta,'ajuste');current.qty=r;updDelta();toast('Corregido: '+current.sku+' = '+r,'ok');}
@@ -762,7 +790,11 @@ $('#edit-save').addEventListener('click',async()=>{
 });
 $('#del-prod').addEventListener('click',async()=>{
   if(!current)return;
-  if(!confirm('¿ELIMINAR "'+[current.brand,current.style].filter(Boolean).join(' ')+'" ('+current.sku+') de la base?\nLo verán borrado TODOS. No se puede deshacer.'))return;
+  const name=[current.brand,current.style].filter(Boolean).join(' ')||current.sku;
+  const ok1=await uiConfirm('¿Eliminar producto?','Vas a eliminar:\n\n'+name+'\n('+current.sku+')',{danger:true,okText:'Sí, continuar'});
+  if(!ok1)return;
+  const ok2=await uiConfirm('⚠️ Confirmar borrado','Esto lo verán borrado TODOS y NO se puede deshacer.\n\n¿Eliminar definitivamente?',{danger:true,okText:'Eliminar definitivamente'});
+  if(!ok2)return;
   try{await DB.remove(current.sku);const i=CATALOG.findIndex(x=>x.sku===current.sku);if(i>=0)CATALOG.splice(i,1);toast('Producto eliminado','ok');nav=['s-home'];go('s-home');}
   catch(e){toast('Error: '+String(e).slice(0,80),'err');}
 });
@@ -849,16 +881,16 @@ $('#wiz-save').addEventListener('click',async()=>{
   const o={sku,upc,brand,style,color,cc:'',size,cat:$('#n-cat').value.trim(),gender:$('#n-gender').value||'',qty:+$('#n-qty').value||0,cost:0,img:(photoData||autoImg||''),title:[brand,style,color,size].filter(Boolean).join(' ')};
   try{
     const exists=await DB.bySku(sku);
-    if(exists){if(!confirm('Ya existe '+sku+'. ¿Sumar '+o.qty+' a su cantidad?'))return;await DB.adjust(sku,o.qty,'entrada');toast('Sumado a '+sku,'ok');}
+    if(exists){if(!(await uiConfirm('Ya existe','Ya existe '+sku+'.\n¿Sumar '+o.qty+' a su cantidad?',{okText:'Sí, sumar'})))return;await DB.adjust(sku,o.qty,'entrada');toast('Sumado a '+sku,'ok');}
     else{await DB.create(o);CATALOG.unshift(o);toast('Creado '+sku,'ok');}
     resetNew();nav=['s-home'];go('s-home');
   }catch(e){toast('Error: '+String(e).slice(0,90),'err')}
 });
 
 /* =================== LABEL PRINT (90×30 mm) =================== */
-$('#print-lbl').addEventListener('click',()=>{
+$('#print-lbl').addEventListener('click',async()=>{
   if(!current)return;
-  const n=prompt('¿Cuántas etiquetas de producto? (1 por unidad)', current.qty||1);
+  const n=await uiPrompt('Imprimir etiquetas','¿Cuántas etiquetas? (1 por unidad)', current.qty||1);
   if(n===null)return; printItems(current, Math.max(1,+n||1));
 });
 $('#wiz-print').addEventListener('click',()=>{
