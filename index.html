@@ -265,14 +265,17 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
       <div class="imgnote" id="n-sibnote" style="display:none"></div>
     </div>
 
-    <!-- Step 3: Color, Talla, Tipo -->
+    <!-- Step 3: Color, Talla, Tipo, Género -->
     <div class="wstep" data-step="3">
-      <h2>Color, talla y tipo</h2>
+      <h2>Color, talla, tipo y género</h2>
       <div class="row2">
         <div><label class="fld">Color</label><input class="in" id="n-color" list="dl-color" placeholder="Oxford"></div>
         <div><label class="fld">Talla *</label><input class="in" id="n-size" placeholder="M" autocapitalize="characters"></div>
       </div>
-      <label class="fld">Tipo</label><input class="in" id="n-cat" list="dl-cat" placeholder="Polo, T-Shirt, Sweatshirt…">
+      <div class="row2">
+        <div><label class="fld">Tipo (prenda)</label><input class="in" id="n-cat" list="dl-cat" placeholder="Polo, T-Shirt…"></div>
+        <div><label class="fld">Género</label><select class="in" id="n-gender"><option value="">—</option><option>Men</option><option>Ladies</option><option>Youth</option><option>Kid</option><option>Baby</option><option>Unisex</option></select></div>
+      </div>
     </div>
 
     <!-- Step 4: Imagen -->
@@ -576,7 +579,7 @@ function nmode(){const on=$$('#n-mode button.on')[0];return on?on.dataset.nmode:
 function setNMode(m){$$('#n-mode button').forEach(b=>b.classList.toggle('on',b.dataset.nmode===m));$('#n-upcwrap').style.display=m==='noupc'?'none':'block';}
 $$('#n-mode button').forEach(b=>b.addEventListener('click',()=>setNMode(b.dataset.nmode)));
 function setPreview(url){const im=$('#n-img');if(url){im.classList.add('has');im.textContent='';im.style.backgroundImage='url('+url+')';}else{im.classList.remove('has');im.style.backgroundImage='';im.textContent='📦';}$('#n-imgclear').style.display=photoData?'block':'none';}
-function resetNew(){photoData='';autoImg='';['n-upc','n-brand','n-style','n-color','n-size','n-cat'].forEach(id=>$('#'+id).value='');$('#n-qty').value='1';$('#n-upcbadge').textContent='';$('#n-sibnote').style.display='none';$('#n-imgnote').style.display='none';setPreview('');setNMode('existing');}
+function resetNew(){photoData='';autoImg='';['n-upc','n-brand','n-style','n-color','n-size','n-cat'].forEach(id=>$('#'+id).value='');$('#n-gender').value='';$('#n-qty').value='1';$('#n-upcbadge').textContent='';$('#n-sibnote').style.display='none';$('#n-imgnote').style.display='none';setPreview('');setNMode('existing');}
 function openWizard(upc){resetNew();if(upc){$('#n-upc').value=upc;$('#n-upcbadge').textContent='✓ del escaneo';setNMode('existing');}go('s-new');showStep(1);}
 function showStep(n){n=Math.max(1,Math.min(WTOT,n));wstep=n;
   $$('#s-new .wstep').forEach(s=>s.classList.toggle('on',+s.dataset.step===n));
@@ -586,7 +589,7 @@ function showStep(n){n=Math.max(1,Math.min(WTOT,n));wstep=n;
   stepEnter(n);window.scrollTo(0,0);
 }
 function stepEnter(n){
-  if(n===3){const sib=firstSibling($('#n-brand').value,$('#n-style').value);if(sib&&!$('#n-cat').value&&sib.cat)$('#n-cat').value=sib.cat;}
+  if(n===3){const sib=firstSibling($('#n-brand').value,$('#n-style').value);if(sib){if(!$('#n-cat').value&&sib.cat)$('#n-cat').value=sib.cat;if(!$('#n-gender').value&&sib.gender)$('#n-gender').value=sib.gender;}}
   if(n===4)computeParentImage();
   if(n===5)buildReview();
 }
@@ -603,7 +606,7 @@ function computeParentImage(){
   if(sib){autoImg=sib.img;setPreview(sib.img);$('#n-imgnote').textContent='📸 Foto tomada de '+sib.from+'. Puedes reemplazarla.';$('#n-imgnote').style.display='block';}
   else{autoImg='';setPreview('');$('#n-imgnote').style.display='none';}
 }
-$('#n-style').addEventListener('input',()=>{const c=siblingCount($('#n-brand').value,$('#n-style').value);const el=$('#n-sibnote');if(c>0){el.textContent='✓ Ya tienes este estilo ('+c+' variante'+(c>1?'s':'')+') — traeremos foto y tipo.';el.style.display='block';}else el.style.display='none';});
+$('#n-style').addEventListener('input',()=>{const c=siblingCount($('#n-brand').value,$('#n-style').value);const el=$('#n-sibnote');if(c>0){el.textContent='✓ Ya tienes este estilo ('+c+' variante'+(c>1?'s':'')+') — traeremos foto, tipo y género.';el.style.display='block';}else el.style.display='none';});
 $('#n-brand').addEventListener('input',()=>$('#n-style').dispatchEvent(new Event('input')));
 function handleImgFile(f){if(!f)return;const rd=new FileReader();rd.onload=()=>{const img=new Image();img.onload=()=>{const sc=Math.min(1,900/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=img.width*sc;c.height=img.height*sc;c.getContext('2d').drawImage(img,0,0,c.width,c.height);photoData=c.toDataURL('image/jpeg',.82);$('#n-imgnote').style.display='none';setPreview(photoData);};img.src=rd.result;};rd.readAsDataURL(f);}
 $('#n-photo').addEventListener('click',()=>$('#n-file').click());
@@ -626,7 +629,7 @@ function buildReview(){
   $('#rev-title').textContent=[$('#n-brand').value.trim(),$('#n-style').value.trim()].filter(Boolean).join(' ')||'—';
   $('#rev-sku').textContent=newSku();
   const upc=nmode()==='noupc'?'':$('#n-upc').value.trim();
-  const rows=[['UPC',upc||'— sin UPC —'],['Color',$('#n-color').value.trim()||'—'],['Talla',$('#n-size').value.trim()||'—'],['Tipo',$('#n-cat').value.trim()||'—'],['Marca',$('#n-brand').value.trim()]];
+  const rows=[['UPC',upc||'— sin UPC —'],['Color',$('#n-color').value.trim()||'—'],['Talla',$('#n-size').value.trim()||'—'],['Tipo',$('#n-cat').value.trim()||'—'],['Género',$('#n-gender').value||'—'],['Marca',$('#n-brand').value.trim()]];
   $('#rev-list').innerHTML=rows.map(r=>'<div class="revrow"><span>'+r[0]+'</span><b>'+esc(r[1])+'</b></div>').join('');
 }
 $('#wiz-next').addEventListener('click',()=>{if(validStep(wstep))showStep(wstep+1);});
@@ -638,7 +641,7 @@ $('#wiz-save').addEventListener('click',async()=>{
   const color=$('#n-color').value.trim(),size=$('#n-size').value.trim();
   const upc=nmode()==='noupc'?'':$('#n-upc').value.trim();
   const sku=newSku();
-  const o={sku,upc,brand,style,color,cc:'',size,cat:$('#n-cat').value.trim(),gender:'',qty:+$('#n-qty').value||0,cost:0,img:(photoData||autoImg||''),title:[brand,style,color,size].filter(Boolean).join(' ')};
+  const o={sku,upc,brand,style,color,cc:'',size,cat:$('#n-cat').value.trim(),gender:$('#n-gender').value||'',qty:+$('#n-qty').value||0,cost:0,img:(photoData||autoImg||''),title:[brand,style,color,size].filter(Boolean).join(' ')};
   try{
     const exists=await DB.bySku(sku);
     if(exists){if(!confirm('Ya existe '+sku+'. ¿Sumar '+o.qty+' a su cantidad?'))return;await DB.adjust(sku,o.qty,'entrada');toast('Sumado a '+sku,'ok');}
