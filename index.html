@@ -293,6 +293,8 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
         <div style="height:6px"></div>
         <div class="row2"><div><label class="fld">Talla</label><input class="in" id="bm-size"></div><div><label class="fld">Cantidad</label><input class="in" id="bm-qty" type="number" inputmode="numeric" value="1"></div></div>
         <div style="height:6px"></div>
+        <div class="row2"><div><label class="fld">Tipo</label><input class="in" id="bm-cat" list="dl-cat" placeholder="Polo, Hoodie…"></div><div><label class="fld">Género</label><select class="in" id="bm-gender"><option value="">—</option><option>Men</option><option>Ladies</option><option>Youth</option><option>Kid</option><option>Baby</option><option>Unisex</option></select></div></div>
+        <div style="height:6px"></div>
         <div><label class="fld">UPC (opcional)</label><input class="in" id="bm-upc" inputmode="numeric"></div>
         <button class="btn o block" id="bm-add" style="margin-top:8px">Agregar a la caja</button>
       </div>
@@ -1051,11 +1053,15 @@ function renderBoxItems(){
   L.innerHTML='';
   items.forEach((it,idx)=>{
     const name=[it.brand,it.style,it.color,it.size].filter(Boolean).join(' ')||it.sku;
-    const el=document.createElement('div');el.style.cssText='display:flex;align-items:center;gap:8px;border-bottom:1px solid #eee;padding:7px 0';
+    const el=document.createElement('div');el.style.cssText='border:1px solid #e5e7eb;border-radius:10px;padding:8px;margin-bottom:8px';
     const sub=esc(it.sku)+(it.cc?(' · cód '+esc(it.cc)):'')+(it.upc?(' · UPC '+esc(it.upc)):' · sin UPC');
-    el.innerHTML='<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px">'+esc(name)+'</div><div class="muted" style="font-size:11px">'+sub+'</div></div><input class="in bi-qty" type="number" inputmode="numeric" style="width:64px;text-align:center" value="'+(+it.qty||0)+'"><button class="bi-del" style="border:none;background:#fdeaea;color:#c0392b;border-radius:8px;padding:6px 10px;font-weight:800">✕</button>';
+    el.innerHTML='<div style="display:flex;align-items:center;gap:8px"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px">'+esc(name)+'</div><div class="muted" style="font-size:11px">'+sub+'</div></div>'
+      +'<input class="in bi-qty" type="number" inputmode="numeric" style="width:56px;text-align:center" value="'+(+it.qty||0)+'"><button class="bi-del" style="border:none;background:#fdeaea;color:#c0392b;border-radius:8px;padding:6px 10px;font-weight:800">✕</button></div>'
+      +'<div class="row2" style="margin-top:6px"><input class="in bi-cat" list="dl-cat" placeholder="Tipo (Polo, Hoodie…)"><select class="in bi-gender"><option value="">Género —</option><option>Men</option><option>Ladies</option><option>Youth</option><option>Kid</option><option>Baby</option><option>Unisex</option></select></div>';
     el.querySelector('.bi-qty').addEventListener('input',e=>{curBox.items[idx].qty=Math.max(0,parseInt(e.target.value,10)||0);$('#b-pieces').textContent=boxPieces();refreshManifest();});
     el.querySelector('.bi-del').addEventListener('click',()=>{curBox.items.splice(idx,1);renderBoxItems();});
+    const cat=el.querySelector('.bi-cat');cat.value=it.cat||'';cat.addEventListener('input',e=>{curBox.items[idx].cat=e.target.value.trim();refreshManifest();});
+    const gen=el.querySelector('.bi-gender');gen.value=it.gender||'';gen.addEventListener('change',e=>{curBox.items[idx].gender=e.target.value;refreshManifest();});
     L.appendChild(el);
   });
   refreshManifest();
@@ -1090,14 +1096,14 @@ async function boxAdd(row){
 }
 $('#b-manual').addEventListener('click',()=>{
   const f=$('#b-manualform');const openIt=(f.style.display==='none');f.style.display=openIt?'block':'none';
-  if(openIt){['bm-brand','bm-style','bm-color','bm-cc','bm-size','bm-upc'].forEach(id=>$('#'+id).value='');$('#bm-qty').value=1;const q=$('#b-q').value.trim();if(q)$('#bm-style').value=q;}
+  if(openIt){['bm-brand','bm-style','bm-color','bm-cc','bm-size','bm-upc','bm-cat','bm-gender'].forEach(id=>$('#'+id).value='');$('#bm-qty').value=1;const q=$('#b-q').value.trim();if(q)$('#bm-style').value=q;}
 });
 $('#bm-add').addEventListener('click',()=>{
-  const brand=$('#bm-brand').value.trim(),style=$('#bm-style').value.trim(),color=$('#bm-color').value.trim(),cc=$('#bm-cc').value.trim().replace(/\D/g,''),size=$('#bm-size').value.trim(),upc=$('#bm-upc').value.trim().replace(/\D/g,''),qty=Math.max(1,+$('#bm-qty').value||1);
+  const brand=$('#bm-brand').value.trim(),style=$('#bm-style').value.trim(),color=$('#bm-color').value.trim(),cc=$('#bm-cc').value.trim().replace(/\D/g,''),size=$('#bm-size').value.trim(),cat=$('#bm-cat').value.trim(),gender=$('#bm-gender').value,upc=$('#bm-upc').value.trim().replace(/\D/g,''),qty=Math.max(1,+$('#bm-qty').value||1);
   if(!brand&&!style){toast('Pon al menos marca o estilo','err');return;}
   const sku='WT-'+(slug(brand).slice(0,4).toUpperCase()||'NA')+'-'+(slug(style).toUpperCase()||'NA')+'-'+(slug(color).slice(0,3).toUpperCase()||'NA')+'-'+(size.toUpperCase()||'NA');
   const ex=curBox.items.find(i=>i.sku===sku);
-  if(ex)ex.qty=(+ex.qty||0)+qty;else curBox.items.push({sku,upc,brand,style,color,cc,size,cat:'',gender:'',qty});
+  if(ex)ex.qty=(+ex.qty||0)+qty;else curBox.items.push({sku,upc,brand,style,color,cc,size,cat,gender,qty});
   $('#b-manualform').style.display='none';$('#b-q').value='';$('#b-results').innerHTML='';renderBoxItems();toast('Agregado a la caja: '+[brand,style,color,size].filter(Boolean).join(' '),'ok');
 });
 $('#b-scan').addEventListener('click',()=>goScan('boxadd'));
