@@ -301,6 +301,8 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
         <div class="row2"><div><label class="fld">Tipo</label><input class="in" id="bm-cat" list="dl-cat" placeholder="Polo, Hoodie…"></div><div><label class="fld">Género</label><select class="in" id="bm-gender"><option value="">—</option><option>Men</option><option>Ladies</option><option>Youth</option><option>Kid</option><option>Baby</option><option>Unisex</option></select></div></div>
         <div style="height:6px"></div>
         <div><label class="fld">UPC (opcional)</label><input class="in" id="bm-upc" inputmode="numeric"></div>
+        <div style="height:6px"></div>
+        <div><label class="fld">SKU (opcional — vacío = se genera)</label><input class="in" id="bm-sku"></div>
         <button class="btn o block" id="bm-add" style="margin-top:8px">Agregar a la caja</button>
       </div>
       <div id="b-items" style="margin-top:10px"></div>
@@ -1077,21 +1079,22 @@ function renderBoxItems(){
   items.forEach((it,idx)=>{
     const name=[it.brand,it.style,it.color,it.size].filter(Boolean).join(' ')||it.sku;
     const el=document.createElement('div');el.style.cssText='border:1px solid #e5e7eb;border-radius:10px;padding:8px;margin-bottom:8px';
-    const sub=esc(it.sku)+(it.cc?(' · cód '+esc(it.cc)):'')+(it.upc?(' · UPC '+esc(it.upc)):' · sin UPC');
+    const sub=[(it.cc?('cód '+esc(it.cc)):''),(it.upc?('UPC '+esc(it.upc)):'sin UPC')].filter(Boolean).join(' · ');
     el.innerHTML='<div style="display:flex;align-items:center;gap:8px"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px">'+esc(name)+'</div><div class="muted" style="font-size:11px">'+sub+'</div></div>'
       +'<input class="in bi-qty" type="number" inputmode="numeric" style="width:66px;text-align:center" value="'+(+it.qty||0)+'"><button class="bi-print" style="border:none;background:#ede9fe;color:#6b46c1;border-radius:8px;padding:6px 9px;font-weight:800">🏷️</button><button class="bi-del" style="border:none;background:#fdeaea;color:#c0392b;border-radius:8px;padding:6px 9px;font-weight:800">✕</button></div>'
       +'<div class="row2" style="margin-top:6px"><input class="in bi-color" list="dl-color" placeholder="Color"><input class="in bi-cc" inputmode="numeric" placeholder="Cód. color"></div>'
       +'<div class="row2" style="margin-top:6px"><input class="in bi-size" placeholder="Talla"><input class="in bi-cat" list="dl-cat" placeholder="Tipo (Polo, Hoodie…)"></div>'
-      +'<div class="row2" style="margin-top:6px"><select class="in bi-gender"><option value="">Género —</option><option>Men</option><option>Ladies</option><option>Youth</option><option>Kid</option><option>Baby</option><option>Unisex</option></select><div></div></div>';
+      +'<div class="row2" style="margin-top:6px"><select class="in bi-gender"><option value="">Género —</option><option>Men</option><option>Ladies</option><option>Youth</option><option>Kid</option><option>Baby</option><option>Unisex</option></select><input class="in bi-sku" placeholder="SKU (editable)" style="font-size:12px"></div>';
     el.querySelector('.bi-qty').addEventListener('input',e=>{curBox.items[idx].qty=Math.max(0,parseInt(e.target.value,10)||0);$('#b-pieces').textContent=boxPieces();refreshManifest();});
     el.querySelector('.bi-del').addEventListener('click',()=>{curBox.items.splice(idx,1);renderBoxItems();});
     el.querySelector('.bi-print').addEventListener('click',async()=>{const it2=curBox.items[idx];const n=await uiPrompt('Imprimir etiqueta 9×3',[it2.brand,it2.style,it2.color,it2.size].filter(Boolean).join(' ')+'\n¿Cuántas etiquetas de esta prenda?',(+it2.qty||1));if(n===null)return;const s=document.getElementById('boxpage');if(s)s.remove();printItems({brand:it2.brand,style:it2.style,color:it2.color,size:it2.size,gender:it2.gender||'',cat:it2.cat||'',upc:it2.upc||'',sku:it2.sku},Math.max(1,+n||1));});
-    const regen=()=>{const p=curBox.items[idx];p.sku=genSku(p.brand,p.style,p.color,p.size);};
+    const regen=()=>{const p=curBox.items[idx];if(!p.skuLocked){p.sku=genSku(p.brand,p.style,p.color,p.size);const sk=el.querySelector('.bi-sku');if(sk)sk.value=p.sku;}};
     const col=el.querySelector('.bi-color');col.value=it.color||'';col.addEventListener('input',e=>{curBox.items[idx].color=e.target.value.trim();regen();refreshManifest();});
     const ccx=el.querySelector('.bi-cc');ccx.value=it.cc||'';ccx.addEventListener('input',e=>{curBox.items[idx].cc=e.target.value.trim();refreshManifest();});
     const sz=el.querySelector('.bi-size');sz.value=it.size||'';sz.addEventListener('input',e=>{curBox.items[idx].size=e.target.value.trim();regen();refreshManifest();});
     const cat=el.querySelector('.bi-cat');cat.value=it.cat||'';cat.addEventListener('input',e=>{curBox.items[idx].cat=e.target.value.trim();refreshManifest();});
     const gen=el.querySelector('.bi-gender');gen.value=it.gender||'';gen.addEventListener('change',e=>{curBox.items[idx].gender=e.target.value;refreshManifest();});
+    const sk=el.querySelector('.bi-sku');sk.value=it.sku||'';sk.addEventListener('input',e=>{curBox.items[idx].sku=e.target.value.trim();curBox.items[idx].skuLocked=true;refreshManifest();});
     L.appendChild(el);
   });
   refreshManifest();
@@ -1128,16 +1131,17 @@ async function boxAdd(row){
 }
 $('#b-manual').addEventListener('click',()=>{
   const f=$('#b-manualform');const openIt=(f.style.display==='none');f.style.display=openIt?'block':'none';
-  if(openIt){['bm-brand','bm-style','bm-color','bm-cc','bm-size','bm-upc','bm-cat','bm-gender'].forEach(id=>$('#'+id).value='');$('#bm-qty').value=1;const q=$('#b-q').value.trim();if(q)$('#bm-style').value=q;}
+  if(openIt){['bm-brand','bm-style','bm-color','bm-cc','bm-size','bm-upc','bm-cat','bm-gender','bm-sku'].forEach(id=>$('#'+id).value='');$('#bm-qty').value=1;const q=$('#b-q').value.trim();if(q)$('#bm-style').value=q;}
 });
 $('#bm-add').addEventListener('click',()=>{
   const brand=$('#bm-brand').value.trim(),style=$('#bm-style').value.trim(),color=$('#bm-color').value.trim(),cc=$('#bm-cc').value.trim().replace(/\D/g,''),size=$('#bm-size').value.trim(),cat=$('#bm-cat').value.trim(),gender=$('#bm-gender').value,upc=$('#bm-upc').value.trim().replace(/\D/g,''),qty=Math.max(1,+$('#bm-qty').value||1);
   if(!brand&&!style&&!color&&!size){toast('Llena al menos un campo (marca, estilo, color o talla)','err');return;}
-  const sku='WT-'+(slug(brand).slice(0,4).toUpperCase()||'NA')+'-'+(slug(style).toUpperCase()||'NA')+'-'+(slug(color).slice(0,3).toUpperCase()||'NA')+'-'+(size.toUpperCase()||'NA');
+  const skuManual=$('#bm-sku').value.trim();
+  const sku=skuManual||('WT-'+(slug(brand).slice(0,4).toUpperCase()||'NA')+'-'+(slug(style).toUpperCase()||'NA')+'-'+(slug(color).slice(0,3).toUpperCase()||'NA')+'-'+(size.toUpperCase()||'NA'));
   const ex=curBox.items.find(i=>itemKey(i)===itemKey({brand,style,color,cc,size,upc}));
   const name=[brand,style,color,size].filter(Boolean).join(' ')||sku;
   if(ex){ex.qty=(+ex.qty||0)+qty;toast('Ya estaba — sumado: '+name+' = '+ex.qty,'ok');}
-  else{curBox.items.push({sku,upc,brand,style,color,cc,size,cat,gender,qty});toast('Agregado: '+name,'ok');}
+  else{curBox.items.push({sku,upc,brand,style,color,cc,size,cat,gender,qty,skuLocked:!!skuManual});toast('Agregado: '+name,'ok');}
   $('#b-manualform').style.display='none';$('#b-q').value='';$('#b-results').innerHTML='';renderBoxItems();
 });
 $('#bm-upc').addEventListener('change',async()=>{
