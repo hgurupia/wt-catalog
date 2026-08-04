@@ -862,7 +862,7 @@ $('#ocr-addbox').addEventListener('click',()=>{
   const items=ocrCollectItems();
   if(!items.length){toast('No hay productos leídos','err');return;}
   if(!curBox){toast('Abre o crea una caja primero','err');return;}
-  items.forEach(it=>{const sku=genSku(it.brand,it.style,it.color,it.size);const ex=curBox.items.find(x=>x.sku===sku);if(ex)ex.qty=(+ex.qty||0)+(+it.qty||1);else curBox.items.push({sku,upc:it.upc||'',brand:it.brand,style:it.style,color:it.color,cc:it.cc||'',size:it.size,cat:it.cat||'',gender:it.gender||'',qty:+it.qty||1});});
+  items.forEach(it=>{const sku=genSku(it.brand,it.style,it.color,it.size);const ex=curBox.items.find(x=>itemKey(x)===itemKey(it));if(ex)ex.qty=(+ex.qty||0)+(+it.qty||1);else curBox.items.push({sku,upc:it.upc||'',brand:it.brand,style:it.style,color:it.color,cc:it.cc||'',size:it.size,cat:it.cat||'',gender:it.gender||'',qty:+it.qty||1});});
   ocrMode=null;back();renderBoxItems();toast('Agregado a la caja '+curBox.code,'ok');
 });
 $('#ocr-photo').addEventListener('click',()=>$('#ocr-file').click());
@@ -1110,12 +1110,12 @@ $('#b-manifest-btn').addEventListener('click',()=>{
   mp.style.display='block';$('#b-manifest-btn').textContent='Ocultar manifiesto';refreshManifest();
 });
 async function boxAdd(row){
-  const ex=curBox.items.find(i=>i.sku===row.sku);
+  const ex=curBox.items.find(i=>itemKey(i)===itemKey(row));
   const det='Marca: '+(row.brand||'—')+'\nEstilo: '+(row.style||'—')+'\nColor: '+(row.color||'—')+(row.cc?(' (cód '+row.cc+')'):'')+'\nTalla: '+(row.size||'—')+(row.upc?('\nUPC: '+row.upc):'\nUPC: (sin)')+(ex?('\n\n⚠️ Ya en la caja: '+ex.qty+' pzs (se reemplaza)'):'');
   const v=await uiPrompt('Agregar a la caja',det+'\n\n¿Cuántas piezas van en esta caja?',(ex?ex.qty:1));
   if(v==null)return;
   const n=Math.max(0,parseInt(v,10)||0);
-  if(n===0){curBox.items=curBox.items.filter(i=>i.sku!==row.sku);}
+  if(n===0){curBox.items=curBox.items.filter(i=>itemKey(i)!==itemKey(row));}
   else if(ex)ex.qty=n;
   else curBox.items.push({sku:row.sku,upc:row.upc||'',brand:row.brand||'',style:row.style||'',color:row.color||'',cc:row.cc||'',size:row.size||'',cat:row.cat||'',gender:row.gender||'',qty:n});
   $('#b-q').value='';$('#b-results').innerHTML='';renderBoxItems();
@@ -1128,9 +1128,22 @@ $('#bm-add').addEventListener('click',()=>{
   const brand=$('#bm-brand').value.trim(),style=$('#bm-style').value.trim(),color=$('#bm-color').value.trim(),cc=$('#bm-cc').value.trim().replace(/\D/g,''),size=$('#bm-size').value.trim(),cat=$('#bm-cat').value.trim(),gender=$('#bm-gender').value,upc=$('#bm-upc').value.trim().replace(/\D/g,''),qty=Math.max(1,+$('#bm-qty').value||1);
   if(!brand&&!style){toast('Pon al menos marca o estilo','err');return;}
   const sku='WT-'+(slug(brand).slice(0,4).toUpperCase()||'NA')+'-'+(slug(style).toUpperCase()||'NA')+'-'+(slug(color).slice(0,3).toUpperCase()||'NA')+'-'+(size.toUpperCase()||'NA');
-  const ex=curBox.items.find(i=>i.sku===sku);
+  const ex=curBox.items.find(i=>itemKey(i)===itemKey({brand,style,color,size,upc}));
   if(ex)ex.qty=(+ex.qty||0)+qty;else curBox.items.push({sku,upc,brand,style,color,cc,size,cat,gender,qty});
   $('#b-manualform').style.display='none';$('#b-q').value='';$('#b-results').innerHTML='';renderBoxItems();toast('Agregado a la caja: '+[brand,style,color,size].filter(Boolean).join(' '),'ok');
+});
+$('#bm-upc').addEventListener('change',async()=>{
+  const u=$('#bm-upc').value.trim().replace(/\D/g,'');if(u.length<6)return;
+  let rows=[];try{rows=await DB.refByUPC(u);}catch(e){}
+  if(!rows.length){try{rows=await DB.byUPC(u);}catch(e){}}
+  if(!rows.length){return;}
+  const d=rows[0];
+  if(!$('#bm-brand').value)$('#bm-brand').value=d.brand||'';
+  if(!$('#bm-style').value)$('#bm-style').value=d.style||'';
+  if(!$('#bm-color').value)$('#bm-color').value=d.color||'';
+  if(!$('#bm-cc').value)$('#bm-cc').value=d.cc||'';
+  if(!$('#bm-size').value)$('#bm-size').value=d.size||'';
+  toast('Encontrado en la base ✓ — revisa y ajusta','ok');
 });
 $('#b-scan').addEventListener('click',()=>goScan('boxadd'));
 function boxAddChoices(rows){
@@ -1456,6 +1469,7 @@ function printItems(d,count){
 function esc(s){return (s==null?'':(''+s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function slug(s){return (''+(s||'')).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zA-Z0-9]+/g,'').trim()}
 function genSku(brand,style,color,size){return 'WT-'+(slug(brand).slice(0,4).toUpperCase()||'NA')+'-'+(slug(style).toUpperCase()||'NA')+'-'+(slug(color).slice(0,3).toUpperCase()||'NA')+'-'+((''+(size||'')).toUpperCase()||'NA');}
+function itemKey(r){return [r.brand,r.style,r.color,r.size,(r.upc||'')].map(x=>(''+(x||'')).trim().toLowerCase()).join('|');}
 // datalists
 (function(){const b=[...new Set(CATALOG.map(d=>d.brand).filter(Boolean))].sort();$('#dl-brand').innerHTML=b.map(x=>'<option value="'+esc(x)+'">').join('');const c=[...new Set(CATALOG.map(d=>d.cat).filter(Boolean))].sort();$('#dl-cat').innerHTML=c.map(x=>'<option value="'+esc(x)+'">').join('');const co=[...new Set(CATALOG.map(d=>d.color).filter(Boolean))].sort();$('#dl-color').innerHTML=co.map(x=>'<option value="'+esc(x)+'">').join('');})();
 </script>
