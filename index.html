@@ -81,6 +81,9 @@ h2.pt{font-size:20px;font-weight:900;margin:2px 0 0;color:var(--navy);line-heigh
 /* inputs */
 label.fld{display:block;font-size:12px;font-weight:800;color:var(--navy);margin:0 0 5px}
 input.in,select.in{width:100%;padding:14px;border:1.5px solid var(--line);border-radius:13px;font-size:16px;background:#fff;color:var(--ink)}
+input[type=number]{-moz-appearance:textfield}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+input.in.bi-qty{padding:8px 2px;font-size:15px;font-weight:700}
 input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
 .seg{display:flex;gap:8px;margin-bottom:4px}
 .seg button{flex:1;padding:12px;border-radius:12px;border:1.5px solid var(--line);background:#fff;font-weight:800;font-size:14px;color:var(--slate)}
@@ -1076,7 +1079,7 @@ function renderBoxItems(){
     const el=document.createElement('div');el.style.cssText='border:1px solid #e5e7eb;border-radius:10px;padding:8px;margin-bottom:8px';
     const sub=esc(it.sku)+(it.cc?(' · cód '+esc(it.cc)):'')+(it.upc?(' · UPC '+esc(it.upc)):' · sin UPC');
     el.innerHTML='<div style="display:flex;align-items:center;gap:8px"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px">'+esc(name)+'</div><div class="muted" style="font-size:11px">'+sub+'</div></div>'
-      +'<input class="in bi-qty" type="number" inputmode="numeric" style="width:52px;text-align:center" value="'+(+it.qty||0)+'"><button class="bi-print" style="border:none;background:#ede9fe;color:#6b46c1;border-radius:8px;padding:6px 9px;font-weight:800">🏷️</button><button class="bi-del" style="border:none;background:#fdeaea;color:#c0392b;border-radius:8px;padding:6px 9px;font-weight:800">✕</button></div>'
+      +'<input class="in bi-qty" type="number" inputmode="numeric" style="width:66px;text-align:center" value="'+(+it.qty||0)+'"><button class="bi-print" style="border:none;background:#ede9fe;color:#6b46c1;border-radius:8px;padding:6px 9px;font-weight:800">🏷️</button><button class="bi-del" style="border:none;background:#fdeaea;color:#c0392b;border-radius:8px;padding:6px 9px;font-weight:800">✕</button></div>'
       +'<div class="row2" style="margin-top:6px"><input class="in bi-cat" list="dl-cat" placeholder="Tipo (Polo, Hoodie…)"><select class="in bi-gender"><option value="">Género —</option><option>Men</option><option>Ladies</option><option>Youth</option><option>Kid</option><option>Baby</option><option>Unisex</option></select></div>';
     el.querySelector('.bi-qty').addEventListener('input',e=>{curBox.items[idx].qty=Math.max(0,parseInt(e.target.value,10)||0);$('#b-pieces').textContent=boxPieces();refreshManifest();});
     el.querySelector('.bi-del').addEventListener('click',()=>{curBox.items.splice(idx,1);renderBoxItems();});
