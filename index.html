@@ -272,9 +272,9 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
   <div class="top"><button class="bk" data-back>‹</button><h1 id="box-title">Caja</h1></div>
   <div class="body">
     <div class="card">
-      <div class="row2"><div><label class="fld">Código</label><input class="in" id="b-code" readonly style="font-weight:800"></div><div><label class="fld">Tipo</label><select class="in" id="b-kind"><option value="pool">Pool (mezcla)</option><option value="marca">Una marca</option></select></div></div>
+      <div class="row2"><div><label class="fld">Código (editable)</label><input class="in" id="b-code" style="font-weight:800"></div><div><label class="fld">Tipo</label><select class="in" id="b-kind"><option value="pool">Pool (mezcla)</option><option value="marca">Una marca</option></select></div></div>
       <div style="height:8px"></div>
-      <div class="row2"><div><label class="fld">Rack</label><select class="in" id="b-rack"><option value="">—</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div><div><label class="fld">Compartimiento</label><input class="in" id="b-bin" placeholder="ej. 3, A2…"></div></div>
+      <div class="row2"><div><label class="fld">Rack</label><input class="in" id="b-rack" inputmode="numeric" placeholder="ej. 3, 7…"></div><div><label class="fld">Compartimiento</label><input class="in" id="b-bin" placeholder="ej. 3, A2…"></div></div>
       <div style="height:8px"></div>
       <div><label class="fld">Nombre / nota (opcional)</label><input class="in" id="b-name" placeholder="ej. Pool Nike surtido"></div>
     </div>
@@ -287,7 +287,8 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
       <div id="b-items" style="margin-top:10px"></div>
     </div>
     <button class="btn o block" id="b-save">💾 Guardar caja</button>
-    <button class="btn b block" id="b-print" style="margin-top:8px">🖨️ Imprimir etiqueta 4×6</button>
+    <button class="btn b block" id="b-print" style="margin-top:8px">🖨️ Imprimir etiqueta 4×6 (caja)</button>
+    <button class="btn b block" id="b-print-items" style="margin-top:8px;background:linear-gradient(135deg,#6b46c1,#8b5cf6)">🏷️ Imprimir etiquetas de prendas (90×30)</button>
     <button class="btn ghost block" id="b-del" style="margin-top:8px;color:#c0392b">🗑️ Borrar caja</button>
   </div>
 </section>
@@ -979,8 +980,8 @@ async function renderBoxList(q){
     L.appendChild(el);
   });
 }
-$('#box-new').addEventListener('click',async()=>{let code='CAJA-0001';try{code=await DB.nextBoxCode();}catch(e){}curBox={code,name:'',kind:'pool',rack:'',bin:'',items:[],pieces:0};openBoxEditor(true);});
-function editBox(b){curBox=JSON.parse(JSON.stringify(b));curBox.items=curBox.items||[];openBoxEditor(false);}
+$('#box-new').addEventListener('click',async()=>{let code='CAJA-0001';try{code=await DB.nextBoxCode();}catch(e){}curBox={code,name:'',kind:'pool',rack:'',bin:'',items:[],pieces:0,_orig:null};openBoxEditor(true);});
+function editBox(b){curBox=JSON.parse(JSON.stringify(b));curBox.items=curBox.items||[];curBox._orig=b.code;openBoxEditor(false);}
 function openBoxEditor(isNew){
   if(nav[nav.length-1]!=='s-box')nav.push('s-box');show('s-box');
   $('#box-title').textContent=isNew?'Nueva caja':('Caja '+curBox.code);
@@ -1011,7 +1012,7 @@ async function boxAdd(row){
   const n=Math.max(0,parseInt(v,10)||0);
   if(n===0){curBox.items=curBox.items.filter(i=>i.sku!==row.sku);}
   else if(ex)ex.qty=n;
-  else curBox.items.push({sku:row.sku,brand:row.brand||'',style:row.style||'',color:row.color||'',size:row.size||'',qty:n});
+  else curBox.items.push({sku:row.sku,upc:row.upc||'',brand:row.brand||'',style:row.style||'',color:row.color||'',size:row.size||'',cat:row.cat||'',gender:row.gender||'',qty:n});
   $('#b-q').value='';$('#b-results').innerHTML='';renderBoxItems();
 }
 $('#b-scan').addEventListener('click',()=>goScan('boxadd'));
@@ -1024,8 +1025,15 @@ $('#b-q').addEventListener('input',()=>{
   box.querySelectorAll('.crow').forEach(el=>el.addEventListener('click',async()=>{const sku=el.getAttribute('data-sku');const row=await DB.bySku(sku)||CATALOG.find(x=>x.sku===sku);if(row)boxAdd(row);}));
 });
 $('#b-save').addEventListener('click',async()=>{
-  curBox.kind=$('#b-kind').value;curBox.rack=$('#b-rack').value;curBox.bin=$('#b-bin').value.trim();curBox.name=$('#b-name').value.trim();curBox.pieces=boxPieces();
-  try{await DB.saveBox(curBox);toast('Caja guardada: '+curBox.code,'ok');back();renderBoxList('');}
+  const newCode=$('#b-code').value.trim();
+  if(!newCode){toast('Ponle un código a la caja','err');return;}
+  const orig=curBox._orig;
+  curBox.code=newCode;curBox.kind=$('#b-kind').value;curBox.rack=$('#b-rack').value.trim();curBox.bin=$('#b-bin').value.trim();curBox.name=$('#b-name').value.trim();curBox.pieces=boxPieces();
+  const payload={code:curBox.code,name:curBox.name,kind:curBox.kind,rack:curBox.rack,bin:curBox.bin,items:curBox.items,pieces:curBox.pieces};
+  try{await DB.saveBox(payload);
+    if(orig&&orig!==newCode){try{await DB.removeBox(orig);}catch(e){}}
+    curBox._orig=newCode;
+    toast('Caja guardada: '+newCode,'ok');back();renderBoxList('');}
   catch(e){toast('Error: '+String(e).slice(0,90),'err');}
 });
 $('#b-del').addEventListener('click',async()=>{
@@ -1048,6 +1056,18 @@ function printBoxLabel(box){
   const st=document.createElement('style');st.id='boxpage';st.textContent='@media print{@page{size:4in 6in;margin:0}}';document.head.appendChild(st);
   setTimeout(()=>{window.print();setTimeout(()=>{const s=document.getElementById('boxpage');if(s)s.remove();pa.innerHTML='';},700);},200);
 }
+function printBoxItems(box){
+  const items=(box.items||[]).filter(i=>(+i.qty||0)>0);
+  if(!items.length){toast('La caja no tiene prendas','err');return;}
+  const total=items.reduce((s,i)=>s+(+i.qty||0),0);
+  const s=document.getElementById('boxpage');if(s)s.remove(); // usa @page 90x30 por defecto
+  const pa=$('#printArea');pa.innerHTML='';
+  items.forEach(i=>{const d={brand:i.brand,style:i.style,color:i.color,size:i.size,gender:i.gender||'',cat:i.cat||'',upc:i.upc||'',sku:i.sku};const n=+i.qty||0;for(let k=0;k<n;k++)pa.appendChild(itemLabel(d));});
+  renderBarcodes();
+  toast('Imprimiendo '+total+' etiquetas…','ok');
+  setTimeout(()=>{window.print();setTimeout(()=>{pa.innerHTML='';},700);},200);
+}
+$('#b-print-items').addEventListener('click',()=>{curBox.items=curBox.items||[];printBoxItems(curBox);});
 
 /* =================== SCAN (camera) =================== */
 let reader=null,camStream=null,scanPurpose='map',lastCode='',ocrUpcTarget=null;
