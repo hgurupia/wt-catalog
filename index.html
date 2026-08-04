@@ -139,6 +139,16 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
   .lbl .l1{font-size:3.6mm;font-weight:800;text-transform:uppercase;line-height:1.05;text-align:center}
   .lbl .l2{font-size:2.7mm;font-weight:600;margin-top:.5mm;text-align:center;line-height:1.1}
   .lbl .bc{height:15mm;width:auto;max-width:85mm;margin-top:1mm}
+  .boxman{width:100%;box-sizing:border-box;padding:3mm;font-family:Arial,Helvetica,sans-serif;color:#000}
+  .boxman .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:2mm}
+  .boxman .code{font-size:15pt;font-weight:800;line-height:1.1}
+  .boxman .meta{font-size:9pt;line-height:1.3;margin-top:1mm}
+  .boxman .tot{font-size:11pt;font-weight:800}
+  .boxman .bc{height:14mm;width:auto;max-width:42mm}
+  .boxman table{width:100%;border-collapse:collapse;font-size:8pt;margin-top:3mm}
+  .boxman th,.boxman td{border:1px solid #000;padding:1mm 1.4mm;text-align:left;line-height:1.15}
+  .boxman th{background:#eee}
+  .boxman td.q,.boxman th.q{text-align:center;width:9mm}
 }
 </style>
 </head>
@@ -180,6 +190,7 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
     <button class="big-btn newp" id="home-new"><span class="ic">➕</span><span>Producto nuevo (foto)<span class="cap">No está en la base todavía</span></span></button>
     <button class="big-btn" id="home-ocr" style="background:linear-gradient(135deg,#6b46c1,#8b5cf6)"><span class="ic">🏷️</span><span>Leer etiqueta escrita a mano<span class="cap">Foto de la caja → texto → revisar → subir</span></span></button>
     <button class="big-btn" id="home-count" style="background:linear-gradient(135deg,#0f766e,#14b8a6)"><span class="ic">🔢</span><span>Conteo físico<span class="cap">Cuenta lo real, compara y valida diferencias</span></span></button>
+    <button class="big-btn" id="home-boxes" style="background:linear-gradient(135deg,#b45309,#f59e0b)"><span class="ic">📦</span><span>Cajas<span class="cap">Arma cajas, ubica en rack y imprime etiqueta 4×6</span></span></button>
     <div class="grid2">
       <div class="stat" id="stat-prods" style="cursor:pointer"><b id="st-prods">0</b><span>productos · toca para ver ▸</span></div>
       <div class="stat" id="stat-units" style="cursor:pointer"><b id="st-units">0</b><span>unidades · toca para ver ▸</span></div>
@@ -244,6 +255,40 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
       </div>
       <div id="count-list" style="margin-top:10px"></div>
     </div>
+  </div>
+</section>
+
+<!-- ============ CAJAS ============ -->
+<section class="screen" id="s-boxes">
+  <div class="top"><button class="bk" data-back>‹</button><h1>Cajas</h1></div>
+  <div class="body">
+    <button class="btn b block" id="box-new">➕ Nueva caja</button>
+    <input class="in" id="box-q" placeholder="Buscar por código, ubicación o contenido" style="margin-top:8px">
+    <div id="box-list" style="margin-top:10px"></div>
+  </div>
+</section>
+
+<section class="screen" id="s-box">
+  <div class="top"><button class="bk" data-back>‹</button><h1 id="box-title">Caja</h1></div>
+  <div class="body">
+    <div class="card">
+      <div class="row2"><div><label class="fld">Código</label><input class="in" id="b-code" readonly style="font-weight:800"></div><div><label class="fld">Tipo</label><select class="in" id="b-kind"><option value="pool">Pool (mezcla)</option><option value="marca">Una marca</option></select></div></div>
+      <div style="height:8px"></div>
+      <div class="row2"><div><label class="fld">Rack</label><select class="in" id="b-rack"><option value="">—</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div><div><label class="fld">Compartimiento</label><input class="in" id="b-bin" placeholder="ej. 3, A2…"></div></div>
+      <div style="height:8px"></div>
+      <div><label class="fld">Nombre / nota (opcional)</label><input class="in" id="b-name" placeholder="ej. Pool Nike surtido"></div>
+    </div>
+    <div class="card">
+      <b>Contenido — <span id="b-count">0</span> SKUs · <span id="b-pieces">0</span> pzs</b>
+      <div style="height:8px"></div>
+      <button class="btn b block" id="b-scan">📷 Escanear para agregar</button>
+      <input class="in" id="b-q" placeholder="…o busca por nombre / SKU" style="margin-top:8px">
+      <div id="b-results"></div>
+      <div id="b-items" style="margin-top:10px"></div>
+    </div>
+    <button class="btn o block" id="b-save">💾 Guardar caja</button>
+    <button class="btn b block" id="b-print" style="margin-top:8px">🖨️ Imprimir etiqueta 4×6</button>
+    <button class="btn ghost block" id="b-del" style="margin-top:8px;color:#c0392b">🗑️ Borrar caja</button>
   </div>
 </section>
 
@@ -539,6 +584,26 @@ const DB={
   async listPending(){
     if(MODE==='online'){const r=await fetch(SB_URL+'/rest/v1/wt_inventory?counted=is.null&select=sku,brand,style,color,size&order=brand.asc,style.asc&limit=3000',{headers:sbHeaders()});return r.ok?await r.json():[];}
     return (localDB()||[]).filter(d=>d.counted==null);
+  },
+  async listBoxes(){
+    if(MODE==='online'){const r=await fetch(SB_URL+'/rest/v1/wt_boxes?select=*&order=updated_at.desc.nullslast',{headers:sbHeaders()});return r.ok?await r.json():[];}
+    try{return JSON.parse(localStorage.getItem('wt_boxes')||'[]')}catch(e){return[]}
+  },
+  async saveBox(box){
+    box.updated_by=WHO;box.updated_at=new Date().toISOString();
+    if(MODE==='online'){const r=await fetch(SB_URL+'/rest/v1/wt_boxes?on_conflict=code',{method:'POST',headers:sbHeaders({Prefer:'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify(box)});if(!r.ok)throw new Error(await r.text());return;}
+    let a=[];try{a=JSON.parse(localStorage.getItem('wt_boxes')||'[]')}catch(e){}a=a.filter(x=>x.code!==box.code);a.unshift(box);localStorage.setItem('wt_boxes',JSON.stringify(a));
+  },
+  async removeBox(code){
+    if(MODE==='online'){const r=await fetch(SB_URL+'/rest/v1/wt_boxes?code=eq.'+encodeURIComponent(code),{method:'DELETE',headers:sbHeaders({Prefer:'return=minimal'})});if(!r.ok)throw new Error(await r.text());return;}
+    let a=[];try{a=JSON.parse(localStorage.getItem('wt_boxes')||'[]')}catch(e){}localStorage.setItem('wt_boxes',JSON.stringify(a.filter(x=>x.code!==code)));
+  },
+  async nextBoxCode(){
+    let last='';
+    if(MODE==='online'){const r=await fetch(SB_URL+'/rest/v1/wt_boxes?select=code&order=code.desc&limit=1',{headers:sbHeaders()});const a=r.ok?await r.json():[];last=(a[0]&&a[0].code)||'';}
+    else{try{const a=JSON.parse(localStorage.getItem('wt_boxes')||'[]');last=a.map(x=>x.code).sort().pop()||'';}catch(e){}}
+    const m=(''+last).match(/(\d+)\s*$/);const n=(m?parseInt(m[1],10):0)+1;
+    return 'CAJA-'+String(n).padStart(4,'0');
   },
   async remove(sku){
     if(MODE==='online'){
@@ -895,6 +960,95 @@ $('#count-valall').addEventListener('click',async()=>{
   toast('✓ '+ok+' validados'+(err?(' · '+err+' errores'):''),err?'err':'ok');renderCount();
 });
 
+/* =================== CAJAS =================== */
+let curBox=null;
+function goBoxes(){if(nav[nav.length-1]!=='s-boxes')nav.push('s-boxes');show('s-boxes');$('#box-q').value='';renderBoxList('');}
+$('#home-boxes').addEventListener('click',goBoxes);
+$('#box-q').addEventListener('input',()=>renderBoxList($('#box-q').value.trim()));
+async function renderBoxList(q){
+  const L=$('#box-list');L.innerHTML='<p class="muted">Cargando…</p>';
+  let boxes=[];try{boxes=await DB.listBoxes();}catch(e){L.innerHTML='<p class="muted">Error (¿ya creaste la tabla wt_boxes?)</p>';return;}
+  if(q){const t=norm(q).split(/\s+/).filter(Boolean);boxes=boxes.filter(b=>{const hay=norm([b.code,b.name,b.rack,b.bin,b.kind,(b.items||[]).map(i=>[i.brand,i.style,i.color,i.size,i.sku].join(' ')).join(' ')].join(' '));return t.every(tok=>hay.includes(tok));});}
+  if(!boxes.length){L.innerHTML='<p class="muted">No hay cajas todavía. Toca "Nueva caja".</p>';return;}
+  L.innerHTML='';
+  boxes.forEach(b=>{
+    const loc=(b.rack||b.bin)?('Rack '+(b.rack||'—')+' · Comp '+(b.bin||'—')):'sin ubicación';
+    const el=document.createElement('div');el.style.cssText='border:1px solid #e5e7eb;border-radius:12px;padding:10px;margin-bottom:8px;cursor:pointer';
+    el.innerHTML='<div style="display:flex;justify-content:space-between"><b>'+esc(b.code)+'</b><span class="muted">'+(b.pieces||0)+' pzs</span></div><div class="muted" style="font-size:12px">'+esc(loc)+' · '+((b.items||[]).length)+' SKUs'+(b.name?(' · '+esc(b.name)):'')+'</div>';
+    el.addEventListener('click',()=>editBox(b));
+    L.appendChild(el);
+  });
+}
+$('#box-new').addEventListener('click',async()=>{let code='CAJA-0001';try{code=await DB.nextBoxCode();}catch(e){}curBox={code,name:'',kind:'pool',rack:'',bin:'',items:[],pieces:0};openBoxEditor(true);});
+function editBox(b){curBox=JSON.parse(JSON.stringify(b));curBox.items=curBox.items||[];openBoxEditor(false);}
+function openBoxEditor(isNew){
+  if(nav[nav.length-1]!=='s-box')nav.push('s-box');show('s-box');
+  $('#box-title').textContent=isNew?'Nueva caja':('Caja '+curBox.code);
+  $('#b-code').value=curBox.code;$('#b-kind').value=curBox.kind||'pool';$('#b-rack').value=curBox.rack||'';$('#b-bin').value=curBox.bin||'';$('#b-name').value=curBox.name||'';
+  $('#b-q').value='';$('#b-results').innerHTML='';$('#b-del').style.display=isNew?'none':'block';
+  renderBoxItems();
+}
+function boxPieces(){return (curBox.items||[]).reduce((s,i)=>s+(+i.qty||0),0);}
+function renderBoxItems(){
+  const L=$('#b-items'),items=curBox.items||[];
+  $('#b-count').textContent=items.length;$('#b-pieces').textContent=boxPieces();
+  if(!items.length){L.innerHTML='<p class="muted">Vacía. Escanea o busca para agregar prendas.</p>';return;}
+  L.innerHTML='';
+  items.forEach((it,idx)=>{
+    const name=[it.brand,it.style,it.color,it.size].filter(Boolean).join(' ')||it.sku;
+    const el=document.createElement('div');el.style.cssText='display:flex;align-items:center;gap:8px;border-bottom:1px solid #eee;padding:7px 0';
+    el.innerHTML='<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px">'+esc(name)+'</div><div class="muted" style="font-size:11px">'+esc(it.sku)+'</div></div><input class="in bi-qty" type="number" inputmode="numeric" style="width:64px;text-align:center" value="'+(+it.qty||0)+'"><button class="bi-del" style="border:none;background:#fdeaea;color:#c0392b;border-radius:8px;padding:6px 10px;font-weight:800">✕</button>';
+    el.querySelector('.bi-qty').addEventListener('input',e=>{curBox.items[idx].qty=Math.max(0,parseInt(e.target.value,10)||0);$('#b-pieces').textContent=boxPieces();});
+    el.querySelector('.bi-del').addEventListener('click',()=>{curBox.items.splice(idx,1);renderBoxItems();});
+    L.appendChild(el);
+  });
+}
+async function boxAdd(row){
+  const ex=curBox.items.find(i=>i.sku===row.sku);
+  const name=[row.brand,row.style,row.color,row.size].filter(Boolean).join(' ');
+  const v=await uiPrompt('Cantidad en la caja',name+'\n¿Cuántas piezas van en esta caja?',(ex?ex.qty:1));
+  if(v==null)return;
+  const n=Math.max(0,parseInt(v,10)||0);
+  if(n===0){curBox.items=curBox.items.filter(i=>i.sku!==row.sku);}
+  else if(ex)ex.qty=n;
+  else curBox.items.push({sku:row.sku,brand:row.brand||'',style:row.style||'',color:row.color||'',size:row.size||'',qty:n});
+  $('#b-q').value='';$('#b-results').innerHTML='';renderBoxItems();
+}
+$('#b-scan').addEventListener('click',()=>goScan('boxadd'));
+$('#b-q').addEventListener('input',()=>{
+  const q=$('#b-q').value.trim();if(!q){$('#b-results').innerHTML='';return;}
+  const toks=norm(q).split(/\s+/).filter(Boolean);
+  const hits=CATALOG.filter(d=>{const hay=norm([d.brand,d.style,d.color,d.size,d.sku,d.cc].join(' '));return toks.every(t=>hay.includes(t));}).slice(0,12);
+  const box=$('#b-results');
+  box.innerHTML=hits.length?hits.map(d=>'<div class="crow" data-sku="'+esc(d.sku)+'" style="padding:8px 4px;border-bottom:1px solid #eee;cursor:pointer">'+esc([d.brand,d.style,d.color,d.size].filter(Boolean).join(' '))+' <span class="muted" style="font-size:11px">'+esc(d.sku)+'</span></div>').join(''):'<p class="muted" style="margin:8px 0 0">Sin resultados</p>';
+  box.querySelectorAll('.crow').forEach(el=>el.addEventListener('click',async()=>{const sku=el.getAttribute('data-sku');const row=await DB.bySku(sku)||CATALOG.find(x=>x.sku===sku);if(row)boxAdd(row);}));
+});
+$('#b-save').addEventListener('click',async()=>{
+  curBox.kind=$('#b-kind').value;curBox.rack=$('#b-rack').value;curBox.bin=$('#b-bin').value.trim();curBox.name=$('#b-name').value.trim();curBox.pieces=boxPieces();
+  try{await DB.saveBox(curBox);toast('Caja guardada: '+curBox.code,'ok');back();renderBoxList('');}
+  catch(e){toast('Error: '+String(e).slice(0,90),'err');}
+});
+$('#b-del').addEventListener('click',async()=>{
+  if(!(await uiConfirm('Borrar caja','¿Borrar '+curBox.code+'? Solo borra la caja, no las prendas.',{danger:true,okText:'Borrar'})))return;
+  try{await DB.removeBox(curBox.code);toast('Caja borrada','ok');back();renderBoxList('');}
+  catch(e){toast('Error: '+String(e).slice(0,90),'err');}
+});
+$('#b-print').addEventListener('click',()=>{
+  curBox.kind=$('#b-kind').value;curBox.rack=$('#b-rack').value;curBox.bin=$('#b-bin').value.trim();curBox.name=$('#b-name').value.trim();curBox.pieces=boxPieces();
+  printBoxLabel(curBox);
+});
+function printBoxLabel(box){
+  const pa=$('#printArea');
+  const rows=(box.items||[]).map(i=>'<tr><td>'+esc(i.brand||'')+'</td><td>'+esc(i.style||'')+'</td><td>'+esc(i.color||'')+'</td><td>'+esc(i.size||'')+'</td><td class="q">'+(+i.qty||0)+'</td></tr>').join('')||'<tr><td colspan="5">(vacía)</td></tr>';
+  const loc='Rack '+(box.rack||'—')+' · Comp '+(box.bin||'—');
+  const fecha=new Date().toLocaleDateString('es',{day:'2-digit',month:'2-digit',year:'numeric'});
+  pa.innerHTML='<div class="boxman"><div class="hd"><div><div class="code">'+esc(box.code)+'</div><div class="meta">'+esc(loc)+'<br>'+(box.name?esc(box.name)+'<br>':'')+'Tipo: '+esc(box.kind||'')+' · '+fecha+'</div><div class="tot">'+box.pieces+' piezas · '+((box.items||[]).length)+' SKUs</div></div><svg class="bc" data-code="'+esc(box.code)+'"></svg></div><table><thead><tr><th>Marca</th><th>Estilo</th><th>Color</th><th>Talla</th><th class="q">Cant</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  const svg=pa.querySelector('svg.bc');
+  if(svg&&window.JsBarcode){try{JsBarcode(svg,box.code,{format:'CODE128',displayValue:true,fontSize:14,textMargin:1,margin:0,height:44,width:1.6});const w=parseFloat(svg.getAttribute('width')),h=parseFloat(svg.getAttribute('height'));if(w&&h){svg.setAttribute('viewBox','0 0 '+w+' '+h);svg.removeAttribute('width');svg.removeAttribute('height');svg.setAttribute('preserveAspectRatio','xMidYMid meet');}}catch(e){svg.remove();}}
+  const st=document.createElement('style');st.id='boxpage';st.textContent='@media print{@page{size:4in 6in;margin:0}}';document.head.appendChild(st);
+  setTimeout(()=>{window.print();setTimeout(()=>{const s=document.getElementById('boxpage');if(s)s.remove();pa.innerHTML='';},700);},200);
+}
+
 /* =================== SCAN (camera) =================== */
 let reader=null,camStream=null,scanPurpose='map',lastCode='',ocrUpcTarget=null;
 function startScan(purpose){
@@ -919,6 +1073,7 @@ async function onCode(code){
   if(scanPurpose==='new'){stopCam();$('#n-upc').value=code;$('#n-upcbadge').textContent='✓ leído';back();return;}
   if(scanPurpose==='ocrupc'){stopCam();if(ocrUpcTarget){ocrUpcTarget.value=(''+code).replace(/\D/g,'');}ocrUpcTarget=null;back();toast('UPC escaneado ✓','ok');return;}
   if(scanPurpose==='count'){stopCam();back();const rows=await DB.byUPC(code);if(!rows.length){toast('Ese UPC no está en la base: '+code,'err');return;}if(rows.length===1){countEntry(rows[0]);}else{renderCountChoices(rows);toast('Varios con ese UPC — elige cuál contar','ok');}return;}
+  if(scanPurpose==='boxadd'){stopCam();back();const rows=await DB.byUPC(code);if(!rows.length){toast('Ese UPC no está en la base: '+code,'err');return;}if(rows.length===1){boxAdd(rows[0]);}else{const box=$('#b-results');box.innerHTML=rows.map(d=>'<div class="crow" data-sku="'+esc(d.sku)+'" style="padding:8px 4px;border-bottom:1px solid #eee;cursor:pointer">'+esc([d.brand,d.style,d.color,d.size].filter(Boolean).join(' '))+' <span class="muted" style="font-size:11px">'+esc(d.sku)+'</span></div>').join('');box.querySelectorAll('.crow').forEach(el=>el.addEventListener('click',async()=>{const row=await DB.bySku(el.getAttribute('data-sku'));if(row)boxAdd(row);}));toast('Varios con ese UPC — elige','ok');}return;}
   // map
   toast('UPC: '+code);
   const matches=await DB.byUPC(code);
