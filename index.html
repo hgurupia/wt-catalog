@@ -227,6 +227,7 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
       <div class="imgnote" id="ocr-note" style="display:none"></div>
       <div id="ocr-list"></div>
       <button class="btn ghost block" id="ocr-add" style="margin-top:6px">✚ Agregar otra fila</button>
+      <button class="btn o block" id="ocr-addbox" style="margin-top:8px;display:none">➕ Agregar a la caja actual</button>
       <button class="btn b block" id="ocr-tobox" style="margin-top:8px;background:linear-gradient(135deg,#b45309,#f59e0b)">📦 Crear caja con estos productos</button>
       <button class="btn o block" id="ocr-save" style="margin-top:8px">✓ Subir todo al inventario</button>
     </div>
@@ -283,6 +284,7 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
       <b>Contenido — <span id="b-count">0</span> SKUs · <span id="b-pieces">0</span> pzs</b>
       <div style="height:8px"></div>
       <button class="btn b block" id="b-scan">📷 Escanear para agregar</button>
+      <button class="btn b block" id="b-ocr" style="margin-top:8px;background:linear-gradient(135deg,#6b46c1,#8b5cf6)">🏷️ Leer etiqueta a mano (foto) → a esta caja</button>
       <input class="in" id="b-q" placeholder="…o busca por nombre / SKU" style="margin-top:8px">
       <div id="b-results"></div>
       <button class="btn ghost block" id="b-manual" style="margin-top:6px">➕ Cargar a mano (no está en la base)</button>
@@ -841,7 +843,25 @@ $('#bulk-color').addEventListener('click',()=>bulkEdit('color','Color'));
 
 /* =================== OCR ETIQUETA MANUSCRITA =================== */
 const OCR_URL=SB_URL+'/functions/v1/ocr-label';
-$('#home-ocr').addEventListener('click',()=>{go('s-ocr');$('#ocr-form').style.display='none';$('#ocr-status').textContent='Toma o sube la foto de la etiqueta.';const im=$('#ocr-img');im.classList.add('ph');im.style.backgroundImage='';im.textContent='🏷️';});
+let ocrMode=null;
+function openOcr(mode){
+  ocrMode=mode||null;
+  go('s-ocr');$('#ocr-form').style.display='none';$('#ocr-status').textContent='Toma o sube la foto de la etiqueta.';
+  const im=$('#ocr-img');im.classList.add('ph');im.style.backgroundImage='';im.textContent='🏷️';
+  const box=(ocrMode==='box');
+  $('#ocr-addbox').style.display=box?'block':'none';
+  $('#ocr-tobox').style.display=box?'none':'block';
+  $('#ocr-save').style.display=box?'none':'block';
+}
+$('#home-ocr').addEventListener('click',()=>openOcr(null));
+$('#b-ocr').addEventListener('click',()=>openOcr('box'));
+$('#ocr-addbox').addEventListener('click',()=>{
+  const items=ocrCollectItems();
+  if(!items.length){toast('No hay productos leídos','err');return;}
+  if(!curBox){toast('Abre o crea una caja primero','err');return;}
+  items.forEach(it=>{const sku=genSku(it.brand,it.style,it.color,it.size);const ex=curBox.items.find(x=>x.sku===sku);if(ex)ex.qty=(+ex.qty||0)+(+it.qty||1);else curBox.items.push({sku,upc:it.upc||'',brand:it.brand,style:it.style,color:it.color,cc:it.cc||'',size:it.size,cat:it.cat||'',gender:it.gender||'',qty:+it.qty||1});});
+  ocrMode=null;back();renderBoxItems();toast('Agregado a la caja '+curBox.code,'ok');
+});
 $('#ocr-photo').addEventListener('click',()=>$('#ocr-file').click());
 $('#ocr-upload').addEventListener('click',()=>$('#ocr-file2').click());
 $('#ocr-file').addEventListener('change',e=>{ocrHandle(e.target.files[0]);e.target.value='';});
