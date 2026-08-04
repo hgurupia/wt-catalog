@@ -1080,10 +1080,16 @@ function renderBoxItems(){
     const sub=esc(it.sku)+(it.cc?(' · cód '+esc(it.cc)):'')+(it.upc?(' · UPC '+esc(it.upc)):' · sin UPC');
     el.innerHTML='<div style="display:flex;align-items:center;gap:8px"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px">'+esc(name)+'</div><div class="muted" style="font-size:11px">'+sub+'</div></div>'
       +'<input class="in bi-qty" type="number" inputmode="numeric" style="width:66px;text-align:center" value="'+(+it.qty||0)+'"><button class="bi-print" style="border:none;background:#ede9fe;color:#6b46c1;border-radius:8px;padding:6px 9px;font-weight:800">🏷️</button><button class="bi-del" style="border:none;background:#fdeaea;color:#c0392b;border-radius:8px;padding:6px 9px;font-weight:800">✕</button></div>'
-      +'<div class="row2" style="margin-top:6px"><input class="in bi-cat" list="dl-cat" placeholder="Tipo (Polo, Hoodie…)"><select class="in bi-gender"><option value="">Género —</option><option>Men</option><option>Ladies</option><option>Youth</option><option>Kid</option><option>Baby</option><option>Unisex</option></select></div>';
+      +'<div class="row2" style="margin-top:6px"><input class="in bi-color" list="dl-color" placeholder="Color"><input class="in bi-cc" inputmode="numeric" placeholder="Cód. color"></div>'
+      +'<div class="row2" style="margin-top:6px"><input class="in bi-size" placeholder="Talla"><input class="in bi-cat" list="dl-cat" placeholder="Tipo (Polo, Hoodie…)"></div>'
+      +'<div class="row2" style="margin-top:6px"><select class="in bi-gender"><option value="">Género —</option><option>Men</option><option>Ladies</option><option>Youth</option><option>Kid</option><option>Baby</option><option>Unisex</option></select><div></div></div>';
     el.querySelector('.bi-qty').addEventListener('input',e=>{curBox.items[idx].qty=Math.max(0,parseInt(e.target.value,10)||0);$('#b-pieces').textContent=boxPieces();refreshManifest();});
     el.querySelector('.bi-del').addEventListener('click',()=>{curBox.items.splice(idx,1);renderBoxItems();});
     el.querySelector('.bi-print').addEventListener('click',async()=>{const it2=curBox.items[idx];const n=await uiPrompt('Imprimir etiqueta 9×3',[it2.brand,it2.style,it2.color,it2.size].filter(Boolean).join(' ')+'\n¿Cuántas etiquetas de esta prenda?',(+it2.qty||1));if(n===null)return;const s=document.getElementById('boxpage');if(s)s.remove();printItems({brand:it2.brand,style:it2.style,color:it2.color,size:it2.size,gender:it2.gender||'',cat:it2.cat||'',upc:it2.upc||'',sku:it2.sku},Math.max(1,+n||1));});
+    const regen=()=>{const p=curBox.items[idx];p.sku=genSku(p.brand,p.style,p.color,p.size);};
+    const col=el.querySelector('.bi-color');col.value=it.color||'';col.addEventListener('input',e=>{curBox.items[idx].color=e.target.value.trim();regen();refreshManifest();});
+    const ccx=el.querySelector('.bi-cc');ccx.value=it.cc||'';ccx.addEventListener('input',e=>{curBox.items[idx].cc=e.target.value.trim();refreshManifest();});
+    const sz=el.querySelector('.bi-size');sz.value=it.size||'';sz.addEventListener('input',e=>{curBox.items[idx].size=e.target.value.trim();regen();refreshManifest();});
     const cat=el.querySelector('.bi-cat');cat.value=it.cat||'';cat.addEventListener('input',e=>{curBox.items[idx].cat=e.target.value.trim();refreshManifest();});
     const gen=el.querySelector('.bi-gender');gen.value=it.gender||'';gen.addEventListener('change',e=>{curBox.items[idx].gender=e.target.value;refreshManifest();});
     L.appendChild(el);
@@ -1175,7 +1181,17 @@ $('#b-save').addEventListener('click',async()=>{
   try{await DB.saveBox(payload);
     if(orig&&orig!==newCode){try{await DB.removeBox(orig);}catch(e){}}
     curBox._orig=newCode;
-    toast('Caja guardada: '+newCode,'ok');back();renderBoxList('');}
+    toast('Caja guardada: '+newCode,'ok');back();renderBoxList('');
+    // Alimentar la base: registrar en el inventario los productos nuevos (qty 0, no pisa existentes)
+    let nuevos=0;
+    for(const it of (curBox.items||[])){
+      if(!it.sku)continue;
+      try{const ex=await DB.bySku(it.sku);
+        if(!ex){await DB.create({sku:it.sku,upc:it.upc||'',brand:it.brand||'',style:it.style||'',color:it.color||'',cc:it.cc||'',size:it.size||'',cat:it.cat||'',gender:it.gender||'',qty:0,cost:0,img:'',title:[it.brand,it.style,it.color,it.size].filter(Boolean).join(' ')});const c=CATALOG.find(x=>x.sku===it.sku);if(!c)CATALOG.unshift({sku:it.sku,upc:it.upc||'',brand:it.brand||'',style:it.style||'',color:it.color||'',cc:it.cc||'',size:it.size||'',cat:it.cat||'',gender:it.gender||'',qty:0});nuevos++;}
+      }catch(e){}
+    }
+    if(nuevos)toast('+'+nuevos+' productos nuevos registrados en la base','ok');
+  }
   catch(e){toast('Error: '+String(e).slice(0,90),'err');}
 });
 $('#b-del').addEventListener('click',async()=>{
