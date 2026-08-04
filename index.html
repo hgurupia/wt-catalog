@@ -284,6 +284,17 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
       <button class="btn b block" id="b-scan">📷 Escanear para agregar</button>
       <input class="in" id="b-q" placeholder="…o busca por nombre / SKU" style="margin-top:8px">
       <div id="b-results"></div>
+      <button class="btn ghost block" id="b-manual" style="margin-top:6px">➕ Cargar a mano (no está en la base)</button>
+      <div id="b-manualform" style="display:none;margin-top:8px;padding:10px;border:1px dashed #cbd5e1;border-radius:12px">
+        <div class="row2"><div><label class="fld">Marca</label><input class="in" id="bm-brand" list="dl-brand"></div><div><label class="fld">Estilo</label><input class="in" id="bm-style"></div></div>
+        <div style="height:6px"></div>
+        <div class="row2"><div><label class="fld">Color</label><input class="in" id="bm-color" list="dl-color"></div><div><label class="fld">Cód. color</label><input class="in" id="bm-cc" inputmode="numeric"></div></div>
+        <div style="height:6px"></div>
+        <div class="row2"><div><label class="fld">Talla</label><input class="in" id="bm-size"></div><div><label class="fld">Cantidad</label><input class="in" id="bm-qty" type="number" inputmode="numeric" value="1"></div></div>
+        <div style="height:6px"></div>
+        <div><label class="fld">UPC (opcional)</label><input class="in" id="bm-upc" inputmode="numeric"></div>
+        <button class="btn o block" id="bm-add" style="margin-top:8px">Agregar a la caja</button>
+      </div>
       <div id="b-items" style="margin-top:10px"></div>
     </div>
     <button class="btn o block" id="b-save">💾 Guardar caja</button>
@@ -1015,6 +1026,18 @@ async function boxAdd(row){
   else curBox.items.push({sku:row.sku,upc:row.upc||'',brand:row.brand||'',style:row.style||'',color:row.color||'',size:row.size||'',cat:row.cat||'',gender:row.gender||'',qty:n});
   $('#b-q').value='';$('#b-results').innerHTML='';renderBoxItems();
 }
+$('#b-manual').addEventListener('click',()=>{
+  const f=$('#b-manualform');const openIt=(f.style.display==='none');f.style.display=openIt?'block':'none';
+  if(openIt){['bm-brand','bm-style','bm-color','bm-cc','bm-size','bm-upc'].forEach(id=>$('#'+id).value='');$('#bm-qty').value=1;const q=$('#b-q').value.trim();if(q)$('#bm-style').value=q;}
+});
+$('#bm-add').addEventListener('click',()=>{
+  const brand=$('#bm-brand').value.trim(),style=$('#bm-style').value.trim(),color=$('#bm-color').value.trim(),cc=$('#bm-cc').value.trim().replace(/\D/g,''),size=$('#bm-size').value.trim(),upc=$('#bm-upc').value.trim().replace(/\D/g,''),qty=Math.max(1,+$('#bm-qty').value||1);
+  if(!brand&&!style){toast('Pon al menos marca o estilo','err');return;}
+  const sku='WT-'+(slug(brand).slice(0,4).toUpperCase()||'NA')+'-'+(slug(style).toUpperCase()||'NA')+'-'+(slug(color).slice(0,3).toUpperCase()||'NA')+'-'+(size.toUpperCase()||'NA');
+  const ex=curBox.items.find(i=>i.sku===sku);
+  if(ex)ex.qty=(+ex.qty||0)+qty;else curBox.items.push({sku,upc,brand,style,color,cc,size,cat:'',gender:'',qty});
+  $('#b-manualform').style.display='none';$('#b-q').value='';$('#b-results').innerHTML='';renderBoxItems();toast('Agregado a la caja: '+[brand,style,color,size].filter(Boolean).join(' '),'ok');
+});
 $('#b-scan').addEventListener('click',()=>goScan('boxadd'));
 $('#b-q').addEventListener('input',()=>{
   const q=$('#b-q').value.trim();if(!q){$('#b-results').innerHTML='';return;}
