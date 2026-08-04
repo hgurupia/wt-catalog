@@ -911,22 +911,32 @@ $('#ocr-save').addEventListener('click',async()=>{
 function goCount(){if(nav[nav.length-1]!=='s-count')nav.push('s-count');show('s-count');$('#count-q').value='';$('#count-results').innerHTML='';renderCount();}
 $('#home-count').addEventListener('click',goCount);
 $('#count-scan').addEventListener('click',()=>goScan('count'));
+let cqTimer=null;
 $('#count-q').addEventListener('input',()=>{
   const q=$('#count-q').value.trim();
   if(!q){$('#count-results').innerHTML='';return;}
-  const toks=norm(q).split(/\s+/).filter(Boolean);
-  const hits=CATALOG.filter(d=>{const hay=norm([d.brand,d.style,d.color,d.size,d.sku,d.cc].join(' '));return toks.every(t=>hay.includes(t));}).slice(0,12);
-  renderCountChoices(hits);
+  clearTimeout(cqTimer);
+  cqTimer=setTimeout(async()=>{
+    $('#count-results').innerHTML='<p class="muted" style="margin:8px 0 0">Buscando en la base…</p>';
+    let hits=[];try{hits=await DB.searchRef(q);}catch(e){}
+    if(!hits.length){const toks=norm(q).split(/\s+/).filter(Boolean);hits=CATALOG.filter(d=>{const hay=norm([d.brand,d.style,d.color,d.size,d.sku,d.cc].join(' '));return toks.every(t=>hay.includes(t));}).slice(0,20).map(d=>({sku:d.sku,upc:d.upc||'',brand:d.brand||'',style:d.style||'',color:d.color||'',cc:d.cc||'',size:d.size||'',cat:d.cat||'',gender:d.gender||''}));}
+    renderCountChoices(hits);
+  },250);
 });
 function renderCountChoices(list){
   const box=$('#count-results');
   if(!list||!list.length){box.innerHTML='<p class="muted" style="margin:8px 0 0">Sin resultados</p>';return;}
   box.innerHTML=list.map(d=>'<div class="crow" data-sku="'+esc(d.sku)+'" style="padding:9px 4px;border-bottom:1px solid #eee;cursor:pointer">'+esc([d.brand,d.style,d.color,d.size].filter(Boolean).join(' '))+' <span class="muted" style="font-size:12px">'+esc(d.sku)+(d.counted!=null?(' · contado '+d.counted):'')+'</span></div>').join('');
-  box.querySelectorAll('.crow').forEach(el=>el.addEventListener('click',async()=>{const sku=el.getAttribute('data-sku');$('#count-results').innerHTML='';$('#count-q').value='';const row=await DB.bySku(sku);if(row)countEntry(row);else toast('No encontrado','err');}));
+  box.querySelectorAll('.crow').forEach(el=>el.addEventListener('click',async()=>{const sku=el.getAttribute('data-sku');const row=list.find(x=>x.sku===sku)||await DB.bySku(sku);$('#count-results').innerHTML='';$('#count-q').value='';if(row)countEntry(row);else toast('No encontrado','err');}));
 }
 function fmtWhen(s){try{const d=new Date(s);return d.toLocaleDateString('es',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});}catch(e){return ''+s;}}
 async function countEntry(row){
-  const fresh=await DB.bySku(row.sku)||row;
+  let fresh=await DB.bySku(row.sku);
+  if(!fresh){
+    const o={sku:row.sku,upc:row.upc||'',brand:row.brand||'',style:row.style||'',color:row.color||'',cc:row.cc||'',size:row.size||'',cat:row.cat||'',gender:row.gender||'',qty:0,cost:0,img:'',title:[row.brand,row.style,row.color,row.size].filter(Boolean).join(' ')};
+    try{await DB.create(o);CATALOG.unshift(o);}catch(e){}
+    fresh=await DB.bySku(row.sku)||o;
+  }
   const name=[fresh.brand,fresh.style,fresh.color,fresh.size].filter(Boolean).join(' ');
   const cur=(fresh.counted==null?'':fresh.counted);
   const ya=fresh.counted!=null?('\n⚠️ YA CONTADO: '+fresh.counted+(fresh.counted_by?(' por '+fresh.counted_by):'')+(fresh.counted_at?(' · '+fmtWhen(fresh.counted_at)):'')):'';
@@ -1140,7 +1150,7 @@ async function onCode(code){
   if(scanPurpose==='assign'){stopCam();assignUPC(code);return;}
   if(scanPurpose==='new'){stopCam();$('#n-upc').value=code;$('#n-upcbadge').textContent='✓ leído';back();return;}
   if(scanPurpose==='ocrupc'){stopCam();if(ocrUpcTarget){ocrUpcTarget.value=(''+code).replace(/\D/g,'');}ocrUpcTarget=null;back();toast('UPC escaneado ✓','ok');return;}
-  if(scanPurpose==='count'){stopCam();back();const rows=await DB.byUPC(code);if(!rows.length){toast('Ese UPC no está en la base: '+code,'err');return;}if(rows.length===1){countEntry(rows[0]);}else{renderCountChoices(rows);toast('Varios con ese UPC — elige cuál contar','ok');}return;}
+  if(scanPurpose==='count'){stopCam();back();let rows=await DB.byUPC(code);if(!rows.length){try{rows=await DB.refByUPC(code);}catch(e){}}if(!rows.length){toast('Ese UPC no está en la base: '+code,'err');return;}if(rows.length===1){countEntry(rows[0]);}else{renderCountChoices(rows);toast('Varios con ese UPC — elige cuál contar','ok');}return;}
   if(scanPurpose==='boxadd'){stopCam();back();let rows=await DB.byUPC(code);if(!rows.length){try{rows=await DB.refByUPC(code);}catch(e){}}if(!rows.length){toast('Ese UPC no está en la base: '+code+'. Usa "➕ Cargar a mano".','err');return;}if(rows.length===1){boxAdd(rows[0]);}else{boxAddChoices(rows);toast('Varios con ese UPC — elige','ok');}return;}
   // map
   toast('UPC: '+code);
