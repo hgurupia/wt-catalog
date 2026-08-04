@@ -1,17 +1,14 @@
 // ============================================================
 //  Supabase Edge Function: ocr-label
-//  Lee una etiqueta ESCRITA A MANO (foto) con Claude (visión)
-//  y devuelve los campos del producto en JSON.
+//  Lee una etiqueta ESCRITA A MANO (foto) con Claude (visión).
+//  Soporta etiquetas de UN producto Y cuadrículas de VARIOS
+//  productos (filas por estilo/color/UPC, columnas por talla).
+//  Devuelve { ok:true, items:[...], raw_text }.
 //
-//  Cómo desplegar (en el Dashboard de Supabase):
-//   1) Edge Functions → "Create a new function" → nombre EXACTO: ocr-label
-//   2) Pega TODO este archivo → Deploy
-//   3) En la función, apaga "Verify JWT" (Details → Verify JWT = off)
-//   4) Edge Functions → Secrets (o Project Settings → Edge Functions):
-//        ANTHROPIC_API_KEY = tu llave de console.anthropic.com  (obligatoria)
-//        GATE_KEY          = la MISMA publishable key de la app  (recomendado)
-//        OCR_MODEL         = claude-opus-5   (opcional; puedes poner claude-sonnet-5 para abaratar)
-//  URL final: https://vkqsmwbhwekfwmdzihjj.supabase.co/functions/v1/ocr-label
+//  Deploy (Dashboard): Edge Functions → función "ocr-label" →
+//   Code → pegar todo → Deploy. Verify JWT = OFF.
+//   Secrets: ANTHROPIC_API_KEY, GATE_KEY (=publishable key),
+//            OCR_MODEL (opcional, ej. claude-sonnet-5).
 // ============================================================
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY") || "";
@@ -39,32 +36,59 @@ Deno.serve(async (req) => {
     const b64 = image.includes(",") ? image.split(",")[1] : image;
     const media_type: string = body.media_type || "image/jpeg";
 
-    const schema = {
+    const item = {
       type: "object",
       additionalProperties: false,
       properties: {
         brand: { type: "string" },
         style: { type: "string" },
         color: { type: "string" },
+        cc: { type: "string" },
         size: { type: "string" },
         upc: { type: "string" },
         qty: { type: "integer" },
         cat: { type: "string" },
         gender: { type: "string" },
+      },
+      required: ["brand", "style", "color", "cc", "size", "upc", "qty", "cat", "gender"],
+    };
+    const schema = {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        items: { type: "array", items: item },
         raw_text: { type: "string" },
       },
-      required: ["brand", "style", "color", "size", "upc", "qty", "cat", "gender", "raw_text"],
+      required: ["items", "raw_text"],
     };
 
     const prompt =
-      `Esta es la foto de una etiqueta ESCRITA A MANO (bolígrafo) pegada por fuera de una caja de ropa. ` +
-      `Lee la letra manuscrita con cuidado y extrae los datos del producto.\n` +
-      `Devuelve: brand (marca), style (estilo/código de estilo), color, size (talla), ` +
-      `upc (SOLO los dígitos del código de barras si aparece), qty (cantidad de piezas, entero), ` +
-      `cat (tipo de prenda como Polo/T-Shirt/Sweatshirt si se deduce), ` +
-      `gender (Men/Ladies/Youth/Kid/Baby/Unisex si se deduce) y ` +
-      `raw_text con TODO el texto que leíste, tal cual.\n` +
-      `Si un campo no aparece, déjalo como cadena vacía ("") y qty en 0. No inventes datos.`;
+      `Esta es la foto de una etiqueta ESCRITA A MANO (bolígrafo) de una caja/lote de ropa. ` +
+      `Léela con cuidado y devuelve un ARREGLO "items" con TODOS los productos que aparezcan.\n\n` +
+      `MUY IMPORTANTE — muchas etiquetas son una CUADRÍCULA/TABLA con varias filas:\n` +
+      `- La MARCA suele estar en el encabezado, arriba (aplica a TODAS las filas).\n` +
+      `- Las columnas suelen ser: STYLE (estilo), COLOR, y luego tallas S, M, L, XL, 2XL, 3XL, 4XL.\n` +
+      `- Cada FILA es un producto: tiene su propio estilo (style) y color. El estilo puede terminar en letra ` +
+      `(ej. S790Y donde la Y = Youth) — respétala tal cual.\n` +
+      `- ¡MUY IMPORTANTE! Justo DESPUÉS de la columna COLOR suele haber una columna angosta con un ` +
+      `número CORTO de 1 a 3 dígitos (ej. 52, 67, 00, 11) — eso es el CÓDIGO DE COLOR (campo "cc"), ` +
+      `NO es el UPC. Ponlo en "cc".\n` +
+      `- El UPC es un CÓDIGO DE BARRAS LARGO (normalmente 11 a 13 dígitos, ej. 711311853376). ` +
+      `SOLO llena "upc" si ves un número largo así; si la etiqueta no tiene código de barras, deja upc="".\n` +
+      `- Después vienen las columnas de talla: S, M, L, XL, 2XL, 3XL, 4XL. ` +
+      `Las CANTIDADES están escritas a mano en esas celdas. ` +
+      `Cada celda de talla con un número = un item separado con esa talla (size) y esa cantidad (qty).\n\n` +
+      `Reglas de salida por cada item: brand (marca del encabezado), style, color, ` +
+      `cc (el código de color corto de 1-3 dígitos de esa fila; si no hay, ""), ` +
+      `size (la talla de esa celda, en mayúsculas: S/M/L/XL/2XL/3XL/4XL — si la celda dice XS úsalo tal cual), ` +
+      `qty (el número escrito en esa celda, entero), ` +
+      `upc (SOLO un código de barras largo de 11-13 dígitos; casi siempre "" en estas etiquetas), ` +
+      `cat (tipo de prenda como Polo/T-Shirt/Sweatshirt si se deduce, si no ""), ` +
+      `gender (Men/Ladies/Youth/Kid/Baby/Unisex si se deduce, si no "").\n` +
+      `Si una etiqueta es de UN SOLO producto (no cuadrícula), devuelve un solo item.\n` +
+      `Incluye una celda solo si tiene un número escrito a mano claro; ignora las celdas vacías. ` +
+      `No inventes datos: si un campo no aparece, déjalo "" (y qty 0 solo si de verdad no hay número).\n` +
+      `Además, "raw_text" = TODO el texto que leíste, tal cual, para referencia.`;
 
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -75,7 +99,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 1024,
+        max_tokens: 2048,
         output_config: { effort: "low", format: { type: "json_schema", schema } },
         messages: [
           {
@@ -94,10 +118,11 @@ Deno.serve(async (req) => {
     if (data.stop_reason === "refusal") return json({ error: "la IA no pudo procesar la imagen" }, 422);
 
     const textBlock = (data.content || []).find((b: any) => b.type === "text");
-    let fields: any = {};
-    try { fields = JSON.parse(textBlock?.text || "{}"); }
-    catch { fields = { raw_text: textBlock?.text || "" }; }
-    return json({ ok: true, fields });
+    let parsed: any = {};
+    try { parsed = JSON.parse(textBlock?.text || "{}"); }
+    catch { parsed = { items: [], raw_text: textBlock?.text || "" }; }
+    const items = Array.isArray(parsed.items) ? parsed.items : [];
+    return json({ ok: true, items, raw_text: parsed.raw_text || "" });
   } catch (e) {
     return json({ error: String(e).slice(0, 300) }, 500);
   }
