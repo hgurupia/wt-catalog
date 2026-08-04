@@ -233,6 +233,11 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
       <div id="count-results"></div>
     </div>
     <div class="card">
+      <div id="count-prog" class="muted" style="font-size:14px">Avance…</div>
+      <button class="btn ghost block" id="count-pending-btn" style="margin-top:8px">📋 Ver pendientes</button>
+      <div id="count-pending" style="display:none;margin-top:8px;max-height:300px;overflow:auto"></div>
+    </div>
+    <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
         <b id="count-sum">0 contados</b>
         <button class="btn o" id="count-valall" style="width:auto;flex:0 0 auto;padding:0 14px;margin:0">✓ Validar diferencias</button>
@@ -527,6 +532,14 @@ const DB={
     if(MODE==='online'){const r=await fetch(SB_URL+'/rest/v1/wt_inventory?counted=not.is.null&select=*&order=counted_at.desc.nullslast',{headers:sbHeaders()});return r.ok?await r.json():[];}
     return (localDB()||[]).filter(d=>d.counted!=null);
   },
+  async total(){
+    if(MODE==='online'){const r=await fetch(SB_URL+'/rest/v1/wt_inventory?select=sku&limit=1',{headers:sbHeaders({Prefer:'count=exact'})});const cr=r.headers.get('content-range')||'';const m=cr.match(/\/(\d+)$/);return m?+m[1]:0;}
+    return (localDB()||[]).length;
+  },
+  async listPending(){
+    if(MODE==='online'){const r=await fetch(SB_URL+'/rest/v1/wt_inventory?counted=is.null&select=sku,brand,style,color,size&order=brand.asc,style.asc&limit=3000',{headers:sbHeaders()});return r.ok?await r.json():[];}
+    return (localDB()||[]).filter(d=>d.counted==null);
+  },
   async remove(sku){
     if(MODE==='online'){
       const r=await fetch(SB_URL+'/rest/v1/wt_inventory?sku=eq.'+encodeURIComponent(sku),{method:'DELETE',headers:sbHeaders({Prefer:'return=minimal'})});
@@ -819,19 +832,34 @@ function renderCountChoices(list){
   box.innerHTML=list.map(d=>'<div class="crow" data-sku="'+esc(d.sku)+'" style="padding:9px 4px;border-bottom:1px solid #eee;cursor:pointer">'+esc([d.brand,d.style,d.color,d.size].filter(Boolean).join(' '))+' <span class="muted" style="font-size:12px">'+esc(d.sku)+(d.counted!=null?(' · contado '+d.counted):'')+'</span></div>').join('');
   box.querySelectorAll('.crow').forEach(el=>el.addEventListener('click',async()=>{const sku=el.getAttribute('data-sku');$('#count-results').innerHTML='';$('#count-q').value='';const row=await DB.bySku(sku);if(row)countEntry(row);else toast('No encontrado','err');}));
 }
+function fmtWhen(s){try{const d=new Date(s);return d.toLocaleDateString('es',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});}catch(e){return ''+s;}}
 async function countEntry(row){
   const fresh=await DB.bySku(row.sku)||row;
   const name=[fresh.brand,fresh.style,fresh.color,fresh.size].filter(Boolean).join(' ');
   const cur=(fresh.counted==null?'':fresh.counted);
-  const v=await uiPrompt('Contar',name+'\nSistema: '+(+fresh.qty||0)+(fresh.counted!=null?('\nYa contado: '+fresh.counted):'')+'\n\nEscribe la cantidad CONTADA:',cur);
+  const ya=fresh.counted!=null?('\n⚠️ YA CONTADO: '+fresh.counted+(fresh.counted_by?(' por '+fresh.counted_by):'')+(fresh.counted_at?(' · '+fmtWhen(fresh.counted_at)):'')):'';
+  const v=await uiPrompt('Contar',name+'\nSistema: '+(+fresh.qty||0)+ya+'\n\nEscribe la cantidad CONTADA:',cur);
   if(v==null)return;
   const n=Math.max(0,parseInt(v,10)||0);
-  try{await DB.setCount(fresh.sku,n);toast('Contado '+n+' · '+name,'ok');renderCount();}
+  try{await DB.setCount(fresh.sku,n);toast('Contado '+n+' · '+name,'ok');renderCount();if($('#count-pending').style.display!=='none')renderPending();}
   catch(e){toast('Error: '+String(e).slice(0,90),'err');}
 }
+async function renderPending(){
+  const box=$('#count-pending');box.innerHTML='<p class="muted">Cargando…</p>';
+  let p=[];try{p=await DB.listPending();}catch(e){box.innerHTML='<p class="muted">Error</p>';return;}
+  if(!p.length){box.innerHTML='<p class="muted">🎉 No quedan pendientes — todo contado.</p>';return;}
+  box.innerHTML='<p class="muted" style="margin:0 0 6px">'+p.length+' sin contar — toca uno para contarlo:</p>'+p.map(d=>'<div class="crow" data-sku="'+esc(d.sku)+'" style="padding:8px 4px;border-bottom:1px solid #eee;cursor:pointer">'+esc([d.brand,d.style,d.color,d.size].filter(Boolean).join(' '))+' <span class="muted" style="font-size:11px">'+esc(d.sku)+'</span></div>').join('');
+  box.querySelectorAll('.crow').forEach(el=>el.addEventListener('click',async()=>{const row=await DB.bySku(el.getAttribute('data-sku'));if(row)countEntry(row);}));
+}
+$('#count-pending-btn').addEventListener('click',()=>{
+  const box=$('#count-pending');
+  if(box.style.display!=='none'){box.style.display='none';$('#count-pending-btn').textContent='📋 Ver pendientes';return;}
+  box.style.display='block';$('#count-pending-btn').textContent='Ocultar pendientes';renderPending();
+});
 async function renderCount(){
   const L=$('#count-list');L.innerHTML='<p class="muted">Cargando…</p>';
-  let rows=[];try{rows=await DB.listCounted();}catch(e){L.innerHTML='<p class="muted">Error al cargar</p>';return;}
+  let rows=[];try{rows=await DB.listCounted();}catch(e){L.innerHTML='<p class="muted">Error al cargar (¿ya corriste el SQL de las columnas?)</p>';$('#count-prog').textContent='';return;}
+  try{const total=await DB.total();const done=rows.length;const pend=Math.max(0,total-done);const pct=total?Math.round(done/total*100):0;$('#count-prog').innerHTML='Avance: <b>'+done+'</b> contados · <b>'+pend+'</b> pendientes · '+total+' total (<b>'+pct+'%</b>)';}catch(e){$('#count-prog').textContent='';}
   rows.sort((a,b)=>Math.abs((+b.counted||0)-(+b.qty||0))-Math.abs((+a.counted||0)-(+a.qty||0)));
   const diff=rows.filter(r=>(+r.counted||0)!==(+r.qty||0)).length;
   $('#count-sum').textContent=rows.length+' contados · '+diff+' con diferencia';
