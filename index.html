@@ -617,6 +617,21 @@ const DB={
     const m=(''+last).match(/(\d+)\s*$/);const n=(m?parseInt(m[1],10):0)+1;
     return 'CAJA-'+String(n).padStart(4,'0');
   },
+  async searchRef(q){
+    if(MODE!=='online')return [];
+    const toks=norm(q).split(/\s+/).filter(Boolean);if(!toks.length)return [];
+    const t=toks.slice().sort((a,b)=>b.length-a.length)[0];
+    const r=await fetch(SB_URL+'/rest/v1/wt_reference?search=ilike.'+encodeURIComponent('*'+t+'*')+'&select=sku,upc,brand,style,color,color_code,size&limit=100',{headers:sbHeaders()});
+    let a=r.ok?await r.json():[];
+    a=a.filter(d=>{const hay=norm([d.brand,d.style,d.color,d.size,d.color_code,d.sku,d.upc].join(' '));return toks.every(tk=>hay.includes(tk));}).slice(0,40);
+    return a.map(d=>({sku:genSku(d.brand,d.style,d.color,d.size),upc:(''+(d.upc||'')).replace(/\D/g,''),brand:d.brand||'',style:d.style||'',color:d.color||'',cc:(''+(d.color_code||'')),size:d.size||'',cat:'',gender:''}));
+  },
+  async refByUPC(upc){
+    const u=(''+(upc||'')).replace(/\D/g,'');if(!u||MODE!=='online')return [];
+    const r=await fetch(SB_URL+'/rest/v1/wt_reference?upc=eq.'+encodeURIComponent(u)+'&select=sku,upc,brand,style,color,color_code,size&limit=8',{headers:sbHeaders()});
+    const a=r.ok?await r.json():[];
+    return a.map(d=>({sku:genSku(d.brand,d.style,d.color,d.size),upc:(''+(d.upc||'')).replace(/\D/g,''),brand:d.brand||'',style:d.style||'',color:d.color||'',cc:(''+(d.color_code||'')),size:d.size||'',cat:'',gender:''}));
+  },
   async remove(sku){
     if(MODE==='online'){
       const r=await fetch(SB_URL+'/rest/v1/wt_inventory?sku=eq.'+encodeURIComponent(sku),{method:'DELETE',headers:sbHeaders({Prefer:'return=minimal'})});
@@ -1023,7 +1038,7 @@ async function boxAdd(row){
   const n=Math.max(0,parseInt(v,10)||0);
   if(n===0){curBox.items=curBox.items.filter(i=>i.sku!==row.sku);}
   else if(ex)ex.qty=n;
-  else curBox.items.push({sku:row.sku,upc:row.upc||'',brand:row.brand||'',style:row.style||'',color:row.color||'',size:row.size||'',cat:row.cat||'',gender:row.gender||'',qty:n});
+  else curBox.items.push({sku:row.sku,upc:row.upc||'',brand:row.brand||'',style:row.style||'',color:row.color||'',cc:row.cc||'',size:row.size||'',cat:row.cat||'',gender:row.gender||'',qty:n});
   $('#b-q').value='';$('#b-results').innerHTML='';renderBoxItems();
 }
 $('#b-manual').addEventListener('click',()=>{
@@ -1039,13 +1054,23 @@ $('#bm-add').addEventListener('click',()=>{
   $('#b-manualform').style.display='none';$('#b-q').value='';$('#b-results').innerHTML='';renderBoxItems();toast('Agregado a la caja: '+[brand,style,color,size].filter(Boolean).join(' '),'ok');
 });
 $('#b-scan').addEventListener('click',()=>goScan('boxadd'));
-$('#b-q').addEventListener('input',()=>{
-  const q=$('#b-q').value.trim();if(!q){$('#b-results').innerHTML='';return;}
-  const toks=norm(q).split(/\s+/).filter(Boolean);
-  const hits=CATALOG.filter(d=>{const hay=norm([d.brand,d.style,d.color,d.size,d.sku,d.cc].join(' '));return toks.every(t=>hay.includes(t));}).slice(0,12);
+function boxAddChoices(rows){
   const box=$('#b-results');
-  box.innerHTML=hits.length?hits.map(d=>'<div class="crow" data-sku="'+esc(d.sku)+'" style="padding:8px 4px;border-bottom:1px solid #eee;cursor:pointer">'+esc([d.brand,d.style,d.color,d.size].filter(Boolean).join(' '))+' <span class="muted" style="font-size:11px">'+esc(d.sku)+'</span></div>').join(''):'<p class="muted" style="margin:8px 0 0">Sin resultados</p>';
-  box.querySelectorAll('.crow').forEach(el=>el.addEventListener('click',async()=>{const sku=el.getAttribute('data-sku');const row=await DB.bySku(sku)||CATALOG.find(x=>x.sku===sku);if(row)boxAdd(row);}));
+  if(!rows||!rows.length){box.innerHTML='<p class="muted" style="margin:8px 0 0">Sin resultados en la base. Usa "➕ Cargar a mano".</p>';return;}
+  box.innerHTML=rows.map((d,i)=>'<div class="crow" data-i="'+i+'" style="padding:8px 4px;border-bottom:1px solid #eee;cursor:pointer">'+esc([d.brand,d.style,d.color,d.size].filter(Boolean).join(' '))+' <span class="muted" style="font-size:11px">'+(d.upc?('UPC '+esc(d.upc)):esc(d.sku||''))+'</span></div>').join('');
+  box.querySelectorAll('.crow').forEach(el=>el.addEventListener('click',()=>boxAdd(rows[+el.getAttribute('data-i')])));
+}
+let bqTimer=null;
+$('#b-q').addEventListener('input',()=>{
+  const q=$('#b-q').value.trim();const box=$('#b-results');
+  if(!q){box.innerHTML='';return;}
+  clearTimeout(bqTimer);
+  bqTimer=setTimeout(async()=>{
+    box.innerHTML='<p class="muted" style="margin:8px 0 0">Buscando en la base…</p>';
+    let hits=[];try{hits=await DB.searchRef(q);}catch(e){}
+    if(!hits.length){try{hits=(CATALOG.filter(d=>{const hay=norm([d.brand,d.style,d.color,d.size,d.sku,d.cc].join(' '));return norm(q).split(/\s+/).filter(Boolean).every(t=>hay.includes(t));}).slice(0,20)).map(d=>({sku:d.sku,upc:d.upc||'',brand:d.brand||'',style:d.style||'',color:d.color||'',cc:d.cc||'',size:d.size||'',cat:d.cat||'',gender:d.gender||''}));}catch(e){}}
+    boxAddChoices(hits);
+  },250);
 });
 $('#b-save').addEventListener('click',async()=>{
   const newCode=$('#b-code').value.trim();
@@ -1116,7 +1141,7 @@ async function onCode(code){
   if(scanPurpose==='new'){stopCam();$('#n-upc').value=code;$('#n-upcbadge').textContent='✓ leído';back();return;}
   if(scanPurpose==='ocrupc'){stopCam();if(ocrUpcTarget){ocrUpcTarget.value=(''+code).replace(/\D/g,'');}ocrUpcTarget=null;back();toast('UPC escaneado ✓','ok');return;}
   if(scanPurpose==='count'){stopCam();back();const rows=await DB.byUPC(code);if(!rows.length){toast('Ese UPC no está en la base: '+code,'err');return;}if(rows.length===1){countEntry(rows[0]);}else{renderCountChoices(rows);toast('Varios con ese UPC — elige cuál contar','ok');}return;}
-  if(scanPurpose==='boxadd'){stopCam();back();const rows=await DB.byUPC(code);if(!rows.length){toast('Ese UPC no está en la base: '+code,'err');return;}if(rows.length===1){boxAdd(rows[0]);}else{const box=$('#b-results');box.innerHTML=rows.map(d=>'<div class="crow" data-sku="'+esc(d.sku)+'" style="padding:8px 4px;border-bottom:1px solid #eee;cursor:pointer">'+esc([d.brand,d.style,d.color,d.size].filter(Boolean).join(' '))+' <span class="muted" style="font-size:11px">'+esc(d.sku)+'</span></div>').join('');box.querySelectorAll('.crow').forEach(el=>el.addEventListener('click',async()=>{const row=await DB.bySku(el.getAttribute('data-sku'));if(row)boxAdd(row);}));toast('Varios con ese UPC — elige','ok');}return;}
+  if(scanPurpose==='boxadd'){stopCam();back();let rows=await DB.byUPC(code);if(!rows.length){try{rows=await DB.refByUPC(code);}catch(e){}}if(!rows.length){toast('Ese UPC no está en la base: '+code+'. Usa "➕ Cargar a mano".','err');return;}if(rows.length===1){boxAdd(rows[0]);}else{boxAddChoices(rows);toast('Varios con ese UPC — elige','ok');}return;}
   // map
   toast('UPC: '+code);
   const matches=await DB.byUPC(code);
@@ -1350,6 +1375,7 @@ function printItems(d,count){
 /* =================== UTIL =================== */
 function esc(s){return (s==null?'':(''+s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function slug(s){return (''+(s||'')).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zA-Z0-9]+/g,'').trim()}
+function genSku(brand,style,color,size){return 'WT-'+(slug(brand).slice(0,4).toUpperCase()||'NA')+'-'+(slug(style).toUpperCase()||'NA')+'-'+(slug(color).slice(0,3).toUpperCase()||'NA')+'-'+((''+(size||'')).toUpperCase()||'NA');}
 // datalists
 (function(){const b=[...new Set(CATALOG.map(d=>d.brand).filter(Boolean))].sort();$('#dl-brand').innerHTML=b.map(x=>'<option value="'+esc(x)+'">').join('');const c=[...new Set(CATALOG.map(d=>d.cat).filter(Boolean))].sort();$('#dl-cat').innerHTML=c.map(x=>'<option value="'+esc(x)+'">').join('');const co=[...new Set(CATALOG.map(d=>d.color).filter(Boolean))].sort();$('#dl-color').innerHTML=co.map(x=>'<option value="'+esc(x)+'">').join('');})();
 </script>
