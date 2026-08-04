@@ -132,9 +132,8 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
 #printArea{display:none}
 @media print{
   @page{size:90mm 30mm;margin:0}
-  body *{visibility:hidden}
-  #printArea,#printArea *{visibility:visible}
-  #printArea{display:block;position:absolute;left:0;top:0}
+  body > *{display:none !important}
+  #printArea{display:block !important}
   .lbl{width:90mm;height:30mm;box-sizing:border-box;padding:1.5mm 2mm;page-break-after:always;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:Arial,Helvetica,sans-serif;color:#000;overflow:hidden}
   .lbl .l1{font-size:3.6mm;font-weight:800;text-transform:uppercase;line-height:1.05;text-align:center}
   .lbl .l2{font-size:2.7mm;font-weight:600;margin-top:.5mm;text-align:center;line-height:1.1}
@@ -227,6 +226,7 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
       <div class="imgnote" id="ocr-note" style="display:none"></div>
       <div id="ocr-list"></div>
       <button class="btn ghost block" id="ocr-add" style="margin-top:6px">✚ Agregar otra fila</button>
+      <button class="btn b block" id="ocr-tobox" style="margin-top:8px;background:linear-gradient(135deg,#b45309,#f59e0b)">📦 Crear caja con estos productos</button>
       <button class="btn o block" id="ocr-save" style="margin-top:8px">✓ Subir todo al inventario</button>
     </div>
   </div>
@@ -888,6 +888,21 @@ function ocrCard(it){
 function renumberOcr(){document.querySelectorAll('#ocr-list .ocr-item .oi-n').forEach((b,i)=>b.textContent='Producto '+(i+1));}
 function renderOcrItems(items){const L=$('#ocr-list');L.innerHTML='';items.forEach(it=>L.appendChild(ocrCard(it)));renumberOcr();}
 $('#ocr-add').addEventListener('click',()=>{$('#ocr-list').appendChild(ocrCard({}));renumberOcr();});
+function ocrCollectItems(){
+  return [...document.querySelectorAll('#ocr-list .ocr-item')].map(c=>{
+    const g=q=>(c.querySelector(q).value||'').trim();
+    return {brand:g('.oi-brand'),style:g('.oi-style'),color:g('.oi-color'),cc:g('.oi-cc').replace(/\D/g,''),size:g('.oi-size'),cat:g('.oi-cat'),gender:c.querySelector('.oi-gender').value,upc:g('.oi-upc').replace(/\D/g,''),qty:+c.querySelector('.oi-qty').value||0};
+  }).filter(it=>it.brand||it.style||it.color||it.size);
+}
+$('#ocr-tobox').addEventListener('click',async()=>{
+  const items=ocrCollectItems();
+  if(!items.length){toast('No hay productos leídos','err');return;}
+  let code='CAJA-0001';try{code=await DB.nextBoxCode();}catch(e){}
+  curBox={code,name:'',kind:'pool',rack:'',bin:'',pieces:0,_orig:null,
+    items:items.map(it=>({sku:genSku(it.brand,it.style,it.color,it.size),upc:it.upc||'',brand:it.brand,style:it.style,color:it.color,cc:it.cc||'',size:it.size,cat:it.cat||'',gender:it.gender||'',qty:+it.qty||1}))};
+  openBoxEditor(true);
+  toast('Caja armada desde la etiqueta — asigna Rack/Comp y Guarda','ok');
+});
 $('#ocr-save').addEventListener('click',async()=>{
   const cards=[...document.querySelectorAll('#ocr-list .ocr-item')];
   if(!cards.length){toast('No hay productos para subir','err');return;}
