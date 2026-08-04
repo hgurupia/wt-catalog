@@ -179,6 +179,7 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
     <button class="big-btn search" id="home-search"><span class="ic">🔎</span><span>Buscar por nombre / SKU<span class="cap">Cuando no tiene código de barras</span></span></button>
     <button class="big-btn newp" id="home-new"><span class="ic">➕</span><span>Producto nuevo (foto)<span class="cap">No está en la base todavía</span></span></button>
     <button class="big-btn" id="home-ocr" style="background:linear-gradient(135deg,#6b46c1,#8b5cf6)"><span class="ic">🏷️</span><span>Leer etiqueta escrita a mano<span class="cap">Foto de la caja → texto → revisar → subir</span></span></button>
+    <button class="big-btn" id="home-count" style="background:linear-gradient(135deg,#0f766e,#14b8a6)"><span class="ic">🔢</span><span>Conteo físico<span class="cap">Cuenta lo real, compara y valida diferencias</span></span></button>
     <div class="grid2">
       <div class="stat" id="stat-prods" style="cursor:pointer"><b id="st-prods">0</b><span>productos · toca para ver ▸</span></div>
       <div class="stat" id="stat-units" style="cursor:pointer"><b id="st-units">0</b><span>unidades · toca para ver ▸</span></div>
@@ -216,6 +217,27 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
       <div id="ocr-list"></div>
       <button class="btn ghost block" id="ocr-add" style="margin-top:6px">✚ Agregar otra fila</button>
       <button class="btn o block" id="ocr-save" style="margin-top:8px">✓ Subir todo al inventario</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CONTEO FÍSICO ============ -->
+<section class="screen" id="s-count">
+  <div class="top"><button class="bk" data-back>‹</button><h1>Conteo físico</h1></div>
+  <div class="body">
+    <div class="card">
+      <p class="muted" style="margin:0 0 8px">Cuenta lo que hay físicamente. <b>No cambia la cantidad del sistema</b> hasta que valides.</p>
+      <button class="btn b block" id="count-scan">📷 Escanear para contar</button>
+      <div style="height:8px"></div>
+      <input class="in" id="count-q" placeholder="…o busca por nombre / estilo / SKU">
+      <div id="count-results"></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <b id="count-sum">0 contados</b>
+        <button class="btn o" id="count-valall" style="width:auto;flex:0 0 auto;padding:0 14px;margin:0">✓ Validar diferencias</button>
+      </div>
+      <div id="count-list" style="margin-top:10px"></div>
     </div>
   </div>
 </section>
@@ -495,6 +517,16 @@ const DB={
     if(MODE==='online'){const r=await fetch(SB_URL+'/rest/v1/wt_inventory?sku=eq.'+encodeURIComponent(sku),{method:'PATCH',headers:sbHeaders({Prefer:'return=minimal'}),body:JSON.stringify(obj)});if(!r.ok)throw new Error(await r.text());return;}
     const rows=localDB()||[];const d=rows.find(x=>x.sku===sku);if(d){Object.assign(d,obj);saveLocal(rows);}
   },
+  async setCount(sku,n){
+    const obj={counted:n,counted_by:WHO,counted_at:new Date().toISOString()};
+    if(MODE==='online'){const r=await fetch(SB_URL+'/rest/v1/wt_inventory?sku=eq.'+encodeURIComponent(sku),{method:'PATCH',headers:sbHeaders({Prefer:'return=minimal'}),body:JSON.stringify(obj)});if(!r.ok)throw new Error(await r.text());return;}
+    const rows=localDB()||[];const d=rows.find(x=>x.sku===sku);if(d){Object.assign(d,obj);saveLocal(rows);}
+  },
+  async clearCount(sku){return this.update(sku,{counted:null,counted_by:null,counted_at:null});},
+  async listCounted(){
+    if(MODE==='online'){const r=await fetch(SB_URL+'/rest/v1/wt_inventory?counted=not.is.null&select=*&order=counted_at.desc.nullslast',{headers:sbHeaders()});return r.ok?await r.json():[];}
+    return (localDB()||[]).filter(d=>d.counted!=null);
+  },
   async remove(sku){
     if(MODE==='online'){
       const r=await fetch(SB_URL+'/rest/v1/wt_inventory?sku=eq.'+encodeURIComponent(sku),{method:'DELETE',headers:sbHeaders({Prefer:'return=minimal'})});
@@ -606,7 +638,7 @@ $('#admin-sync').addEventListener('click',async()=>{
 });
 
 /* =================== HISTORIAL =================== */
-const KINDLBL={entrada:'Entrada',salida:'Salida',ajuste:'Corrección',nuevo:'Nuevo',upc:'Asignó UPC'};
+const KINDLBL={entrada:'Entrada',salida:'Salida',ajuste:'Corrección',nuevo:'Nuevo',upc:'Asignó UPC',conteo:'Conteo'};
 function fmtTs(ts){try{return new Date(ts).toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});}catch(e){return ''+(ts||'');}}
 $('#home-hist').addEventListener('click',async()=>{
   go('s-hist');
@@ -770,6 +802,71 @@ $('#ocr-save').addEventListener('click',async()=>{
   nav=['s-home'];go('s-home');
 });
 
+/* =================== CONTEO FÍSICO =================== */
+function goCount(){if(nav[nav.length-1]!=='s-count')nav.push('s-count');show('s-count');$('#count-q').value='';$('#count-results').innerHTML='';renderCount();}
+$('#home-count').addEventListener('click',goCount);
+$('#count-scan').addEventListener('click',()=>goScan('count'));
+$('#count-q').addEventListener('input',()=>{
+  const q=$('#count-q').value.trim();
+  if(!q){$('#count-results').innerHTML='';return;}
+  const toks=norm(q).split(/\s+/).filter(Boolean);
+  const hits=CATALOG.filter(d=>{const hay=norm([d.brand,d.style,d.color,d.size,d.sku,d.cc].join(' '));return toks.every(t=>hay.includes(t));}).slice(0,12);
+  renderCountChoices(hits);
+});
+function renderCountChoices(list){
+  const box=$('#count-results');
+  if(!list||!list.length){box.innerHTML='<p class="muted" style="margin:8px 0 0">Sin resultados</p>';return;}
+  box.innerHTML=list.map(d=>'<div class="crow" data-sku="'+esc(d.sku)+'" style="padding:9px 4px;border-bottom:1px solid #eee;cursor:pointer">'+esc([d.brand,d.style,d.color,d.size].filter(Boolean).join(' '))+' <span class="muted" style="font-size:12px">'+esc(d.sku)+(d.counted!=null?(' · contado '+d.counted):'')+'</span></div>').join('');
+  box.querySelectorAll('.crow').forEach(el=>el.addEventListener('click',async()=>{const sku=el.getAttribute('data-sku');$('#count-results').innerHTML='';$('#count-q').value='';const row=await DB.bySku(sku);if(row)countEntry(row);else toast('No encontrado','err');}));
+}
+async function countEntry(row){
+  const fresh=await DB.bySku(row.sku)||row;
+  const name=[fresh.brand,fresh.style,fresh.color,fresh.size].filter(Boolean).join(' ');
+  const cur=(fresh.counted==null?'':fresh.counted);
+  const v=await uiPrompt('Contar',name+'\nSistema: '+(+fresh.qty||0)+(fresh.counted!=null?('\nYa contado: '+fresh.counted):'')+'\n\nEscribe la cantidad CONTADA:',cur);
+  if(v==null)return;
+  const n=Math.max(0,parseInt(v,10)||0);
+  try{await DB.setCount(fresh.sku,n);toast('Contado '+n+' · '+name,'ok');renderCount();}
+  catch(e){toast('Error: '+String(e).slice(0,90),'err');}
+}
+async function renderCount(){
+  const L=$('#count-list');L.innerHTML='<p class="muted">Cargando…</p>';
+  let rows=[];try{rows=await DB.listCounted();}catch(e){L.innerHTML='<p class="muted">Error al cargar</p>';return;}
+  rows.sort((a,b)=>Math.abs((+b.counted||0)-(+b.qty||0))-Math.abs((+a.counted||0)-(+a.qty||0)));
+  const diff=rows.filter(r=>(+r.counted||0)!==(+r.qty||0)).length;
+  $('#count-sum').textContent=rows.length+' contados · '+diff+' con diferencia';
+  if(!rows.length){L.innerHTML='<p class="muted">Aún no has contado nada. Escanea o busca un producto arriba.</p>';return;}
+  L.innerHTML='';
+  rows.forEach(r=>{
+    const sys=+r.qty||0,cnt=+r.counted||0,d=cnt-sys;
+    const name=[r.brand,r.style,r.color,r.size].filter(Boolean).join(' ');
+    const col=d===0?'#16a34a':(d>0?'#0369a1':'#c0392b');
+    const el=document.createElement('div');el.style.cssText='border:1px solid #e5e7eb;border-radius:12px;padding:10px;margin-bottom:8px';
+    el.innerHTML='<div style="font-weight:700">'+esc(name)+'</div><div class="muted" style="font-size:11px;margin-bottom:6px">'+esc(r.sku)+'</div>'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">'
+      +'<div style="font-size:14px">Sist <b>'+sys+'</b> · Cont <b>'+cnt+'</b> · Dif <b style="color:'+col+'">'+(d>0?'+':'')+d+'</b></div>'
+      +'<div style="display:flex;gap:6px"><button class="btn ghost c-edit" style="width:auto;padding:0 10px;margin:0">✏️</button><button class="btn o c-val" style="width:auto;padding:0 12px;margin:0">✓ Validar</button></div></div>';
+    el.querySelector('.c-edit').addEventListener('click',()=>countEntry(r));
+    el.querySelector('.c-val').addEventListener('click',async()=>{try{const t=await applyCount(r);toast('Validado: '+r.sku+' = '+t,'ok');}catch(e){toast('Error: '+String(e).slice(0,80),'err');}renderCount();});
+    L.appendChild(el);
+  });
+}
+async function applyCount(r){
+  const fresh=await DB.bySku(r.sku)||r;const target=+r.counted||0;const delta=target-(+fresh.qty||0);
+  if(delta!==0)await DB.adjust(r.sku,delta,'conteo');
+  await DB.clearCount(r.sku);
+  const c=CATALOG.find(x=>x.sku===r.sku);if(c)c.qty=target;
+  return target;
+}
+$('#count-valall').addEventListener('click',async()=>{
+  let rows=[];try{rows=await DB.listCounted();}catch(e){toast('Error al cargar','err');return;}
+  const diffs=rows.filter(r=>(+r.counted||0)!==(+r.qty||0));
+  if(!diffs.length){toast('No hay diferencias que validar','ok');return;}
+  if(!(await uiConfirm('Validar todas','Vas a ajustar '+diffs.length+' productos a su cantidad contada (el sistema quedará igual al conteo). ¿Continuar?',{okText:'Sí, validar'})))return;
+  let ok=0,err=0;for(const r of diffs){try{await applyCount(r);ok++;}catch(e){err++;}}
+  toast('✓ '+ok+' validados'+(err?(' · '+err+' errores'):''),err?'err':'ok');renderCount();
+});
+
 /* =================== SCAN (camera) =================== */
 let reader=null,camStream=null,scanPurpose='map',lastCode='',ocrUpcTarget=null;
 function startScan(purpose){
@@ -793,6 +890,7 @@ async function onCode(code){
   if(scanPurpose==='assign'){stopCam();assignUPC(code);return;}
   if(scanPurpose==='new'){stopCam();$('#n-upc').value=code;$('#n-upcbadge').textContent='✓ leído';back();return;}
   if(scanPurpose==='ocrupc'){stopCam();if(ocrUpcTarget){ocrUpcTarget.value=(''+code).replace(/\D/g,'');}ocrUpcTarget=null;back();toast('UPC escaneado ✓','ok');return;}
+  if(scanPurpose==='count'){stopCam();back();const rows=await DB.byUPC(code);if(!rows.length){toast('Ese UPC no está en la base: '+code,'err');return;}if(rows.length===1){countEntry(rows[0]);}else{renderCountChoices(rows);toast('Varios con ese UPC — elige cuál contar','ok');}return;}
   // map
   toast('UPC: '+code);
   const matches=await DB.byUPC(code);
