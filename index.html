@@ -1126,11 +1126,13 @@ $('#b-manual').addEventListener('click',()=>{
 });
 $('#bm-add').addEventListener('click',()=>{
   const brand=$('#bm-brand').value.trim(),style=$('#bm-style').value.trim(),color=$('#bm-color').value.trim(),cc=$('#bm-cc').value.trim().replace(/\D/g,''),size=$('#bm-size').value.trim(),cat=$('#bm-cat').value.trim(),gender=$('#bm-gender').value,upc=$('#bm-upc').value.trim().replace(/\D/g,''),qty=Math.max(1,+$('#bm-qty').value||1);
-  if(!brand&&!style){toast('Pon al menos marca o estilo','err');return;}
+  if(!brand&&!style&&!color&&!size){toast('Llena al menos un campo (marca, estilo, color o talla)','err');return;}
   const sku='WT-'+(slug(brand).slice(0,4).toUpperCase()||'NA')+'-'+(slug(style).toUpperCase()||'NA')+'-'+(slug(color).slice(0,3).toUpperCase()||'NA')+'-'+(size.toUpperCase()||'NA');
-  const ex=curBox.items.find(i=>itemKey(i)===itemKey({brand,style,color,size,upc}));
-  if(ex)ex.qty=(+ex.qty||0)+qty;else curBox.items.push({sku,upc,brand,style,color,cc,size,cat,gender,qty});
-  $('#b-manualform').style.display='none';$('#b-q').value='';$('#b-results').innerHTML='';renderBoxItems();toast('Agregado a la caja: '+[brand,style,color,size].filter(Boolean).join(' '),'ok');
+  const ex=curBox.items.find(i=>itemKey(i)===itemKey({brand,style,color,cc,size,upc}));
+  const name=[brand,style,color,size].filter(Boolean).join(' ')||sku;
+  if(ex){ex.qty=(+ex.qty||0)+qty;toast('Ya estaba — sumado: '+name+' = '+ex.qty,'ok');}
+  else{curBox.items.push({sku,upc,brand,style,color,cc,size,cat,gender,qty});toast('Agregado: '+name,'ok');}
+  $('#b-manualform').style.display='none';$('#b-q').value='';$('#b-results').innerHTML='';renderBoxItems();
 });
 $('#bm-upc').addEventListener('change',async()=>{
   const u=$('#bm-upc').value.trim().replace(/\D/g,'');if(u.length<6)return;
@@ -1469,7 +1471,7 @@ function printItems(d,count){
 function esc(s){return (s==null?'':(''+s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function slug(s){return (''+(s||'')).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zA-Z0-9]+/g,'').trim()}
 function genSku(brand,style,color,size){return 'WT-'+(slug(brand).slice(0,4).toUpperCase()||'NA')+'-'+(slug(style).toUpperCase()||'NA')+'-'+(slug(color).slice(0,3).toUpperCase()||'NA')+'-'+((''+(size||'')).toUpperCase()||'NA');}
-function itemKey(r){return [r.brand,r.style,r.color,r.size,(r.upc||'')].map(x=>(''+(x||'')).trim().toLowerCase()).join('|');}
+function itemKey(r){return [r.brand,r.style,r.color,r.cc,r.size,(r.upc||'')].map(x=>(''+(x||'')).trim().toLowerCase()).join('|');}
 // datalists
 (function(){const b=[...new Set(CATALOG.map(d=>d.brand).filter(Boolean))].sort();$('#dl-brand').innerHTML=b.map(x=>'<option value="'+esc(x)+'">').join('');const c=[...new Set(CATALOG.map(d=>d.cat).filter(Boolean))].sort();$('#dl-cat').innerHTML=c.map(x=>'<option value="'+esc(x)+'">').join('');const co=[...new Set(CATALOG.map(d=>d.color).filter(Boolean))].sort();$('#dl-color').innerHTML=co.map(x=>'<option value="'+esc(x)+'">').join('');})();
 </script>
