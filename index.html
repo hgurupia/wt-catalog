@@ -297,7 +297,9 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
       </div>
       <div id="b-items" style="margin-top:10px"></div>
     </div>
-    <button class="btn o block" id="b-save">💾 Guardar caja</button>
+    <button class="btn ghost block" id="b-manifest-btn">👁️ Ver manifiesto de la caja</button>
+    <div id="b-manifest" class="card" style="display:none;margin-top:8px"></div>
+    <button class="btn o block" id="b-save" style="margin-top:8px">💾 Guardar caja</button>
     <button class="btn b block" id="b-print" style="margin-top:8px">🖨️ Imprimir etiqueta 4×6 (caja)</button>
     <button class="btn b block" id="b-print-items" style="margin-top:8px;background:linear-gradient(135deg,#6b46c1,#8b5cf6)">🏷️ Imprimir etiquetas de prendas (90×30)</button>
     <button class="btn ghost block" id="b-del" style="margin-top:8px;color:#c0392b">🗑️ Borrar caja</button>
@@ -1034,16 +1036,34 @@ function renderBoxItems(){
   items.forEach((it,idx)=>{
     const name=[it.brand,it.style,it.color,it.size].filter(Boolean).join(' ')||it.sku;
     const el=document.createElement('div');el.style.cssText='display:flex;align-items:center;gap:8px;border-bottom:1px solid #eee;padding:7px 0';
-    el.innerHTML='<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px">'+esc(name)+'</div><div class="muted" style="font-size:11px">'+esc(it.sku)+'</div></div><input class="in bi-qty" type="number" inputmode="numeric" style="width:64px;text-align:center" value="'+(+it.qty||0)+'"><button class="bi-del" style="border:none;background:#fdeaea;color:#c0392b;border-radius:8px;padding:6px 10px;font-weight:800">✕</button>';
-    el.querySelector('.bi-qty').addEventListener('input',e=>{curBox.items[idx].qty=Math.max(0,parseInt(e.target.value,10)||0);$('#b-pieces').textContent=boxPieces();});
+    const sub=esc(it.sku)+(it.cc?(' · cód '+esc(it.cc)):'')+(it.upc?(' · UPC '+esc(it.upc)):' · sin UPC');
+    el.innerHTML='<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px">'+esc(name)+'</div><div class="muted" style="font-size:11px">'+sub+'</div></div><input class="in bi-qty" type="number" inputmode="numeric" style="width:64px;text-align:center" value="'+(+it.qty||0)+'"><button class="bi-del" style="border:none;background:#fdeaea;color:#c0392b;border-radius:8px;padding:6px 10px;font-weight:800">✕</button>';
+    el.querySelector('.bi-qty').addEventListener('input',e=>{curBox.items[idx].qty=Math.max(0,parseInt(e.target.value,10)||0);$('#b-pieces').textContent=boxPieces();refreshManifest();});
     el.querySelector('.bi-del').addEventListener('click',()=>{curBox.items.splice(idx,1);renderBoxItems();});
     L.appendChild(el);
   });
+  refreshManifest();
 }
+function boxManifestPreviewHTML(box){
+  const items=box.items||[];
+  const rows=items.map(i=>'<tr><td style="border:1px solid #e2e8f0;padding:4px 6px">'+esc(i.brand||'')+'</td><td style="border:1px solid #e2e8f0;padding:4px 6px">'+esc(i.style||'')+'</td><td style="border:1px solid #e2e8f0;padding:4px 6px">'+esc(i.color||'')+(i.cc?(' ('+esc(i.cc)+')'):'')+'</td><td style="border:1px solid #e2e8f0;padding:4px 6px">'+esc(i.size||'')+'</td><td style="border:1px solid #e2e8f0;padding:4px 6px;text-align:center">'+(+i.qty||0)+'</td></tr>').join('')||'<tr><td colspan="5" style="padding:6px;color:#888">(vacía)</td></tr>';
+  return '<div style="font-weight:800;font-size:16px">'+esc(box.code||'')+'</div>'
+    +'<div class="muted" style="font-size:12px;margin-bottom:8px">Rack '+esc(box.rack||'—')+' · Comp '+esc(box.bin||'—')+' · <b>'+boxPieces()+'</b> pzs · '+items.length+' SKUs · '+esc(box.kind||'')+'</div>'
+    +'<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
+    +'<thead><tr>'+['Marca','Estilo','Color','Talla','Cant'].map(h=>'<th style="border:1px solid #cbd5e1;padding:4px 6px;background:#f1f5f9;text-align:left">'+h+'</th>').join('')+'</tr></thead>'
+    +'<tbody>'+rows+'</tbody></table></div>'
+    +'<div class="muted" style="font-size:11px;margin-top:6px">Así saldrá la etiqueta 4×6. Revisa antes de Guardar.</div>';
+}
+function refreshManifest(){const mp=$('#b-manifest');if(mp&&mp.style.display!=='none'){curBox.rack=$('#b-rack').value.trim();curBox.bin=$('#b-bin').value.trim();curBox.kind=$('#b-kind').value;mp.innerHTML=boxManifestPreviewHTML(curBox);}}
+$('#b-manifest-btn').addEventListener('click',()=>{
+  const mp=$('#b-manifest');
+  if(mp.style.display!=='none'){mp.style.display='none';$('#b-manifest-btn').textContent='👁️ Ver manifiesto de la caja';return;}
+  mp.style.display='block';$('#b-manifest-btn').textContent='Ocultar manifiesto';refreshManifest();
+});
 async function boxAdd(row){
   const ex=curBox.items.find(i=>i.sku===row.sku);
-  const name=[row.brand,row.style,row.color,row.size].filter(Boolean).join(' ');
-  const v=await uiPrompt('Cantidad en la caja',name+'\n¿Cuántas piezas van en esta caja?',(ex?ex.qty:1));
+  const det='Marca: '+(row.brand||'—')+'\nEstilo: '+(row.style||'—')+'\nColor: '+(row.color||'—')+(row.cc?(' (cód '+row.cc+')'):'')+'\nTalla: '+(row.size||'—')+(row.upc?('\nUPC: '+row.upc):'\nUPC: (sin)')+(ex?('\n\n⚠️ Ya en la caja: '+ex.qty+' pzs (se reemplaza)'):'');
+  const v=await uiPrompt('Agregar a la caja',det+'\n\n¿Cuántas piezas van en esta caja?',(ex?ex.qty:1));
   if(v==null)return;
   const n=Math.max(0,parseInt(v,10)||0);
   if(n===0){curBox.items=curBox.items.filter(i=>i.sku!==row.sku);}
