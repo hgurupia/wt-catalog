@@ -116,6 +116,31 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
 .res .q{font-weight:900;color:var(--navy);font-size:15px}
 .res .q.g{color:var(--green)}.res .q.r{color:var(--red)}
 .badge-stock{display:inline-block;background:#e7f7ec;border:1px solid #b7e4c7;color:#1b7a3d;border-radius:999px;padding:1px 8px;font-size:10.5px;font-weight:800;vertical-align:middle;margin:2px 0}
+/* ---- Inventario: resumen + filtros + tabla editable ---- */
+.invsum{display:flex;gap:8px;margin:0 0 10px}
+.invsum>div{flex:1;background:var(--mist);border:1px solid var(--line);border-radius:12px;padding:9px 6px;text-align:center}
+.invsum b{display:block;font-size:19px;color:var(--navy);font-weight:900;line-height:1}
+.invsum span{font-size:10px;color:var(--slate);letter-spacing:.01em}
+.ffrow{display:flex;gap:6px;margin:8px 0 2px}
+.ff{flex:1;min-width:0;font-size:12.5px;padding:9px 8px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--navy);font-weight:600;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23577' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:22px}
+.ff:focus{outline:none;border-color:var(--sky,#45b1e1)}
+.invtblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:6px}
+.invtbl{width:100%;border-collapse:collapse}
+.invtbl thead th{position:sticky;top:0;background:#fff;text-align:left;color:var(--slate);font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:6px 8px;border-bottom:2px solid var(--line);z-index:1}
+.invtbl th.qc{text-align:center;width:70px}
+.invtbl td{padding:8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.invtbl td.pc{cursor:pointer}
+.invtbl td.pc .pcw{display:flex;align-items:center;gap:10px;min-width:0}
+.invtbl td.pc img{width:40px;height:40px;border-radius:8px;object-fit:cover;background:var(--mist);flex:none}
+.invtbl .pt{min-width:0}
+.invtbl .pt b{display:block;color:var(--navy);font-size:12.5px;line-height:1.25}
+.invtbl .pt span{color:var(--slate);font-size:10.5px}
+.invtbl .ck{font-size:16px;flex:none}
+.invtbl tr.sel{background:#eaf4fb}
+.locchip{display:inline-block;background:#fff4e6;border:1px solid #ffd8a8;color:#b45c00;border-radius:8px;padding:2px 7px;font-size:10.5px;font-weight:700;white-space:nowrap}
+.qin{width:58px;padding:6px 4px;text-align:center;border:1px solid var(--line);border-radius:8px;font-size:14px;font-weight:800;color:var(--navy);background:#fff}
+.qin:focus{outline:none;border-color:var(--sky,#45b1e1);background:#f5fbff}
+.qin::-webkit-inner-spin-button,.qin::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .res.sel{border-color:var(--sky);background:#eef7fc}
 .res .chk{font-size:20px;width:26px;text-align:center;flex:none}
 .list{display:flex;flex-direction:column;gap:8px}
@@ -321,14 +346,20 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
 <section class="screen" id="s-inv">
   <div class="top"><button class="bk" data-back>‹</button><h1 style="flex:1">Inventario</h1><button class="btn" id="inv-selmode" style="background:rgba(255,255,255,.14);color:#fff;padding:8px 12px;font-size:13px">☑︎ Seleccionar</button></div>
   <div class="body">
-    <input class="in" id="invq" placeholder="Filtrar por marca, estilo, color, talla, SKU, UPC…" autocomplete="off">
-    <div class="seg" id="invsort">
-      <button class="on" data-sort="reciente">Reciente</button>
-      <button data-sort="marca">Marca</button>
-      <button data-sort="producto">Producto</button>
+    <div class="invsum" id="invsum"></div>
+    <input class="in" id="invq" placeholder="Buscar marca, estilo, color, SKU, UPC…" autocomplete="off">
+    <div class="ffrow">
+      <select class="ff" id="f-brand"><option value="">Marca</option></select>
+      <select class="ff" id="f-color"><option value="">Color</option></select>
+      <select class="ff" id="f-size"><option value="">Talla</option></select>
+      <select class="ff" id="f-loc"><option value="">Ubicación</option><option value="in">📦 En caja</option><option value="out">Sin ubicar</option></select>
     </div>
-    <p class="muted" id="invcount" style="margin:0"></p>
-    <div class="list" id="invlist"></div>
+    <div class="invtblwrap">
+      <table class="invtbl">
+        <thead><tr><th>Producto</th><th>Ubicación</th><th class="qc">Cant.</th></tr></thead>
+        <tbody id="invbody"></tbody>
+      </table>
+    </div>
   </div>
   <div class="wiznav" id="bulkbar" style="display:none;flex-wrap:wrap;gap:8px">
     <button class="btn r" id="bulk-del" style="flex:1 1 100%">🗑️ Eliminar (<span id="bulk-n">0</span>)</button>
@@ -803,41 +834,71 @@ let INVROWS=[], INVSORT='reciente', INVMODE=false, INVSEL=new Set(), INVSHOWN=[]
 $('#stat-prods').addEventListener('click',openInv);
 $('#stat-units').addEventListener('click',openInv);
 $('#home-inv').addEventListener('click',openInv);
-function openInv(){
-  INVMODE=false;INVSEL.clear();$('#bulkbar').style.display='none';$('#bulk-n').textContent='0';$('#inv-selmode').textContent='☑︎ Seleccionar';
-  INVSORT='reciente';$$('#invsort button').forEach(b=>b.classList.toggle('on',b.dataset.sort==='reciente'));
-  go('s-inv');$('#invq').value='';
-  $('#invlist').innerHTML='<p class="muted" style="text-align:center;padding:24px">Cargando…</p>';
-  DB.list(2000).then(rows=>{INVROWS=rows;applyInv();}).catch(()=>{$('#invlist').innerHTML='<p class="muted" style="text-align:center;padding:24px">No se pudo cargar.</p>';});
+let LOCIDX={}, INVFILT=[];
+function buildLocIdx(boxes){LOCIDX={};(boxes||[]).forEach(b=>{(b.items||[]).forEach(it=>{if(!it||!it.sku)return;(LOCIDX[it.sku]=LOCIDX[it.sku]||[]).push({code:b.code,rack:b.rack,bin:b.bin});});});}
+function locText(sku){const a=LOCIDX[sku];if(!a||!a.length)return'';const f=a[0];let t=(f.code||'')+(f.rack?(' · R'+f.rack):'')+(f.bin?('·'+f.bin):'');if(a.length>1)t+=' +'+(a.length-1);return t;}
+function fillFilters(rows){
+  const uniq=k=>[...new Set(rows.map(d=>((d[k]||'')+'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es',{numeric:true}));
+  const set=(id,vals,lbl)=>{const s=$('#'+id);if(!s)return;const cur=s.value;s.innerHTML='<option value="">'+lbl+'</option>'+vals.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');s.value=cur;};
+  set('f-brand',uniq('brand'),'Marca');set('f-color',uniq('color'),'Color');set('f-size',uniq('size'),'Talla');
 }
-$$('#invsort button').forEach(b=>b.addEventListener('click',()=>{INVSORT=b.dataset.sort;$$('#invsort button').forEach(x=>x.classList.toggle('on',x===b));applyInv();}));
-$('#invq').addEventListener('input',applyInv);
+function renderSummary(rows){rows=rows||INVFILT;const p=rows.length,u=rows.reduce((s,d)=>s+(+d.qty||0),0),inbox=rows.filter(d=>LOCIDX[d.sku]).length;const el=$('#invsum');if(el)el.innerHTML='<div><b>'+p+'</b><span>productos</span></div><div><b>'+u+'</b><span>unidades</span></div><div><b>'+inbox+'</b><span>en cajas</span></div>';}
+async function openInv(){
+  INVMODE=false;INVSEL.clear();$('#bulkbar').style.display='none';$('#bulk-n').textContent='0';$('#inv-selmode').textContent='☑︎ Seleccionar';
+  go('s-inv');$('#invq').value='';['f-brand','f-color','f-size','f-loc'].forEach(id=>{const e=$('#'+id);if(e)e.selectedIndex=0;});
+  $('#invbody').innerHTML='<tr><td colspan="3" class="muted" style="text-align:center;padding:24px">Cargando…</td></tr>';
+  try{
+    const [rows,boxes]=await Promise.all([DB.list(3000),DB.listBoxes().catch(()=>[])]);
+    INVROWS=rows;buildLocIdx(boxes);fillFilters(rows);applyInv();
+  }catch(e){$('#invbody').innerHTML='<tr><td colspan="3" class="muted" style="text-align:center;padding:24px">No se pudo cargar.</td></tr>';}
+}
+['invq','f-brand','f-color','f-size','f-loc'].forEach(id=>{const e=$('#'+id);if(e)e.addEventListener(id==='invq'?'input':'change',applyInv);});
 function invTitle(d){return [d.brand,d.style,d.color,d.size].filter(Boolean).join(' ')||d.sku;}
 function applyInv(){
   let rows=INVROWS.slice();
   const t=norm($('#invq').value).trim();
+  const fb=$('#f-brand').value,fc=$('#f-color').value,fs=$('#f-size').value,fl=$('#f-loc').value;
   if(t){const toks=t.split(/\s+/);rows=rows.filter(d=>{const hay=norm([d.brand,d.style,d.color,d.size,d.sku,d.cat,d.gender,d.upc].join(' '));return toks.every(tk=>hay.includes(tk));});}
-  if(INVSORT==='marca')rows.sort((a,b)=>norm((a.brand||'')+' '+(a.style||'')).localeCompare(norm((b.brand||'')+' '+(b.style||''))));
-  else if(INVSORT==='producto')rows.sort((a,b)=>norm(invTitle(a)).localeCompare(norm(invTitle(b))));
-  renderInv(rows);
+  if(fb)rows=rows.filter(d=>(d.brand||'')===fb);
+  if(fc)rows=rows.filter(d=>(d.color||'')===fc);
+  if(fs)rows=rows.filter(d=>(d.size||'')===fs);
+  if(fl==='in')rows=rows.filter(d=>LOCIDX[d.sku]);
+  else if(fl==='out')rows=rows.filter(d=>!LOCIDX[d.sku]);
+  rows.sort((a,b)=>norm((a.brand||'')+' '+(a.style||'')+' '+(a.color||'')+' '+(a.size||'')).localeCompare(norm((b.brand||'')+' '+(b.style||'')+' '+(b.color||'')+' '+(b.size||'')),'es',{numeric:true}));
+  INVFILT=rows;renderInv(rows);renderSummary(rows);
 }
 function renderInv(rows){
-  $('#invcount').textContent=rows.length+(rows.length!==INVROWS.length?(' de '+INVROWS.length):'')+' productos'+(INVMODE?(' · '+INVSEL.size+' seleccionados'):'');
-  const shown=rows.slice(0,400);INVSHOWN=shown;
-  if(!rows.length){$('#invlist').innerHTML='<p class="muted" style="text-align:center;padding:24px">Sin resultados.</p>';return;}
-  $('#invlist').innerHTML=shown.map((d,i)=>{
-    const sel=INVSEL.has(d.sku);
-    const chk=INVMODE?'<div class="chk">'+(sel?'☑️':'⬜️')+'</div>':'';
-    return '<div class="res'+(sel?' sel':'')+'" data-i="'+i+'">'+chk
+  const shown=rows.slice(0,400);INVSHOWN=shown;const tb=$('#invbody');
+  if(!rows.length){tb.innerHTML='<tr><td colspan="3" class="muted" style="text-align:center;padding:24px">Sin resultados.</td></tr>';return;}
+  tb.innerHTML=shown.map((d,i)=>{
+    const sel=INVSEL.has(d.sku),loc=locText(d.sku);
+    const nm=[d.brand,d.style].filter(Boolean).join(' ');
+    const sub=[d.color,d.size,d.cat].filter(Boolean).join(' · ');
+    return '<tr class="ivr'+(sel?' sel':'')+'" data-i="'+i+'">'
+      +'<td class="pc"><div class="pcw">'+(INVMODE?'<span class="ck">'+(sel?'☑️':'⬜️')+'</span>':'')
       +'<img src="'+esc(d.img||'')+'" onerror="this.style.visibility=\'hidden\'">'
-      +'<div class="t"><b>'+esc(d.brand||'')+' '+esc(d.style||'')+'</b><span>'+esc([d.color,d.size,d.cat,d.gender].filter(Boolean).join(' · '))+'<br>'+esc(d.sku)+(d.upc?'':' · <i>sin UPC</i>')+'</span></div>'
-      +'<div class="q">'+(d.qty==null?'':d.qty)+'</div></div>';
-  }).join('')+(rows.length>400?'<p class="muted" style="text-align:center;padding:10px">Mostrando 400 — usa el filtro para el resto</p>':'');
-  $$('#invlist .res').forEach(el=>el.addEventListener('click',async()=>{
-    const d=INVSHOWN[+el.dataset.i];if(!d)return;
-    if(INVMODE){if(INVSEL.has(d.sku))INVSEL.delete(d.sku);else INVSEL.add(d.sku);$('#bulk-n').textContent=INVSEL.size;applyInv();return;}
-    const fresh=await DB.bySku(d.sku)||d;openProduct(fresh);
-  }));
+      +'<div class="pt"><b>'+esc(nm)+'</b><span>'+esc(sub)+'<br>'+esc(d.sku)+'</span></div></div></td>'
+      +'<td class="lc">'+(loc?'<span class="locchip">📦 '+esc(loc)+'</span>':'<span class="muted">—</span>')+'</td>'
+      +'<td class="qc"><input class="qin" type="number" inputmode="numeric" min="0" value="'+(d.qty==null?'':d.qty)+'" data-sku="'+esc(d.sku)+'"></td></tr>';
+  }).join('')+(rows.length>400?'<tr><td colspan="3" class="muted" style="text-align:center;padding:10px">Mostrando 400 — filtra para ver el resto</td></tr>':'');
+  tb.querySelectorAll('.ivr').forEach(el=>{
+    const pc=el.querySelector('.pc');
+    pc.addEventListener('click',async()=>{
+      const d=INVSHOWN[+el.dataset.i];if(!d)return;
+      if(INVMODE){if(INVSEL.has(d.sku))INVSEL.delete(d.sku);else INVSEL.add(d.sku);$('#bulk-n').textContent=INVSEL.size;applyInv();return;}
+      const fresh=await DB.bySku(d.sku)||d;openProduct(fresh);
+    });
+  });
+  tb.querySelectorAll('.qin').forEach(inp=>{
+    inp.addEventListener('click',e=>e.stopPropagation());
+    inp.addEventListener('change',async()=>{
+      const sku=inp.dataset.sku;const d=INVSHOWN.find(x=>x.sku===sku);const cur=+((d&&d.qty)||0);
+      const nv=Math.max(0,parseInt(inp.value,10)||0);inp.value=nv;
+      if(nv===cur)return;
+      try{await DB.adjust(sku,nv-cur,'ajuste');if(d)d.qty=nv;const src=INVROWS.find(x=>x.sku===sku);if(src)src.qty=nv;toast('Cantidad: '+nv+' · '+sku,'ok');renderSummary();}
+      catch(e){toast('Error: '+String(e).slice(0,80),'err');inp.value=cur;}
+    });
+  });
 }
 $('#inv-selmode').addEventListener('click',()=>{
   INVMODE=!INVMODE;INVSEL.clear();$('#bulk-n').textContent='0';
