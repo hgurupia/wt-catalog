@@ -143,6 +143,28 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
 .qin{width:58px;padding:6px 4px;text-align:center;border:1px solid var(--line);border-radius:8px;font-size:14px;font-weight:800;color:var(--navy);background:#fff}
 .qin:focus{outline:none;border-color:var(--sky,#45b1e1);background:#f5fbff}
 .qin::-webkit-inner-spin-button,.qin::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+/* ---- Ficha producto tipo listing ---- */
+.gallery{display:flex;gap:6px;overflow-x:auto;margin-top:8px;-webkit-overflow-scrolling:touch}
+.gallery img{width:56px;height:56px;border-radius:8px;object-fit:cover;border:1px solid var(--line);flex:none;cursor:pointer;background:var(--mist)}
+.gallery img.on{border-color:var(--navy);box-shadow:0 0 0 2px rgba(11,52,84,.18)}
+.p-listtitle{margin:2px 0 6px;color:var(--slate);font-size:13px;line-height:1.35}
+.loc-line{margin:4px 0}
+.pricebar{display:flex;gap:8px;margin:12px 0 2px}
+.pricebar>div{flex:1;background:var(--mist);border:1px solid var(--line);border-radius:12px;padding:9px 6px;text-align:center}
+.pricebar b{display:block;font-size:16px;color:var(--navy);font-weight:900;line-height:1}
+.pricebar span{font-size:10px;color:var(--slate)}
+.pricebar .mg b{color:#1b7a3d}
+.sec{margin-top:16px}
+.sec h3{font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--slate);margin:0 0 6px;font-weight:800}
+.p-desc{margin:0;color:#33465a;font-size:13.5px;line-height:1.45}
+.p-bullets{margin:0;padding-left:18px}
+.p-bullets li{color:#33465a;font-size:13px;line-height:1.5;margin:2px 0}
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+.dgrid .dc{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid var(--line);padding:6px 0;font-size:12.5px;min-width:0}
+.dgrid .dc .k{color:var(--slate);flex:none}
+.dgrid .dc .v{color:var(--navy);font-weight:700;text-align:right;word-break:break-word;min-width:0}
+textarea.in{width:100%;font-family:inherit;resize:vertical}
+.sec.empty{display:none}
 .res.sel{border-color:var(--sky);background:#eef7fc}
 .res .chk{font-size:20px;width:26px;text-align:center;flex:none}
 .list{display:flex;flex-direction:column;gap:8px}
@@ -398,26 +420,30 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
 
 <!-- ============ PRODUCT ============ -->
 <section class="screen" id="s-prod">
-  <div class="top"><button class="bk" data-back>‹</button><h1>Producto</h1></div>
+  <div class="top"><button class="bk" data-back>‹</button><h1 style="flex:1">Producto</h1><button class="btn" id="edit-toggle" style="background:rgba(255,255,255,.14);color:#fff;padding:8px 12px;font-size:13px">✏️ Editar</button></div>
   <div class="body">
-    <div class="card">
-      <div class="prod-img ph" id="p-img">👕</div>
-      <div style="display:flex;gap:8px;margin-top:8px">
-        <button class="btn b" id="p-photo" style="flex:1;padding:11px;font-size:13.5px">📷 Foto</button>
-        <button class="btn ghost" id="p-upload" style="flex:1;padding:11px;font-size:13.5px">🖼️ Subir imagen</button>
-      </div>
-      <input type="file" id="p-file" accept="image/*" capture="environment" style="display:none">
-      <input type="file" id="p-file2" accept="image/*" style="display:none">
-      <h2 class="pt" id="p-title" style="margin-top:10px">—</h2>
-      <div class="chips" id="p-chips"></div>
-      <div class="qlabel">Cantidad en la base</div>
-      <div class="qtybox">
-        <button class="stp" id="q-minus">–</button>
-        <div class="n" id="p-qty">0</div>
-        <button class="stp" id="q-plus">+</button>
-      </div>
-      <div class="qlabel" id="deltahint">Ajusta cuántas unidades mueves</div>
+    <div class="prod-img ph" id="p-img">👕</div>
+    <div class="gallery" id="p-gallery"></div>
+    <div class="row2" style="margin-top:8px">
+      <button class="btn b" id="p-photo" style="padding:10px;font-size:13px">📷 Foto</button>
+      <button class="btn ghost" id="p-upload" style="padding:10px;font-size:13px">🖼️ Subir imagen</button>
     </div>
+    <input type="file" id="p-file" accept="image/*" capture="environment" style="display:none">
+    <input type="file" id="p-file2" accept="image/*" style="display:none">
+
+    <h2 class="pt" id="p-title" style="margin-top:12px">—</h2>
+    <p class="p-listtitle" id="p-listtitle"></p>
+    <div class="chips" id="p-chips"></div>
+    <div class="loc-line" id="p-loc"></div>
+    <div class="pricebar" id="p-pricebar"></div>
+
+    <div class="qlabel" style="margin-top:14px">Cantidad en la base</div>
+    <div class="qtybox">
+      <button class="stp" id="q-minus">–</button>
+      <div class="n" id="p-qty">0</div>
+      <button class="stp" id="q-plus">+</button>
+    </div>
+    <div class="qlabel" id="deltahint">Ajusta cuántas unidades mueves</div>
     <div class="row2">
       <button class="btn g" id="do-in">📥 Entrada +<span id="in-n"></span></button>
       <button class="btn r" id="do-out">📤 Salida −<span id="out-n"></span></button>
@@ -425,16 +451,30 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
     <p class="qlabel" style="margin:0">Entrada = recibí · Salida = vendí/quité</p>
     <button class="btn ghost block" id="fix-qty">✏️ Corregir cantidad (fijar la exacta)</button>
     <button class="btn o block" id="assign-upc" style="display:none">🏷️ Asignar UPC (escanear)</button>
-    <button class="btn ghost block" id="edit-toggle">✏️ Editar datos del producto</button>
+
+    <div class="sec" id="sec-desc"><h3>Descripción</h3><p id="p-desc" class="p-desc"></p></div>
+    <div class="sec" id="sec-bullets"><h3>Características</h3><ul id="p-bullets" class="p-bullets"></ul></div>
+    <div class="sec"><h3>Ficha técnica</h3><div class="dgrid" id="p-details"></div></div>
+
     <div id="edit-panel" style="display:none">
       <div class="card">
+        <label class="fld">Título del listing</label><input class="in" id="e-listtitle">
+        <div style="height:8px"></div>
         <div class="row2"><div><label class="fld">Marca</label><input class="in" id="e-brand"></div><div><label class="fld">Estilo</label><input class="in" id="e-style"></div></div>
         <div style="height:8px"></div>
         <div class="row2"><div><label class="fld">Color</label><input class="in" id="e-color"></div><div><label class="fld">Talla</label><input class="in" id="e-size"></div></div>
         <div style="height:8px"></div>
         <div class="row2"><div><label class="fld">Tipo</label><input class="in" id="e-cat" list="dl-cat"></div><div><label class="fld">Género</label><select class="in" id="e-gender"><option value="">—</option><option>Men</option><option>Ladies</option><option>Youth</option><option>Kid</option><option>Baby</option><option>Unisex</option></select></div></div>
         <div style="height:8px"></div>
-        <label class="fld">UPC</label><input class="in" id="e-upc" inputmode="numeric">
+        <div class="row2"><div><label class="fld">UPC</label><input class="in" id="e-upc" inputmode="numeric"></div><div><label class="fld">ASIN</label><input class="in" id="e-asin"></div></div>
+        <div style="height:8px"></div>
+        <div class="row2"><div><label class="fld">Costo ($)</label><input class="in" id="e-cost" inputmode="decimal"></div><div><label class="fld">Precio ($)</label><input class="in" id="e-price" inputmode="decimal"></div></div>
+        <div style="height:8px"></div>
+        <div class="row2"><div><label class="fld">Peso (lb)</label><input class="in" id="e-weight" inputmode="decimal"></div><div><label class="fld">Ubicación (texto)</label><input class="in" id="e-location"></div></div>
+        <div style="height:8px"></div>
+        <label class="fld">Descripción</label><textarea class="in" id="e-longdesc" rows="3"></textarea>
+        <div style="height:8px"></div>
+        <label class="fld">Características (una por línea)</label><textarea class="in" id="e-bullets" rows="4"></textarea>
         <div style="height:10px"></div>
         <button class="btn n block" id="edit-save">Guardar cambios</button>
       </div>
@@ -1426,9 +1466,34 @@ function openProduct(d){
   $('#p-chips').innerHTML=chips.map(c=>c.startsWith('<')?c:'<span class="chip">'+esc(c)+'</span>').join('');
   $('#p-qty').textContent=d.qty??0;
   $('#assign-upc').style.display=d.upc?'none':'flex';
-  $('#e-brand').value=d.brand||'';$('#e-style').value=d.style||'';$('#e-color').value=d.color||'';$('#e-size').value=d.size||'';$('#e-cat').value=d.cat||'';$('#e-gender').value=d.gender||'';$('#e-upc').value=d.upc||'';$('#edit-panel').style.display='none';
+  $('#e-brand').value=d.brand||'';$('#e-style').value=d.style||'';$('#e-color').value=d.color||'';$('#e-size').value=d.size||'';$('#e-cat').value=d.cat||'';$('#e-gender').value=d.gender||'';$('#e-upc').value=d.upc||'';
+  $('#e-listtitle').value=d.listtitle||'';$('#e-asin').value=d.asin||'';$('#e-cost').value=(d.cost!=null?d.cost:'');$('#e-price').value=((d.price!=null?d.price:d.retail)||'');$('#e-weight').value=(d.weight!=null?d.weight:'');$('#e-location').value=d.location||'';$('#e-longdesc').value=d.longdesc||'';$('#e-bullets').value=(Array.isArray(d.bullets)?d.bullets.join('\n'):(d.bullets||''));
+  $('#edit-panel').style.display='none';
+  renderProdExtras(d);
   updDelta();
   nav=['s-home','s-prod'];show('s-prod');
+}
+function money(v){v=parseFloat(v);return isNaN(v)?null:v;}
+function renderProdExtras(d){
+  const lt=d.listtitle||'';const le=$('#p-listtitle');le.textContent=lt;le.style.display=lt?'block':'none';
+  const gal=Array.isArray(d.gallery)?d.gallery.filter(Boolean):[];
+  const main=d.img||gal[0]||'';setProdImg(main);
+  const g=$('#p-gallery');
+  if(gal.length){g.style.display='flex';g.innerHTML=gal.map(u=>'<img src="'+esc(u)+'" data-u="'+esc(u)+'"'+(u===main?' class="on"':'')+' onerror="this.style.display=\'none\'">').join('');
+    g.querySelectorAll('img').forEach(im=>im.addEventListener('click',()=>{setProdImg(im.getAttribute('data-u'));g.querySelectorAll('img').forEach(x=>x.classList.remove('on'));im.classList.add('on');}));
+  }else{g.style.display='none';g.innerHTML='';}
+  let loc='';try{loc=locText(d.sku);}catch(e){}loc=loc||d.location||'';
+  const pl=$('#p-loc');pl.innerHTML=loc?('<span class="locchip">📍 '+esc(loc)+'</span>'):'';pl.style.display=loc?'block':'none';
+  const cost=money(d.cost),price=money(d.price!=null?d.price:d.retail);
+  let mg=null;if(price&&cost!=null&&price>0)mg=Math.round((price-cost)/price*100);
+  const pb=$('#p-pricebar');
+  pb.innerHTML=(cost!=null?'<div><b>$'+cost.toFixed(2)+'</b><span>costo</span></div>':'')+(price!=null?'<div><b>$'+price.toFixed(2)+'</b><span>precio</span></div>':'')+(mg!=null?'<div class="mg"><b>'+mg+'%</b><span>margen</span></div>':'');
+  pb.style.display=(cost!=null||price!=null)?'flex':'none';
+  const desc=d.longdesc||'';$('#p-desc').textContent=desc;$('#sec-desc').classList.toggle('empty',!desc);
+  const bl=Array.isArray(d.bullets)?d.bullets.filter(Boolean):[];
+  $('#p-bullets').innerHTML=bl.map(b=>'<li>'+esc(b)+'</li>').join('');$('#sec-bullets').classList.toggle('empty',!bl.length);
+  const dr=[['SKU',d.sku],['UPC',d.upc],['ASIN',d.asin],['S&S SKU',d.ss_sku],['Color',canonColor(d.color)],['Talla',d.size],['Tipo',d.cat],['Género',d.gender],['Peso',d.weight?(d.weight+' lb'):''],['Estado',d.status]];
+  $('#p-details').innerHTML=dr.filter(r=>r[1]).map(r=>'<div class="dc"><span class="k">'+esc(r[0])+'</span><span class="v">'+esc(r[1])+'</span></div>').join('');
 }
 function setProdImg(url){const im=$('#p-img');if(url){im.classList.remove('ph');im.textContent='';im.style.backgroundImage='url('+url+')';im.style.backgroundSize='cover';im.style.backgroundPosition='center';}else{im.classList.add('ph');im.style.backgroundImage='';im.textContent='👕';}}
 function prodImgFile(f){if(!f||!current)return;const rd=new FileReader();rd.onload=()=>{const img=new Image();img.onload=async()=>{const sc=Math.min(1,900/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=img.width*sc;c.height=img.height*sc;c.getContext('2d').drawImage(img,0,0,c.width,c.height);const data=c.toDataURL('image/jpeg',.82);try{await DB.setImg(current.sku,data);current.img=data;const cc=CATALOG.find(x=>x.sku===current.sku);if(cc)cc.img=data;setProdImg(data);toast('Imagen guardada','ok');}catch(e){toast('Error: '+String(e).slice(0,70),'err');}};img.src=rd.result;};rd.readAsDataURL(f);}
@@ -1459,7 +1524,13 @@ $('#assign-upc').addEventListener('click',()=>goScan('assign'));
 $('#edit-toggle').addEventListener('click',()=>{const p=$('#edit-panel');p.style.display=p.style.display==='none'?'block':'none';});
 $('#edit-save').addEventListener('click',async()=>{
   if(!current)return;
-  const obj={brand:$('#e-brand').value.trim(),style:$('#e-style').value.trim(),color:$('#e-color').value.trim(),size:$('#e-size').value.trim(),cat:$('#e-cat').value.trim(),gender:$('#e-gender').value,upc:$('#e-upc').value.trim()};
+  const obj={brand:$('#e-brand').value.trim(),style:$('#e-style').value.trim(),color:$('#e-color').value.trim(),size:$('#e-size').value.trim(),cat:$('#e-cat').value.trim(),gender:$('#e-gender').value,upc:$('#e-upc').value.trim(),
+    listtitle:$('#e-listtitle').value.trim(),asin:$('#e-asin').value.trim(),longdesc:$('#e-longdesc').value.trim(),location:$('#e-location').value.trim(),
+    bullets:$('#e-bullets').value.split('\n').map(s=>s.trim()).filter(Boolean)};
+  const numv=id=>{const v=$('#'+id).value.trim();return v===''?undefined:(parseFloat(v)||0);};
+  const _c=numv('e-cost');if(_c!==undefined)obj.cost=_c;
+  const _p=numv('e-price');if(_p!==undefined)obj.price=_p;
+  const _w=numv('e-weight');if(_w!==undefined)obj.weight=_w;
   obj.title=[obj.brand,obj.style,obj.color,obj.size].filter(Boolean).join(' ');
   try{await DB.update(current.sku,obj);Object.assign(current,obj);const c=CATALOG.find(x=>x.sku===current.sku);if(c)Object.assign(c,obj);openProduct(current);toast('Datos guardados','ok');}
   catch(e){toast('Error: '+String(e).slice(0,80),'err');}
