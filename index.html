@@ -638,6 +638,17 @@ const DB={
     a=a.filter(d=>{const hay=norm([d.brand,d.style,d.color,d.size,d.color_code,d.sku,d.upc].join(' '));return toks.every(tk=>hay.includes(tk));}).slice(0,40);
     return a.map(d=>({sku:genSku(d.brand,d.style,d.color,d.size),upc:(''+(d.upc||'')).replace(/\D/g,''),brand:d.brand||'',style:d.style||'',color:d.color||'',cc:(''+(d.color_code||'')),size:d.size||'',cat:'',gender:''}));
   },
+  async colorName(brand,cc){
+    if(MODE!=='online')return '';
+    const b=(''+(brand||'')).trim(),code=(''+(cc||'')).trim();
+    if(!b||!code)return '';
+    const codes=[...new Set([code,String(parseInt(code,10))])].filter(c=>c&&c!=='NaN');
+    for(const c of codes){
+      try{const r=await fetch(SB_URL+'/rest/v1/wt_reference?brand=ilike.'+encodeURIComponent('%'+b+'%')+'&color_code=eq.'+encodeURIComponent(c)+'&select=color&limit=1',{headers:sbHeaders()});
+        const a=r.ok?await r.json():[];if(a.length&&a[0].color)return a[0].color;}catch(e){}
+    }
+    return '';
+  },
   async refByUPC(upc){
     const u=(''+(upc||'')).replace(/\D/g,'');if(!u||MODE!=='online')return [];
     const r=await fetch(SB_URL+'/rest/v1/wt_reference?upc=eq.'+encodeURIComponent(u)+'&select=sku,upc,brand,style,color,color_code,size&limit=8',{headers:sbHeaders()});
@@ -1091,6 +1102,7 @@ function renderBoxItems(){
     const regen=()=>{const p=curBox.items[idx];if(!p.skuLocked){p.sku=genSku(p.brand,p.style,p.color,p.size);const sk=el.querySelector('.bi-sku');if(sk)sk.value=p.sku;}};
     const col=el.querySelector('.bi-color');col.value=it.color||'';col.addEventListener('input',e=>{curBox.items[idx].color=e.target.value.trim();regen();refreshManifest();});
     const ccx=el.querySelector('.bi-cc');ccx.value=it.cc||'';ccx.addEventListener('input',e=>{curBox.items[idx].cc=e.target.value.trim();refreshManifest();});
+    ccx.addEventListener('change',async()=>{const p=curBox.items[idx];if(p.cc&&!p.color&&p.brand){const nm=await DB.colorName(p.brand,p.cc);if(nm){p.color=nm;const c=el.querySelector('.bi-color');if(c)c.value=nm;regen();refreshManifest();toast('Color: '+nm,'ok');}}});
     const sz=el.querySelector('.bi-size');sz.value=it.size||'';sz.addEventListener('input',e=>{curBox.items[idx].size=e.target.value.trim();regen();refreshManifest();});
     const cat=el.querySelector('.bi-cat');cat.value=it.cat||'';cat.addEventListener('input',e=>{curBox.items[idx].cat=e.target.value.trim();refreshManifest();});
     const gen=el.querySelector('.bi-gender');gen.value=it.gender||'';gen.addEventListener('change',e=>{curBox.items[idx].gender=e.target.value;refreshManifest();});
@@ -1156,6 +1168,10 @@ $('#bm-upc').addEventListener('change',async()=>{
   if(!$('#bm-cc').value)$('#bm-cc').value=d.cc||'';
   if(!$('#bm-size').value)$('#bm-size').value=d.size||'';
   toast('Encontrado en la base ✓ — revisa y ajusta','ok');
+});
+$('#bm-cc').addEventListener('change',async()=>{
+  const cc=$('#bm-cc').value.trim(),brand=$('#bm-brand').value.trim();
+  if(cc&&brand&&!$('#bm-color').value.trim()){const nm=await DB.colorName(brand,cc);if(nm){$('#bm-color').value=nm;toast('Color: '+nm,'ok');}}
 });
 $('#b-scan').addEventListener('click',()=>goScan('boxadd'));
 function boxAddChoices(rows){
