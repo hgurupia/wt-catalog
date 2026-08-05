@@ -1103,12 +1103,12 @@ function sortItems(items){return (items||[]).slice().sort((a,b)=>([a.brand,a.sty
 function boxManifestPreviewHTML(box){
   const items=sortItems(box.items);
   const td='border:1px solid #e2e8f0;padding:4px 6px';
-  const rows=items.map(i=>'<tr><td style="'+td+'">'+esc(i.brand||'')+'</td><td style="'+td+'">'+esc(i.style||'')+'</td><td style="'+td+'">'+esc(i.color||'')+'</td><td style="'+td+';text-align:center">'+esc(i.size||'')+'</td><td style="'+td+';text-align:center">'+(+i.qty||0)+'</td></tr>').join('')||'<tr><td colspan="5" style="padding:6px;color:#888">(vacía)</td></tr>';
-  const totalRow='<tr><td colspan="4" style="'+td+';text-align:right;font-weight:800">TOTAL</td><td style="'+td+';text-align:center;font-weight:800">'+boxPieces()+'</td></tr>';
+  const rows=items.map(i=>'<tr><td style="'+td+'">'+esc(i.brand||'')+'</td><td style="'+td+'">'+esc(i.style||'')+'</td><td style="'+td+'">'+esc(i.color||'')+'</td><td style="'+td+';text-align:center">'+esc(i.cc||'')+'</td><td style="'+td+';text-align:center">'+esc(i.size||'')+'</td><td style="'+td+';text-align:center">'+(+i.qty||0)+'</td></tr>').join('')||'<tr><td colspan="6" style="padding:6px;color:#888">(vacía)</td></tr>';
+  const totalRow='<tr><td colspan="5" style="'+td+';text-align:right;font-weight:800">TOTAL</td><td style="'+td+';text-align:center;font-weight:800">'+boxPieces()+'</td></tr>';
   return '<div style="font-weight:800;font-size:16px">'+esc(box.code||'')+'</div>'
     +'<div class="muted" style="font-size:12px;margin-bottom:8px">Rack '+esc(box.rack||'—')+' · Comp '+esc(box.bin||'—')+' · <b>'+boxPieces()+'</b> pzs · '+items.length+' SKUs · '+esc(box.kind||'')+'</div>'
     +'<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
-    +'<thead><tr>'+['Marca','Estilo','Color','Talla','Cant'].map(h=>'<th style="border:1px solid #cbd5e1;padding:4px 6px;background:#f1f5f9;text-align:left">'+h+'</th>').join('')+'</tr></thead>'
+    +'<thead><tr>'+['Marca','Estilo','Color','Cód','Talla','Cant'].map(h=>'<th style="border:1px solid #cbd5e1;padding:4px 6px;background:#f1f5f9;text-align:left">'+h+'</th>').join('')+'</tr></thead>'
     +'<tbody>'+rows+totalRow+'</tbody></table></div>'
     +'<div class="muted" style="font-size:11px;margin-top:6px">Así saldrá la etiqueta 4×6. Revisa antes de Guardar.</div>';
 }
@@ -1209,11 +1209,11 @@ $('#b-print').addEventListener('click',()=>{
 });
 function printBoxLabel(box){
   const pa=$('#printArea');
-  const rows=sortItems(box.items).map(i=>'<tr><td>'+esc(i.brand||'')+'</td><td>'+esc(i.style||'')+'</td><td>'+esc(i.color||'')+'</td><td class="q">'+esc(i.size||'')+'</td><td class="q">'+(+i.qty||0)+'</td></tr>').join('')||'<tr><td colspan="5">(vacía)</td></tr>';
-  const totalRow='<tr><td colspan="4" style="text-align:right;font-weight:800">TOTAL</td><td class="q" style="font-weight:800">'+(box.pieces||0)+'</td></tr>';
+  const rows=sortItems(box.items).map(i=>'<tr><td>'+esc(i.brand||'')+'</td><td>'+esc(i.style||'')+'</td><td>'+esc(i.color||'')+'</td><td class="q">'+esc(i.cc||'')+'</td><td class="q">'+esc(i.size||'')+'</td><td class="q">'+(+i.qty||0)+'</td></tr>').join('')||'<tr><td colspan="6">(vacía)</td></tr>';
+  const totalRow='<tr><td colspan="5" style="text-align:right;font-weight:800">TOTAL</td><td class="q" style="font-weight:800">'+(box.pieces||0)+'</td></tr>';
   const loc='Rack '+(box.rack||'—')+' · Comp '+(box.bin||'—');
   const fecha=new Date().toLocaleDateString('es',{day:'2-digit',month:'2-digit',year:'numeric'});
-  pa.innerHTML='<div class="boxman"><div class="hd"><div><div class="code">'+esc(box.code)+'</div><div class="meta">'+esc(loc)+'<br>'+(box.name?esc(box.name)+'<br>':'')+'Tipo: '+esc(box.kind||'')+' · '+fecha+'</div><div class="tot">'+box.pieces+' piezas · '+((box.items||[]).length)+' SKUs</div></div><svg class="bc" data-code="'+esc(box.code)+'"></svg></div><table><thead><tr><th>Marca</th><th>Estilo</th><th>Color</th><th class="q">Talla</th><th class="q">Cant</th></tr></thead><tbody>'+rows+totalRow+'</tbody></table></div>';
+  pa.innerHTML='<div class="boxman"><div class="hd"><div><div class="code">'+esc(box.code)+'</div><div class="meta">'+esc(loc)+'<br>'+(box.name?esc(box.name)+'<br>':'')+'Tipo: '+esc(box.kind||'')+' · '+fecha+'</div><div class="tot">'+box.pieces+' piezas · '+((box.items||[]).length)+' SKUs</div></div><svg class="bc" data-code="'+esc(box.code)+'"></svg></div><table><thead><tr><th>Marca</th><th>Estilo</th><th>Color</th><th class="q">Cód</th><th class="q">Talla</th><th class="q">Cant</th></tr></thead><tbody>'+rows+totalRow+'</tbody></table></div>';
   const svg=pa.querySelector('svg.bc');
   if(svg&&window.JsBarcode){try{JsBarcode(svg,box.code,{format:'CODE128',displayValue:true,fontSize:14,textMargin:1,margin:0,height:44,width:1.6});const w=parseFloat(svg.getAttribute('width')),h=parseFloat(svg.getAttribute('height'));if(w&&h){svg.setAttribute('viewBox','0 0 '+w+' '+h);svg.removeAttribute('width');svg.removeAttribute('height');svg.setAttribute('preserveAspectRatio','xMidYMid meet');}}catch(e){svg.remove();}}
   const st=document.createElement('style');st.id='boxpage';st.textContent='@media print{@page{size:4in 6in;margin:0}}';document.head.appendChild(st);
