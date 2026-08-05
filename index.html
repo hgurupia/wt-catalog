@@ -169,6 +169,10 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
 .mini{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:var(--mist);border:1px solid var(--line);border-radius:12px;padding:10px 6px;font-size:11.5px;font-weight:700;color:var(--navy);cursor:pointer}
 .mini svg{width:20px;height:20px;color:var(--navy)}
 .mini:active{transform:scale(.97)}
+.brandmark{background:linear-gradient(135deg,#0d2f4b,#12405f);border-radius:16px;padding:20px 16px;text-align:center;box-shadow:0 8px 24px rgba(13,47,75,.22);margin-bottom:14px}
+.brandmark .wm{font-size:30px;font-weight:900;color:#fff;letter-spacing:-.02em;text-shadow:0 2px 12px rgba(169,192,211,.5)}
+.brandmark .wm .dot{color:var(--brand)}
+.brandmark .app{margin-top:5px;font-size:11px;color:#a9c0d3;letter-spacing:.14em;text-transform:uppercase;font-weight:800}
 .qin{width:58px;padding:6px 4px;text-align:center;border:1px solid var(--line);border-radius:8px;font-size:14px;font-weight:800;color:var(--navy);background:#fff}
 .qin:focus{outline:none;border-color:var(--sky,#45b1e1);background:#f5fbff}
 .qin::-webkit-inner-spin-button,.qin::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
@@ -241,11 +245,11 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
 <section class="screen on" id="s-lock">
   <div class="top"><h1>PML App</h1></div>
   <div class="center">
-    <div class="hero">
-      <img class="glogo" src="gurupia-logo.png" alt="Gurupia" onerror="this.style.display='none'">
-      <h2>PML App</h2>
-      <p>Product Management &amp; Listing. Escanea, ubica y carga stock desde tu teléfono — varias personas, una sola base.</p>
+    <div class="brandmark">
+      <div class="wm">Gurupia<span class="dot">.</span></div>
+      <div class="app">PML App</div>
     </div>
+    <p class="muted" style="text-align:center;margin:0 0 4px">Product Management &amp; Listing. Escanea, ubica y carga stock — varias personas, una sola base.</p>
     <div class="card">
       <label class="fld">Tu nombre (para saber quién carga)</label>
       <input class="in" id="who" placeholder="Ej: Harold" autocomplete="name">
@@ -262,9 +266,9 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
     <span class="pill off" id="modepill"><span class="dot"></span><span id="modetext">local</span></span>
   </div>
   <div class="body">
-    <div class="brandhero">
-      <img class="glogo sm" src="gurupia-logo.png" alt="Gurupia" onerror="this.style.display='none'">
-      <div class="bh-t"><b>PML App</b><span>Inventario · una sola base en vivo</span></div>
+    <div class="brandmark">
+      <div class="wm">Gurupia<span class="dot">.</span></div>
+      <div class="app">PML App · Inventario</div>
     </div>
     <div class="agrid">
       <button class="acard" id="home-search"><span class="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span><b>Buscar</b><small>SKU · nombre · marca</small></button>
@@ -441,6 +445,22 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
       </table>
     </div>
     <p class="qlabel" style="margin-top:8px">Net = Venta − Fees − Costo · Margen = Net/Venta · ROI = Net/Costo</p>
+  </div>
+</section>
+
+<!-- ============ RESUMEN INVENTARIO (por marca/producto) ============ -->
+<section class="screen" id="s-invsum">
+  <div class="top"><button class="bk" data-back>‹</button><h1 style="flex:1">Resumen de inventario</h1></div>
+  <div class="body">
+    <div class="seg" id="isum-mode"><button class="on" data-m="brand">Por marca</button><button data-m="style">Por producto</button></div>
+    <div class="invtblwrap">
+      <table class="invtbl sumtbl">
+        <thead><tr><th>Grupo</th><th>Productos</th><th>Unidades</th></tr></thead>
+        <tbody id="isumbody"></tbody>
+        <tfoot id="isumfoot"></tfoot>
+      </table>
+    </div>
+    <p class="qlabel" style="margin-top:8px">Toca una fila para ver y editar sus productos</p>
   </div>
 </section>
 
@@ -923,8 +943,8 @@ function renderHistory(ms){
 
 /* =================== INVENTARIO (tabla · editar/borrar/bulk) =================== */
 let INVROWS=[], INVSORT='reciente', INVMODE=false, INVSEL=new Set(), INVSHOWN=[];
-$('#stat-prods').addEventListener('click',openInv);
-$('#stat-units').addEventListener('click',openInv);
+$('#stat-prods').addEventListener('click',openInvSum);
+$('#stat-units').addEventListener('click',openInvSum);
 $('#home-inv').addEventListener('click',openInv);
 let LOCIDX={}, INVFILT=[];
 function canonColor(s){s=((s||'')+'').trim().replace(/\s*\/\s*/g,'/').replace(/\s+/g,' ');if(!s)return '';return s.toLowerCase().replace(/(^|[\s/])([a-z])/g,function(m,p,c){return p+c.toUpperCase();});}
@@ -969,6 +989,36 @@ function renderSum(){
 }
 async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero el Inventario para calcular','err');return;}if(!(await unlockMoney()))return;go('s-sum');renderSum();}
 (function(){var b=$('#inv-sum');if(b)b.addEventListener('click',openSummary);$$('#sum-mode button').forEach(function(x){x.addEventListener('click',function(){SUMMODE=x.getAttribute('data-m');$$('#sum-mode button').forEach(function(y){y.classList.toggle('on',y===x);});renderSum();});});var f=$('#sum-ch');if(f)f.addEventListener('change',function(){SUMCH=f.value;renderSum();});})();
+/* ---- Resumen de inventario por marca/producto (drilleable a productos editables) ---- */
+let INVSUMG='brand';
+function invGroups(mode){
+  var g={};
+  (INVROWS||[]).forEach(function(d){var q=+d.qty||0;var key=(mode==='brand'?(((d.brand||'')+'').trim()||'—'):(prodKey(d)||'—'));var o=g[key]||(g[key]={n:0,u:0});o.n++;o.u+=q;});
+  return Object.keys(g).map(function(k){return{k:k,n:g[k].n,u:g[k].u};}).sort(function(a,b){return b.u-a.u;});
+}
+function renderInvSum(){
+  var rows=invGroups(INVSUMG);
+  var tn=rows.reduce(function(t,r){return t+r.n;},0),tu=rows.reduce(function(t,r){return t+r.u;},0);
+  $('#isumbody').innerHTML=rows.length?rows.map(function(r){return '<tr class="isr" data-k="'+esc(r.k)+'" style="cursor:pointer"><td class="gk">'+esc(r.k)+' ›</td><td>'+r.n+'</td><td>'+r.u+'</td></tr>';}).join(''):'<tr><td colspan="3" class="muted" style="text-align:center;padding:20px">Sin productos</td></tr>';
+  $('#isumfoot').innerHTML='<tr><td class="gk">TOTAL</td><td>'+tn+'</td><td>'+tu+'</td></tr>';
+  $$('#isumbody .isr').forEach(function(el){el.addEventListener('click',function(){drillInv(INVSUMG,el.getAttribute('data-k'));});});
+}
+function drillInv(mode,key){
+  INVMODE=false;INVSEL.clear();$('#bulkbar').style.display='none';
+  go('s-inv');
+  ['f-brand','f-style','f-color','f-size','f-loc'].forEach(function(id){var e=$('#'+id);if(e)e.selectedIndex=0;});
+  $('#invq').value='';
+  var sel=$(mode==='brand'?'#f-brand':'#f-style');
+  if(sel)sel.value=key;
+  applyInv();
+}
+function openInvSum(){
+  var run=function(){go('s-invsum');renderInvSum();};
+  if(INVROWS&&INVROWS.length){run();return;}
+  $('#isumbody')&&($('#isumbody').innerHTML='<tr><td colspan="3" class="muted" style="text-align:center;padding:20px">Cargando…</td></tr>');go('s-invsum');
+  Promise.all([DB.list(3000),DB.listBoxes().catch(function(){return[];})]).then(function(r){INVROWS=r[0];buildLocIdx(r[1]);fillFilters(INVROWS);renderInvSum();}).catch(function(){toast('No se pudo cargar','err');});
+}
+(function(){$$('#isum-mode button').forEach(function(x){x.addEventListener('click',function(){INVSUMG=x.getAttribute('data-m');$$('#isum-mode button').forEach(function(y){y.classList.toggle('on',y===x);});renderInvSum();});});})();
 async function openInv(){
   INVMODE=false;INVSEL.clear();$('#bulkbar').style.display='none';$('#bulk-n').textContent='0';$('#inv-selmode').textContent='☑︎ Seleccionar';
   go('s-inv');$('#invq').value='';['f-brand','f-style','f-color','f-size','f-loc'].forEach(id=>{const e=$('#'+id);if(e)e.selectedIndex=0;});
