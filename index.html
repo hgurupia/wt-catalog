@@ -423,6 +423,7 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
     </div>
     <button class="btn ghost block" id="b-manifest-btn">👁️ Ver manifiesto de la caja</button>
     <div id="b-manifest" class="card" style="display:none;margin-top:8px"></div>
+    <div class="row2" style="margin-top:8px"><button class="btn ghost" id="b-counted">✓ Marcar contada</button><button class="btn ghost" id="b-uncounted">↺ Reiniciar conteo</button></div>
     <button class="btn o block" id="b-save" style="margin-top:8px">💾 Guardar caja</button>
     <button class="btn b block" id="b-print" style="margin-top:8px">🖨️ Imprimir etiqueta 4×6 (caja)</button>
     <button class="btn b block" id="b-print-items" style="margin-top:8px">🏷️ Imprimir etiquetas de prendas (90×30)</button>
@@ -1466,17 +1467,29 @@ async function renderBoxList(q){
   let boxes=[];try{boxes=await DB.listBoxes();}catch(e){L.innerHTML='<p class="muted">Error (¿ya creaste la tabla wt_boxes?)</p>';return;}
   if(q){const t=norm(q).split(/\s+/).filter(Boolean);boxes=boxes.filter(b=>{const hay=norm([b.code,b.name,b.rack,b.bin,b.kind,(b.items||[]).map(i=>[i.brand,i.style,i.color,i.size,i.sku].join(' ')).join(' ')].join(' '));return t.every(tok=>hay.includes(tok));});}
   if(!boxes.length){L.innerHTML='<p class="muted">No hay cajas todavía. Toca "Nueva caja".</p>';return;}
+  var cset=await countedSkus();
   L.innerHTML='';
   boxes.forEach(b=>{
     const loc=(b.rack||b.bin)?('Rack '+(b.rack||'—')+' · Comp '+(b.bin||'—')):'sin ubicación';
+    var items=b.items||[];
+    var bc=items.length>0 && items.every(function(it){return it.sku && cset.has(it.sku);});
+    var badge=items.length?('<span class="cbadge'+(bc?' on':'')+'" style="cursor:default;margin-top:6px">'+(bc?'✓ contada':'○ sin contar')+'</span>'):'';
     const el=document.createElement('div');el.style.cssText='border:1px solid #e5e7eb;border-radius:12px;padding:10px;margin-bottom:8px;cursor:pointer';
-    el.innerHTML='<div style="display:flex;justify-content:space-between"><b>'+esc(b.code)+'</b><span class="muted">'+(b.pieces||0)+' pzs</span></div><div class="muted" style="font-size:12px">'+esc(loc)+' · '+((b.items||[]).length)+' SKUs'+(b.name?(' · '+esc(b.name)):'')+'</div>';
+    el.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center"><b>'+esc(b.code)+'</b><span class="muted">'+(b.pieces||0)+' pzs</span></div><div class="muted" style="font-size:12px">'+esc(loc)+' · '+items.length+' SKUs'+(b.name?(' · '+esc(b.name)):'')+'</div>'+badge;
     el.addEventListener('click',()=>editBox(b));
     L.appendChild(el);
   });
 }
 $('#box-new').addEventListener('click',async()=>{let code='CAJA-0001';try{code=await DB.nextBoxCode();}catch(e){}curBox={code,name:'',kind:'pool',rack:'',bin:'',items:[],pieces:0,_orig:null};openBoxEditor(true);});
 function editBox(b){curBox=JSON.parse(JSON.stringify(b));curBox.items=curBox.items||[];curBox._orig=b.code;openBoxEditor(false);}
+async function countedSkus(){try{const r=await fetch(SB_URL+'/rest/v1/wt_inventory?select=sku,counted&limit=3000',{headers:sbHeaders()});const a=r.ok?await r.json():[];var s=new Set();a.forEach(function(x){if(x.counted!=null&&x.sku)s.add(x.sku);});return s;}catch(e){return new Set();}}
+async function markBoxCounted(val){
+  var items=(curBox&&curBox.items)||[];if(!items.length){toast('La caja está vacía','err');return;}
+  var ok=0;for(var i=0;i<items.length;i++){var it=items[i];if(!it.sku)continue;try{if(val){await DB.setCount(it.sku,+it.qty||0);}else{await DB.clearCount(it.sku);}ok++;}catch(e){}}
+  toast((val?'✓ Caja contada — ':'↺ Reiniciada — ')+ok+' productos','ok');
+}
+$('#b-counted').addEventListener('click',function(){markBoxCounted(true);});
+$('#b-uncounted').addEventListener('click',function(){markBoxCounted(false);});
 function openBoxEditor(isNew){
   if(nav[nav.length-1]!=='s-box')nav.push('s-box');show('s-box');
   $('#box-title').textContent=isNew?'Nueva caja':('Caja '+curBox.code);
