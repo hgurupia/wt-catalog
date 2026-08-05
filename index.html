@@ -144,7 +144,7 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
 .invtbl th.ths:active{color:var(--navy)}
 .invtbl th .sar{font-size:9px;color:#9fb0c0;font-style:normal}
 .invtbl th .sar.on{color:var(--brand)}
-.selall{display:none;margin-right:6px;cursor:pointer;font-size:15px;vertical-align:-1px}
+.selall{display:inline-block;margin-right:6px;cursor:pointer;font-size:15px;vertical-align:-1px}
 .invtbl td.lc{cursor:pointer}
 .invtbl td.lc .addloc{color:var(--brand-ink);font-weight:700;font-size:11px}
 .feerow{display:flex;align-items:center;gap:8px;margin:8px 0}
@@ -429,7 +429,7 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
 
 <!-- ============ INVENTARIO (tabla) ============ -->
 <section class="screen" id="s-inv">
-  <div class="top"><button class="bk" data-back>‹</button><h1 style="flex:1">Inventario</h1><button class="btn" id="inv-sum" style="background:rgba(255,255,255,.14);color:#fff;padding:8px 10px;font-size:13px;margin-right:6px">📊 Resumen</button><button class="btn" id="inv-selmode" style="background:rgba(255,255,255,.14);color:#fff;padding:8px 10px;font-size:13px">☑︎</button></div>
+  <div class="top"><button class="bk" data-back>‹</button><h1 style="flex:1">Inventario</h1><button class="btn" id="inv-sum" style="background:rgba(255,255,255,.14);color:#fff;padding:8px 10px;font-size:13px;margin-right:6px">📊 Resumen</button><button class="btn" id="inv-selmode" style="background:rgba(255,255,255,.14);color:#fff;padding:8px 10px;font-size:13px">Limpiar</button></div>
   <div class="body">
     <div class="invsum" id="invsum"></div>
     <input class="in" id="invq" placeholder="Buscar marca, estilo, color, SKU, UPC…" autocomplete="off">
@@ -457,6 +457,7 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
     <button class="btn ghost" id="bulk-gender" style="flex:1">✏️ Género</button>
     <button class="btn ghost" id="bulk-brand" style="flex:1">✏️ Marca</button>
     <button class="btn ghost" id="bulk-color" style="flex:1">✏️ Color</button>
+    <button class="btn ghost" id="bulk-loc" style="flex:1 1 100%">📍 Ubicación</button>
   </div>
 </section>
 
@@ -913,7 +914,7 @@ var TABBAR_ON={'s-home':1,'s-search':1,'s-inv':1,'s-invsum':1,'s-sum':1,'s-boxes
 var TABMAP={'s-search':'search','s-scan':'search','s-ocr':'search','s-new':'new','s-boxes':'boxes','s-box':'boxes','s-inv':'inv','s-invsum':'inv','s-sum':'inv','s-prod':'inv','s-hist':'inv'};
 function updateTabbar(id){
   var tb=$('#tabbar');if(!tb)return;
-  var on=!!TABBAR_ON[id] && !(id==='s-inv'&&typeof INVMODE!=='undefined'&&INVMODE);
+  var on=!!TABBAR_ON[id] && !(id==='s-inv'&&typeof INVSEL!=='undefined'&&INVSEL.size>0);
   tb.classList.toggle('on',on);document.body.classList.toggle('hastab',on);
   var active=TABMAP[id]||'';
   $$('#tabbar .tab').forEach(function(t){t.classList.toggle('on',t.getAttribute('data-tab')===active);});
@@ -1171,7 +1172,7 @@ function renderInv(rows){
     const nm=[d.brand,d.style].filter(Boolean).join(' ');
     const sub=[canonColor(d.color),d.size,d.cat].filter(Boolean).join(' · ');
     return '<tr class="ivr'+(sel?' sel':'')+'" data-i="'+i+'">'
-      +'<td class="pc"><div class="pcw">'+(INVMODE?'<span class="ck">'+(sel?'☑️':'⬜️')+'</span>':'')
+      +'<td class="pc"><div class="pcw"><span class="ck" data-sku="'+esc(d.sku)+'">'+(sel?'☑️':'⬜️')+'</span>'
       +'<img src="'+esc(d.img||'')+'" onerror="this.style.visibility=\'hidden\'">'
       +'<div class="pt"><b>'+esc(nm)+'</b><span>'+esc(sub)+'<br>'+esc(d.sku)+'</span></div></div></td>'
       +'<td class="lc" data-sku="'+esc(d.sku)+'">'+(loc?'<span class="locchip">'+esc(loc)+'</span>':'<span class="addloc">+ ubicar</span>')+'</td>'
@@ -1181,9 +1182,10 @@ function renderInv(rows){
     const pc=el.querySelector('.pc');
     pc.addEventListener('click',async()=>{
       const d=INVSHOWN[+el.dataset.i];if(!d)return;
-      if(INVMODE){if(INVSEL.has(d.sku))INVSEL.delete(d.sku);else INVSEL.add(d.sku);$('#bulk-n').textContent=INVSEL.size;applyInv();return;}
       const fresh=await DB.bySku(d.sku)||d;openProduct(fresh);
     });
+    var ck=el.querySelector('.ck');
+    if(ck)ck.addEventListener('click',function(e){e.stopPropagation();var sku=ck.getAttribute('data-sku');if(INVSEL.has(sku)){INVSEL.delete(sku);ck.textContent='⬜️';el.classList.remove('sel');}else{INVSEL.add(sku);ck.textContent='☑️';el.classList.add('sel');}refreshSelUI();});
   });
   tb.querySelectorAll('.qin').forEach(inp=>{
     inp.addEventListener('click',e=>e.stopPropagation());
@@ -1196,14 +1198,15 @@ function renderInv(rows){
     });
   });
   tb.querySelectorAll('.lc').forEach(function(td){td.addEventListener('click',function(e){e.stopPropagation();editLoc(td.getAttribute('data-sku'));});});
-  var sa=$('#inv-selall');if(sa){sa.style.display=INVMODE?'inline':'none';sa.textContent=(INVFILT.length&&INVFILT.every(function(d){return INVSEL.has(d.sku);}))?'☑':'☐';}
+  refreshSelUI();
 }
-$('#inv-selmode').addEventListener('click',()=>{
-  INVMODE=!INVMODE;INVSEL.clear();$('#bulk-n').textContent='0';
-  $('#bulkbar').style.display=INVMODE?'flex':'none';
-  $('#inv-selmode').textContent=INVMODE?'✕ Cancelar':'☑︎ Seleccionar';
-  applyInv();updateTabbar('s-inv');
-});
+function refreshSelUI(){
+  var n=INVSEL.size;var bn=$('#bulk-n');if(bn)bn.textContent=n;
+  var bb=$('#bulkbar');if(bb)bb.style.display=n?'flex':'none';
+  var sa=$('#inv-selall');if(sa)sa.textContent=(INVFILT.length&&INVFILT.every(function(d){return INVSEL.has(d.sku);}))?'☑':'☐';
+  updateTabbar('s-inv');
+}
+$('#inv-selmode').addEventListener('click',()=>{ INVSEL.clear(); applyInv(); });
 $('#bulk-del').addEventListener('click',async()=>{
   const skus=[...INVSEL];if(!skus.length){toast('Selecciona productos','err');return;}
   const ok1=await uiConfirm('¿Eliminar '+skus.length+' productos?','Vas a eliminar '+skus.length+' productos seleccionados de la base.',{danger:true,okText:'Sí, continuar'});
@@ -1225,6 +1228,13 @@ $('#bulk-cat').addEventListener('click',()=>bulkEdit('cat','Tipo'));
 $('#bulk-gender').addEventListener('click',()=>bulkEdit('gender','Género'));
 $('#bulk-brand').addEventListener('click',()=>bulkEdit('brand','Marca'));
 $('#bulk-color').addEventListener('click',()=>bulkEdit('color','Color'));
+$('#bulk-loc').addEventListener('click',async()=>{
+  const skus=[...INVSEL];if(!skus.length){toast('Selecciona productos','err');return;}
+  const v=await uiPrompt('Ubicación','Rack / caja / lugar para '+skus.length+' productos:');
+  if(v==null)return;const loc=(''+v).trim();
+  try{await DB.updateMany(skus,{location:loc});const s=new Set(skus);INVROWS.forEach(d=>{if(s.has(d.sku))d.location=loc;});toast('Ubicación puesta en '+skus.length,'ok');applyInv();}
+  catch(e){toast('Error: '+String(e).slice(0,80),'err');}
+});
 
 /* =================== OCR ETIQUETA MANUSCRITA =================== */
 const OCR_URL=SB_URL+'/functions/v1/ocr-label';
