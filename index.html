@@ -149,6 +149,7 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
 .invtbl td.lc .addloc{color:var(--brand-ink);font-weight:700;font-size:11px}
 .cbadge{display:inline-block;margin-top:3px;font-size:10px;font-weight:800;border-radius:999px;padding:1px 8px;cursor:pointer;background:#eef2f6;border:1px solid #dfe6ee;color:#8794a2}
 .cbadge.on{background:#e9f1f8;border-color:#bcd3e8;color:#0d2f4b}
+#box-new .npico{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;background:var(--brand);color:#fff;font-weight:900;font-size:17px;line-height:1;margin-right:9px;vertical-align:-5px}
 .feerow{display:flex;align-items:center;gap:8px;margin:8px 0}
 .feerow .in{width:66px;text-align:center;padding:8px}
 .sumtbl{font-size:12px}
@@ -380,7 +381,7 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
 <section class="screen" id="s-boxes">
   <div class="top"><button class="bk" data-back>‹</button><h1>Cajas</h1></div>
   <div class="body">
-    <button class="btn b block" id="box-new">➕ Nueva caja</button>
+    <button class="btn b block" id="box-new"><span class="npico">+</span>Nueva caja</button>
     <input class="in" id="box-q" placeholder="Buscar por código, ubicación o contenido" style="margin-top:8px">
     <div id="box-list" style="margin-top:10px"></div>
   </div>
