@@ -451,7 +451,16 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
     <div class="feerow"><span class="muted">Canal</span><select class="ff" id="sum-ch" style="flex:1"><option value="ebay">eBay · 15.3% + $0.40</option><option value="amazon">Amazon · 17%</option><option value="walmart">Walmart · 15%</option><option value="shopify">Shopify · 2.9% + $0.30</option><option value="directo">Directo · 0%</option></select></div>
     <div class="invtblwrap">
       <table class="invtbl sumtbl">
-        <thead><tr><th>Grupo</th><th>Qty</th><th>Costo</th><th>Venta</th><th>Fees</th><th>Net</th><th>Mg%</th><th>ROI%</th></tr></thead>
+        <thead><tr>
+          <th class="ths" data-k="k">Grupo <span class="sar" data-for="k"></span></th>
+          <th class="ths" data-k="qty">Qty <span class="sar" data-for="qty"></span></th>
+          <th class="ths" data-k="cost">Costo <span class="sar" data-for="cost"></span></th>
+          <th class="ths" data-k="sell">Venta <span class="sar" data-for="sell"></span></th>
+          <th class="ths" data-k="fees">Fees <span class="sar" data-for="fees"></span></th>
+          <th class="ths" data-k="net">Net <span class="sar" data-for="net"></span></th>
+          <th class="ths" data-k="margin">Mg% <span class="sar" data-for="margin"></span></th>
+          <th class="ths" data-k="roi">ROI% <span class="sar" data-for="roi"></span></th>
+        </tr></thead>
         <tbody id="sumbody"></tbody>
         <tfoot id="sumfoot"></tfoot>
       </table>
@@ -474,7 +483,11 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
     </div>
     <div class="invtblwrap">
       <table class="invtbl sumtbl">
-        <thead><tr><th>Grupo</th><th>Productos</th><th>Unidades</th></tr></thead>
+        <thead><tr>
+          <th class="ths" data-k="k">Grupo <span class="sar" data-for="k"></span></th>
+          <th class="ths" data-k="n">Productos <span class="sar" data-for="n"></span></th>
+          <th class="ths" data-k="u">Unidades <span class="sar" data-for="u"></span></th>
+        </tr></thead>
         <tbody id="isumbody"></tbody>
         <tfoot id="isumfoot"></tfoot>
       </table>
@@ -1012,14 +1025,15 @@ function fillFilters(rows){
 }
 function renderSummary(rows){rows=rows||INVFILT;const p=rows.length,u=rows.reduce((s,d)=>s+(+d.qty||0),0),inbox=rows.filter(d=>LOCIDX[d.sku]).length;const el=$('#invsum');if(el)el.innerHTML='<div><b>'+p+'</b><span>productos</span></div><div><b>'+u+'</b><span>unidades</span></div><div><b>'+inbox+'</b><span>en cajas</span></div>';}
 /* ---- Resumen financiero (adaptado del gestor PML): Net=Venta-Fees-Costo, ROI=Net/Costo, Margen=Net/Venta ---- */
-let SUMMODE='brand',SUMCH='ebay';
+let SUMMODE='brand',SUMCH='ebay',SUMSORTK='net',SUMSORTD=-1;
 var FEES={ebay:{ref:15.3,fixed:0.40},amazon:{ref:17,fixed:0},walmart:{ref:15,fixed:0},shopify:{ref:2.9,fixed:0.30},directo:{ref:0,fixed:0}};
 function computeSum(mode){
   var f=FEES[SUMCH]||FEES.directo;
   const g={};
   (INVROWS||[]).forEach(d=>{const q=+d.qty||0;if(!q)return;const cost=parseFloat(d.cost)||0;const price=parseFloat(d.price!=null?d.price:d.retail)||0;const key=(mode==='brand'?(((d.brand||'')+'').trim()||'—'):(prodKey(d)||'—'));const o=g[key]||(g[key]={qty:0,cost:0,sell:0,fees:0});o.qty+=q;o.cost+=cost*q;o.sell+=price*q;o.fees+=(price*(f.ref/100)+f.fixed)*q;});
-  return Object.keys(g).map(k=>{const o=g[k];const net=o.sell-o.fees-o.cost;return{k:k,qty:o.qty,cost:o.cost,sell:o.sell,fees:o.fees,net:net,margin:o.sell>0?net/o.sell*100:0,roi:o.cost>0?net/o.cost*100:0};}).sort((a,b)=>b.net-a.net);
+  return Object.keys(g).map(k=>{const o=g[k];const net=o.sell-o.fees-o.cost;return{k:k,qty:o.qty,cost:o.cost,sell:o.sell,fees:o.fees,net:net,margin:o.sell>0?net/o.sell*100:0,roi:o.cost>0?net/o.cost*100:0};}).sort(function(a,b){var va=a[SUMSORTK],vb=b[SUMSORTK];if(SUMSORTK==='k')return (''+va).localeCompare(''+vb,'es',{numeric:true})*SUMSORTD;return (va-vb)*SUMSORTD;});
 }
+function updSumSar(){$$('#s-sum .sar').forEach(function(s){var k=s.getAttribute('data-for');if(k===SUMSORTK){s.textContent=SUMSORTD>0?'▲':'▼';s.classList.add('on');}else{s.textContent='↕';s.classList.remove('on');}});}
 function fmtMoney(v){return '$'+Math.round(v||0).toLocaleString('en-US');}
 function renderSum(){
   const rows=computeSum(SUMMODE);
@@ -1027,11 +1041,14 @@ function renderSum(){
   const tm=t.sell>0?t.net/t.sell*100:0,tr=t.cost>0?t.net/t.cost*100:0;
   $('#sumbody').innerHTML=rows.length?rows.map(r=>'<tr><td class="gk">'+esc(r.k)+'</td><td>'+r.qty+'</td><td>'+fmtMoney(r.cost)+'</td><td>'+fmtMoney(r.sell)+'</td><td>'+fmtMoney(r.fees)+'</td><td class="net">'+fmtMoney(r.net)+'</td><td>'+Math.round(r.margin)+'%</td><td>'+Math.round(r.roi)+'%</td></tr>').join(''):'<tr><td colspan="8" class="muted" style="text-align:center;padding:20px">Sin datos de costo/precio</td></tr>';
   $('#sumfoot').innerHTML='<tr><td class="gk">TOTAL</td><td>'+t.qty+'</td><td>'+fmtMoney(t.cost)+'</td><td>'+fmtMoney(t.sell)+'</td><td>'+fmtMoney(t.fees)+'</td><td class="net">'+fmtMoney(t.net)+'</td><td>'+Math.round(tm)+'%</td><td>'+Math.round(tr)+'%</td></tr>';
+  updSumSar();
 }
 async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero el Inventario para calcular','err');return;}if(!(await unlockMoney()))return;go('s-sum');renderSum();}
-(function(){var b=$('#inv-sum');if(b)b.addEventListener('click',openSummary);$$('#sum-mode button').forEach(function(x){x.addEventListener('click',function(){SUMMODE=x.getAttribute('data-m');$$('#sum-mode button').forEach(function(y){y.classList.toggle('on',y===x);});renderSum();});});var f=$('#sum-ch');if(f)f.addEventListener('change',function(){SUMCH=f.value;renderSum();});})();
+(function(){var b=$('#inv-sum');if(b)b.addEventListener('click',openSummary);$$('#sum-mode button').forEach(function(x){x.addEventListener('click',function(){SUMMODE=x.getAttribute('data-m');$$('#sum-mode button').forEach(function(y){y.classList.toggle('on',y===x);});renderSum();});});var f=$('#sum-ch');if(f)f.addEventListener('change',function(){SUMCH=f.value;renderSum();});
+$$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 /* ---- Resumen de inventario por marca/producto (drilleable a productos editables) ---- */
-let INVSUMG='brand';
+let INVSUMG='brand', ISUMSORTK='u', ISUMSORTD=-1;
+function updISumSar(){$$('#s-invsum .sar').forEach(function(s){var k=s.getAttribute('data-for');if(k===ISUMSORTK){s.textContent=ISUMSORTD>0?'▲':'▼';s.classList.add('on');}else{s.textContent='↕';s.classList.remove('on');}});}
 function isumFilters(){var qe=$('#isum-q');return{q:(qe?norm(qe.value):'').trim(),brand:($('#isum-brand')||{}).value||'',color:($('#isum-color')||{}).value||'',size:($('#isum-size')||{}).value||'',loc:($('#isum-loc')||{}).value||''};}
 function isumMatch(d,f){
   if(f.q){var toks=f.q.split(/\s+/).filter(Boolean);var hay=norm([d.brand,d.style,d.color,d.size,d.sku,d.cat,d.gender,d.upc].join(' '));if(!toks.every(function(tk){return hay.indexOf(tk)>=0;}))return false;}
@@ -1052,7 +1069,7 @@ function fillIsum(rows){
 function invGroups(mode){
   var f=isumFilters();var g={};
   (INVROWS||[]).forEach(function(d){if(!isumMatch(d,f))return;var q=+d.qty||0;var key=(mode==='brand'?(((d.brand||'')+'').trim()||'—'):(prodKey(d)||'—'));var o=g[key]||(g[key]={n:0,u:0});o.n++;o.u+=q;});
-  return Object.keys(g).map(function(k){return{k:k,n:g[k].n,u:g[k].u};}).sort(function(a,b){return b.u-a.u;});
+  return Object.keys(g).map(function(k){return{k:k,n:g[k].n,u:g[k].u};}).sort(function(a,b){var va=a[ISUMSORTK],vb=b[ISUMSORTK];if(ISUMSORTK==='k')return (''+va).localeCompare(''+vb,'es',{numeric:true})*ISUMSORTD;return (va-vb)*ISUMSORTD;});
 }
 function renderInvSum(){
   var rows=invGroups(INVSUMG);
@@ -1060,6 +1077,7 @@ function renderInvSum(){
   $('#isumbody').innerHTML=rows.length?rows.map(function(r){return '<tr class="isr" data-k="'+esc(r.k)+'" style="cursor:pointer"><td class="gk">'+esc(r.k)+' ›</td><td>'+r.n+'</td><td>'+r.u+'</td></tr>';}).join(''):'<tr><td colspan="3" class="muted" style="text-align:center;padding:20px">Sin productos</td></tr>';
   $('#isumfoot').innerHTML='<tr><td class="gk">TOTAL</td><td>'+tn+'</td><td>'+tu+'</td></tr>';
   $$('#isumbody .isr').forEach(function(el){el.addEventListener('click',function(){drillInv(INVSUMG,el.getAttribute('data-k'));});});
+  updISumSar();
 }
 function drillInv(mode,key){
   INVMODE=false;INVSEL.clear();$('#bulkbar').style.display='none';
@@ -1079,6 +1097,7 @@ function openInvSum(){
 (function(){
   $$('#isum-mode button').forEach(function(x){x.addEventListener('click',function(){INVSUMG=x.getAttribute('data-m');$$('#isum-mode button').forEach(function(y){y.classList.toggle('on',y===x);});renderInvSum();});});
   ['isum-q','isum-brand','isum-color','isum-size','isum-loc'].forEach(function(id){var e=$('#'+id);if(e)e.addEventListener(id==='isum-q'?'input':'change',renderInvSum);});
+  $$('#s-invsum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(ISUMSORTK===k)ISUMSORTD=-ISUMSORTD;else{ISUMSORTK=k;ISUMSORTD=(k==='k')?1:-1;}renderInvSum();});});
 })();
 async function openInv(){
   INVMODE=false;INVSEL.clear();$('#bulkbar').style.display='none';$('#bulk-n').textContent='0';$('#inv-selmode').textContent='☑︎ Seleccionar';
