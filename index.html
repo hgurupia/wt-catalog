@@ -838,7 +838,7 @@ $('#stat-prods').addEventListener('click',openInv);
 $('#stat-units').addEventListener('click',openInv);
 $('#home-inv').addEventListener('click',openInv);
 let LOCIDX={}, INVFILT=[];
-function canonColor(s){s=((s||'')+'').trim().replace(/\s*\/\s*/g,'/').replace(/\s+/g,' ');if(!s)return '';return s.toLowerCase().replace(/(^|[\s/])(\p{L})/gu,(m,p,c)=>p+c.toUpperCase());}
+function canonColor(s){s=((s||'')+'').trim().replace(/\s*\/\s*/g,'/').replace(/\s+/g,' ');if(!s)return '';return s.toLowerCase().replace(/(^|[\s/])([a-z])/g,function(m,p,c){return p+c.toUpperCase();});}
 function buildLocIdx(boxes){LOCIDX={};(boxes||[]).forEach(b=>{(b.items||[]).forEach(it=>{if(!it||!it.sku)return;(LOCIDX[it.sku]=LOCIDX[it.sku]||[]).push({code:b.code,rack:b.rack,bin:b.bin});});});}
 function locText(sku){const a=LOCIDX[sku];if(!a||!a.length)return'';const f=a[0];let t=(f.code||'')+(f.rack?(' · R'+f.rack):'')+(f.bin?('·'+f.bin):'');if(a.length>1)t+=' +'+(a.length-1);return t;}
 function prodKey(d){return (((d.brand||'')+' '+(d.style||'')).replace(/\s+/g,' ')).trim();}
