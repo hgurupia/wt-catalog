@@ -408,7 +408,7 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
   <div class="top"><button class="bk" data-back>‹</button><h1 style="flex:1">Resumen financiero</h1></div>
   <div class="body">
     <div class="seg" id="sum-mode"><button class="on" data-m="brand">Por marca</button><button data-m="style">Por producto</button></div>
-    <div class="feerow"><span class="muted">Fees marketplace</span><input class="in" id="sum-fee" inputmode="decimal" value="15"><span class="muted">%</span></div>
+    <div class="feerow"><span class="muted">Canal</span><select class="ff" id="sum-ch" style="flex:1"><option value="ebay">eBay · 15.3% + $0.40</option><option value="amazon">Amazon · 17%</option><option value="walmart">Walmart · 15%</option><option value="shopify">Shopify · 2.9% + $0.30</option><option value="directo">Directo · 0%</option></select></div>
     <div class="invtblwrap">
       <table class="invtbl sumtbl">
         <thead><tr><th>Grupo</th><th>Qty</th><th>Costo</th><th>Venta</th><th>Fees</th><th>Net</th><th>Mg%</th><th>ROI%</th></tr></thead>
@@ -493,7 +493,7 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
         <div style="height:8px"></div>
         <div class="row2"><div><label class="fld">UPC</label><input class="in" id="e-upc" inputmode="numeric"></div><div><label class="fld">ASIN</label><input class="in" id="e-asin"></div></div>
         <div style="height:8px"></div>
-        <div class="row2"><div><label class="fld">Costo ($)</label><input class="in" id="e-cost" inputmode="decimal"></div><div><label class="fld">Precio ($)</label><input class="in" id="e-price" inputmode="decimal"></div></div>
+        <div class="row2" id="e-money-row"><div><label class="fld">Costo ($)</label><input class="in" id="e-cost" inputmode="decimal"></div><div><label class="fld">Precio ($)</label><input class="in" id="e-price" inputmode="decimal"></div></div>
         <div style="height:8px"></div>
         <div class="row2"><div><label class="fld">Peso (lb)</label><input class="in" id="e-weight" inputmode="decimal"></div><div><label class="fld">Ubicación (texto)</label><input class="in" id="e-location"></div></div>
         <div style="height:8px"></div>
@@ -904,6 +904,16 @@ $('#stat-units').addEventListener('click',openInv);
 $('#home-inv').addEventListener('click',openInv);
 let LOCIDX={}, INVFILT=[];
 function canonColor(s){s=((s||'')+'').trim().replace(/\s*\/\s*/g,'/').replace(/\s+/g,' ');if(!s)return '';return s.toLowerCase().replace(/(^|[\s/])([a-z])/g,function(m,p,c){return p+c.toUpperCase();});}
+/* ---- Candado de dinero (costo/margen/ROI) — PIN por sesión ---- */
+var MONEY_PIN='7788';
+function moneyUnlocked(){try{return sessionStorage.getItem('wt_money')==='1';}catch(e){return false;}}
+async function unlockMoney(){
+  if(moneyUnlocked())return true;
+  var v=await uiPrompt('🔒 Sección de dinero','Escribe el PIN para ver costos, márgenes y ROI:');
+  if(v===null)return false;
+  if((''+v).trim()===MONEY_PIN){try{sessionStorage.setItem('wt_money','1');}catch(e){}return true;}
+  toast('PIN incorrecto','err');return false;
+}
 function buildLocIdx(boxes){LOCIDX={};(boxes||[]).forEach(b=>{(b.items||[]).forEach(it=>{if(!it||!it.sku)return;(LOCIDX[it.sku]=LOCIDX[it.sku]||[]).push({code:b.code,rack:b.rack,bin:b.bin});});});}
 function locText(sku){const a=LOCIDX[sku];if(!a||!a.length)return'';const f=a[0];let t=(f.code||'')+(f.rack?(' · R'+f.rack):'')+(f.bin?('·'+f.bin):'');if(a.length>1)t+=' +'+(a.length-1);return t;}
 function prodKey(d){return (((d.brand||'')+' '+(d.style||'')).replace(/\s+/g,' ')).trim();}
@@ -917,11 +927,13 @@ function fillFilters(rows){
 }
 function renderSummary(rows){rows=rows||INVFILT;const p=rows.length,u=rows.reduce((s,d)=>s+(+d.qty||0),0),inbox=rows.filter(d=>LOCIDX[d.sku]).length;const el=$('#invsum');if(el)el.innerHTML='<div><b>'+p+'</b><span>productos</span></div><div><b>'+u+'</b><span>unidades</span></div><div><b>'+inbox+'</b><span>en cajas</span></div>';}
 /* ---- Resumen financiero (adaptado del gestor PML): Net=Venta-Fees-Costo, ROI=Net/Costo, Margen=Net/Venta ---- */
-let SUMMODE='brand',FEERATE=0.15;
+let SUMMODE='brand',SUMCH='ebay';
+var FEES={ebay:{ref:15.3,fixed:0.40},amazon:{ref:17,fixed:0},walmart:{ref:15,fixed:0},shopify:{ref:2.9,fixed:0.30},directo:{ref:0,fixed:0}};
 function computeSum(mode){
+  var f=FEES[SUMCH]||FEES.directo;
   const g={};
-  (INVROWS||[]).forEach(d=>{const q=+d.qty||0;if(!q)return;const cost=parseFloat(d.cost)||0;const price=parseFloat(d.price!=null?d.price:d.retail)||0;const key=(mode==='brand'?(((d.brand||'')+'').trim()||'—'):(prodKey(d)||'—'));const o=g[key]||(g[key]={qty:0,cost:0,sell:0});o.qty+=q;o.cost+=cost*q;o.sell+=price*q;});
-  return Object.keys(g).map(k=>{const o=g[k];const fees=o.sell*FEERATE;const net=o.sell-fees-o.cost;return{k:k,qty:o.qty,cost:o.cost,sell:o.sell,fees:fees,net:net,margin:o.sell>0?net/o.sell*100:0,roi:o.cost>0?net/o.cost*100:0};}).sort((a,b)=>b.net-a.net);
+  (INVROWS||[]).forEach(d=>{const q=+d.qty||0;if(!q)return;const cost=parseFloat(d.cost)||0;const price=parseFloat(d.price!=null?d.price:d.retail)||0;const key=(mode==='brand'?(((d.brand||'')+'').trim()||'—'):(prodKey(d)||'—'));const o=g[key]||(g[key]={qty:0,cost:0,sell:0,fees:0});o.qty+=q;o.cost+=cost*q;o.sell+=price*q;o.fees+=(price*(f.ref/100)+f.fixed)*q;});
+  return Object.keys(g).map(k=>{const o=g[k];const net=o.sell-o.fees-o.cost;return{k:k,qty:o.qty,cost:o.cost,sell:o.sell,fees:o.fees,net:net,margin:o.sell>0?net/o.sell*100:0,roi:o.cost>0?net/o.cost*100:0};}).sort((a,b)=>b.net-a.net);
 }
 function fmtMoney(v){return '$'+Math.round(v||0).toLocaleString('en-US');}
 function renderSum(){
@@ -931,8 +943,8 @@ function renderSum(){
   $('#sumbody').innerHTML=rows.length?rows.map(r=>'<tr><td class="gk">'+esc(r.k)+'</td><td>'+r.qty+'</td><td>'+fmtMoney(r.cost)+'</td><td>'+fmtMoney(r.sell)+'</td><td>'+fmtMoney(r.fees)+'</td><td class="net">'+fmtMoney(r.net)+'</td><td>'+Math.round(r.margin)+'%</td><td>'+Math.round(r.roi)+'%</td></tr>').join(''):'<tr><td colspan="8" class="muted" style="text-align:center;padding:20px">Sin datos de costo/precio</td></tr>';
   $('#sumfoot').innerHTML='<tr><td class="gk">TOTAL</td><td>'+t.qty+'</td><td>'+fmtMoney(t.cost)+'</td><td>'+fmtMoney(t.sell)+'</td><td>'+fmtMoney(t.fees)+'</td><td class="net">'+fmtMoney(t.net)+'</td><td>'+Math.round(tm)+'%</td><td>'+Math.round(tr)+'%</td></tr>';
 }
-function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero el Inventario para calcular','err');return;}go('s-sum');renderSum();}
-(function(){var b=$('#inv-sum');if(b)b.addEventListener('click',openSummary);$$('#sum-mode button').forEach(function(x){x.addEventListener('click',function(){SUMMODE=x.getAttribute('data-m');$$('#sum-mode button').forEach(function(y){y.classList.toggle('on',y===x);});renderSum();});});var f=$('#sum-fee');if(f)f.addEventListener('input',function(){FEERATE=(parseFloat(f.value)||0)/100;renderSum();});})();
+async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero el Inventario para calcular','err');return;}if(!(await unlockMoney()))return;go('s-sum');renderSum();}
+(function(){var b=$('#inv-sum');if(b)b.addEventListener('click',openSummary);$$('#sum-mode button').forEach(function(x){x.addEventListener('click',function(){SUMMODE=x.getAttribute('data-m');$$('#sum-mode button').forEach(function(y){y.classList.toggle('on',y===x);});renderSum();});});var f=$('#sum-ch');if(f)f.addEventListener('change',function(){SUMCH=f.value;renderSum();});})();
 async function openInv(){
   INVMODE=false;INVSEL.clear();$('#bulkbar').style.display='none';$('#bulk-n').textContent='0';$('#inv-selmode').textContent='☑︎ Seleccionar';
   go('s-inv');$('#invq').value='';['f-brand','f-style','f-color','f-size','f-loc'].forEach(id=>{const e=$('#'+id);if(e)e.selectedIndex=0;});
@@ -1511,6 +1523,7 @@ function openProduct(d){
   $('#e-brand').value=d.brand||'';$('#e-style').value=d.style||'';$('#e-color').value=d.color||'';$('#e-size').value=d.size||'';$('#e-cat').value=d.cat||'';$('#e-gender').value=d.gender||'';$('#e-upc').value=d.upc||'';
   $('#e-listtitle').value=d.listtitle||'';$('#e-asin').value=d.asin||'';$('#e-cost').value=(d.cost!=null?d.cost:'');$('#e-price').value=((d.price!=null?d.price:d.retail)||'');$('#e-weight').value=(d.weight!=null?d.weight:'');$('#e-location').value=d.location||'';$('#e-longdesc').value=d.longdesc||'';$('#e-bullets').value=(Array.isArray(d.bullets)?d.bullets.join('\n'):(d.bullets||''));
   $('#edit-panel').style.display='none';
+  var _mr=$('#e-money-row');if(_mr)_mr.style.display=moneyUnlocked()?'':'none';
   renderProdExtras(d);
   updDelta();
   nav=['s-home','s-prod'];show('s-prod');
@@ -1529,8 +1542,13 @@ function renderProdExtras(d){
   const cost=money(d.cost),price=money(d.price!=null?d.price:d.retail);
   let mg=null;if(price&&cost!=null&&price>0)mg=Math.round((price-cost)/price*100);
   const pb=$('#p-pricebar');
-  pb.innerHTML=(cost!=null?'<div><b>$'+cost.toFixed(2)+'</b><span>costo</span></div>':'')+(price!=null?'<div><b>$'+price.toFixed(2)+'</b><span>precio</span></div>':'')+(mg!=null?'<div class="mg"><b>'+mg+'%</b><span>margen</span></div>':'');
-  pb.style.display=(cost!=null||price!=null)?'flex':'none';
+  if(!moneyUnlocked()){
+    pb.style.display='flex';pb.innerHTML='<button class="btn ghost" id="p-unlock" style="flex:1;padding:9px;font-size:12.5px">🔒 Mostrar costo y margen</button>';
+    var _ub=$('#p-unlock');if(_ub)_ub.addEventListener('click',async function(){if(await unlockMoney())renderProdExtras(d);});
+  }else{
+    pb.innerHTML=(cost!=null?'<div><b>$'+cost.toFixed(2)+'</b><span>costo</span></div>':'')+(price!=null?'<div><b>$'+price.toFixed(2)+'</b><span>precio</span></div>':'')+(mg!=null?'<div class="mg"><b>'+mg+'%</b><span>margen</span></div>':'');
+    pb.style.display=(cost!=null||price!=null)?'flex':'none';
+  }
   const desc=d.longdesc||'';$('#p-desc').textContent=desc;$('#sec-desc').classList.toggle('empty',!desc);
   const bl=Array.isArray(d.bullets)?d.bullets.filter(Boolean):[];
   $('#p-bullets').innerHTML=bl.map(b=>'<li>'+esc(b)+'</li>').join('');$('#sec-bullets').classList.toggle('empty',!bl.length);
