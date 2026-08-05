@@ -115,6 +115,7 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
 .res .t span{font-size:11.5px;color:var(--slate)}
 .res .q{font-weight:900;color:var(--navy);font-size:15px}
 .res .q.g{color:var(--green)}.res .q.r{color:var(--red)}
+.badge-stock{display:inline-block;background:#e7f7ec;border:1px solid #b7e4c7;color:#1b7a3d;border-radius:999px;padding:1px 8px;font-size:10.5px;font-weight:800;vertical-align:middle;margin:2px 0}
 .res.sel{border-color:var(--sky);background:#eef7fc}
 .res .chk{font-size:20px;width:26px;text-align:center;flex:none}
 .list{display:flex;flex-direction:column;gap:8px}
@@ -633,10 +634,10 @@ const DB={
     if(MODE!=='online')return [];
     const toks=norm(q).split(/\s+/).filter(Boolean);if(!toks.length)return [];
     const t=toks.slice().sort((a,b)=>b.length-a.length)[0];
-    const r=await fetch(SB_URL+'/rest/v1/wt_reference?search=ilike.'+encodeURIComponent('*'+t+'*')+'&select=sku,upc,brand,style,color,color_code,size&limit=100',{headers:sbHeaders()});
+    const r=await fetch(SB_URL+'/rest/v1/wt_reference?search=ilike.'+encodeURIComponent('*'+t+'*')+'&select=sku,wt_sku,upc,brand,style,color,color_code,size,asin,image,has_stock&limit=100',{headers:sbHeaders()});
     let a=r.ok?await r.json():[];
     a=a.filter(d=>{const hay=norm([d.brand,d.style,d.color,d.size,d.color_code,d.sku,d.upc].join(' '));return toks.every(tk=>hay.includes(tk));}).slice(0,40);
-    return a.map(d=>({sku:genSku(d.brand,d.style,d.color,d.size),upc:(''+(d.upc||'')).replace(/\D/g,''),brand:d.brand||'',style:d.style||'',color:d.color||'',cc:(''+(d.color_code||'')),size:d.size||'',cat:'',gender:''}));
+    return a.map(d=>({sku:d.wt_sku||genSku(d.brand,d.style,d.color,d.size),upc:(''+(d.upc||'')).replace(/\D/g,''),brand:d.brand||'',style:d.style||'',color:d.color||'',cc:(''+(d.color_code||'')),size:d.size||'',cat:'',gender:'',img:d.image||'',asin:d.asin||'',has_stock:!!d.has_stock}));
   },
   async colorName(brand,cc){
     if(MODE!=='online')return '';
@@ -660,9 +661,9 @@ const DB={
   },
   async refByUPC(upc){
     const u=(''+(upc||'')).replace(/\D/g,'');if(!u||MODE!=='online')return [];
-    const r=await fetch(SB_URL+'/rest/v1/wt_reference?upc=eq.'+encodeURIComponent(u)+'&select=sku,upc,brand,style,color,color_code,size&limit=8',{headers:sbHeaders()});
+    const r=await fetch(SB_URL+'/rest/v1/wt_reference?upc=eq.'+encodeURIComponent(u)+'&select=sku,wt_sku,upc,brand,style,color,color_code,size,asin,image,has_stock&limit=8',{headers:sbHeaders()});
     const a=r.ok?await r.json():[];
-    return a.map(d=>({sku:genSku(d.brand,d.style,d.color,d.size),upc:(''+(d.upc||'')).replace(/\D/g,''),brand:d.brand||'',style:d.style||'',color:d.color||'',cc:(''+(d.color_code||'')),size:d.size||'',cat:'',gender:''}));
+    return a.map(d=>({sku:d.wt_sku||genSku(d.brand,d.style,d.color,d.size),upc:(''+(d.upc||'')).replace(/\D/g,''),brand:d.brand||'',style:d.style||'',color:d.color||'',cc:(''+(d.color_code||'')),size:d.size||'',cat:'',gender:'',img:d.image||'',asin:d.asin||'',has_stock:!!d.has_stock}));
   },
   async remove(sku){
     if(MODE==='online'){
@@ -1308,19 +1309,35 @@ async function noMatch(code){
 /* =================== SEARCH =================== */
 let pendingAssign='';
 const norm=s=>(s||'').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+let qTimer=null;
 $('#q').addEventListener('input',e=>{
-  const t=norm(e.target.value).trim();
+  const raw=e.target.value;
+  const t=norm(raw).trim();
   if(t.length<2){$('#results').innerHTML='';return;}
   const toks=t.split(/\s+/);
-  const hits=CATALOG.filter(d=>{const hay=norm([d.brand,d.style,d.color,d.size,d.sku,d.cat,d.gender].join(' '));return toks.every(tk=>hay.includes(tk));}).slice(0,40);
-  renderResults(hits);
+  const local=CATALOG.filter(d=>{const hay=norm([d.brand,d.style,d.color,d.size,d.sku,d.cat,d.gender].join(' '));return toks.every(tk=>hay.includes(tk));}).slice(0,40);
+  renderResults(local);
+  clearTimeout(qTimer);
+  qTimer=setTimeout(async()=>{
+    let ref=[];try{ref=await DB.searchRef(raw);}catch(err){}
+    if(!ref.length)return;
+    // dedup: no repetir lo que ya está en el catálogo local (por sku o upc)
+    const seen=new Set();local.forEach(d=>{if(d.sku)seen.add(d.sku);const u=(''+(d.upc||'')).replace(/\D/g,'');if(u)seen.add(u);});
+    const extra=ref.filter(d=>{const u=(''+(d.upc||'')).replace(/\D/g,'');return !seen.has(d.sku)&&!(u&&seen.has(u));});
+    if(raw!==$('#q').value)return; // el usuario ya cambió el texto
+    renderResults(local.concat(extra));
+  },250);
 });
 function renderResults(rows){
   if(!rows.length){$('#results').innerHTML='<p class="muted" style="text-align:center;padding:20px">Sin resultados</p>';return;}
-  $('#results').innerHTML=rows.map((d,i)=>`<div class="res" data-i="${i}">
+  $('#results').innerHTML=rows.map((d,i)=>{
+    const inStock=(d.has_stock||(+d.qty>0));
+    const badge=inStock?'<span class="badge-stock">✓ En stock</span>':'';
+    const asin=d.asin?(' · ASIN '+esc(d.asin)):'';
+    return `<div class="res" data-i="${i}">
     <img src="${esc(d.img||'')}" onerror="this.style.visibility='hidden'">
-    <div class="t"><b>${esc(d.brand)} ${esc(d.style)}</b><span>${esc([d.color,d.size,d.cat].filter(Boolean).join(' · '))}<br>${esc(d.sku)} ${d.upc?'':'· <i>sin UPC</i>'}</span></div>
-    <div class="q">${d.qty??''}</div></div>`).join('');
+    <div class="t"><b>${esc(d.brand)} ${esc(d.style)}</b> ${badge}<span>${esc([d.color,d.size,d.cat].filter(Boolean).join(' · '))}<br>${esc(d.sku)} ${d.upc?'':'· <i>sin UPC</i>'}${asin}</span></div>
+    <div class="q">${d.qty??''}</div></div>`;}).join('');
   $$('#results .res').forEach(el=>el.addEventListener('click',async()=>{
     const d=rows[+el.dataset.i];const fresh=await DB.bySku(d.sku)||d;
     if(pendingAssign){const code=pendingAssign;pendingAssign='';assignTo(fresh,code);return;}
