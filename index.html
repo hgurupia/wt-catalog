@@ -15,7 +15,7 @@
 <script>window.WT_CATALOG||document.write('<script src="catalog.js"><\/script>')</script>
 <style>
 :root{
-  --navy:#0d2f4b;--blue:#006599;--sky:#4aa8d8;--orange:#f2851c;--green:#1f9d57;--red:#d64545;
+  --navy:#0d2f4b;--blue:#12405f;--sky:#4aa8d8;--orange:#f2851c;--green:#f2851c;--red:#0d2f4b;
   --ink:#152230;--slate:#5f6d7c;--mist:#f5f8fb;--line:#e3ebf3;--card:#fff;
   --safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);
 }
@@ -65,7 +65,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-s
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
 .chip{background:var(--mist);border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:12.5px;font-weight:700;color:var(--navy)}
 .chip.upc{background:#fff4e6;border-color:#ffd8a8;color:#b45c00}
-.chip.noupc{background:#fdecec;border-color:#f6c4c4;color:#b53535}
+.chip.noupc{background:#fff3e6;border-color:#ffd8a8;color:#c76a10}
 h2.pt{font-size:20px;font-weight:900;margin:2px 0 0;color:var(--navy);line-height:1.2}
 .muted{color:var(--slate);font-size:12.5px}
 .qtybox{display:flex;align-items:center;justify-content:center;gap:16px;margin:6px 0 2px}
@@ -102,7 +102,7 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
 .wiznav .btn.grow2{flex:2}
 .imgpick{width:100%;aspect-ratio:1/1;border-radius:16px;background:var(--mist);border:2px dashed var(--line);display:flex;align-items:center;justify-content:center;font-size:60px;color:#c3ced9;background-size:cover;background-position:center;overflow:hidden}
 .imgpick.has{border-style:solid}
-.imgnote{font-size:12.5px;font-weight:700;color:var(--green);background:#e9f8f0;border:1px solid #bfe8d2;border-radius:10px;padding:8px 11px}
+.imgnote{font-size:12.5px;font-weight:700;color:var(--brand-ink);background:#fff3e6;border:1px solid #ffd8a8;border-radius:10px;padding:8px 11px}
 .rev{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:14px;background:#fff}
 .rev .im{width:74px;height:74px;border-radius:12px;background:var(--mist) center/cover;flex:none;display:flex;align-items:center;justify-content:center;font-size:34px;color:#c3ced9}
 .revrow{display:flex;justify-content:space-between;font-size:14px;padding:9px 2px;border-bottom:1px solid var(--line)}
@@ -115,7 +115,7 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
 .res .t span{font-size:11.5px;color:var(--slate)}
 .res .q{font-weight:900;color:var(--navy);font-size:15px}
 .res .q.g{color:var(--green)}.res .q.r{color:var(--red)}
-.badge-stock{display:inline-block;background:#e7f7ec;border:1px solid #b7e4c7;color:#1b7a3d;border-radius:999px;padding:1px 8px;font-size:10.5px;font-weight:800;vertical-align:middle;margin:2px 0}
+.badge-stock{display:inline-block;background:#e9f1f8;border:1px solid #cfe0ee;color:#0d2f4b;border-radius:999px;padding:1px 8px;font-size:10.5px;font-weight:800;vertical-align:middle;margin:2px 0}
 /* ---- Inventario: resumen + filtros + tabla editable ---- */
 .invsum{display:flex;gap:8px;margin:0 0 10px}
 .invsum>div{flex:1;background:var(--mist);border:1px solid var(--line);border-radius:12px;padding:9px 6px;text-align:center}
@@ -146,7 +146,7 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
 .sumtbl th,.sumtbl td{padding:7px 6px;text-align:right;white-space:nowrap}
 .sumtbl th:first-child,.sumtbl td.gk{text-align:left;white-space:normal}
 .sumtbl td.gk{font-weight:700;color:var(--navy)}
-.sumtbl td.net{font-weight:800;color:#1b7a3d}
+.sumtbl td.net{font-weight:800;color:#c76a10}
 .sumtbl tfoot td{border-top:2px solid var(--line);font-weight:900;color:var(--navy);background:#f5f8fb;position:sticky;bottom:0}
 /* ---- Branding PML App + iconografía de línea ---- */
 :root{--brand:#f2851c;--brand-ink:#c76a10}
@@ -187,7 +187,7 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
 .pricebar>div{flex:1;background:var(--mist);border:1px solid var(--line);border-radius:12px;padding:9px 6px;text-align:center}
 .pricebar b{display:block;font-size:16px;color:var(--navy);font-weight:900;line-height:1}
 .pricebar span{font-size:10px;color:var(--slate)}
-.pricebar .mg b{color:#1b7a3d}
+.pricebar .mg b{color:#c76a10}
 .sec{margin-top:16px}
 .sec h3{font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--slate);margin:0 0 6px;font-weight:800}
 .p-desc{margin:0;color:#33465a;font-size:13.5px;line-height:1.45}
@@ -374,7 +374,7 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
       <b>Contenido — <span id="b-count">0</span> SKUs · <span id="b-pieces">0</span> pzs</b>
       <div style="height:8px"></div>
       <button class="btn b block" id="b-scan">📷 Escanear para agregar</button>
-      <button class="btn b block" id="b-ocr" style="margin-top:8px;background:linear-gradient(135deg,#6b46c1,#8b5cf6)">🏷️ Leer etiqueta a mano (foto) → a esta caja</button>
+      <button class="btn b block" id="b-ocr" style="margin-top:8px">🏷️ Leer etiqueta a mano (foto) → a esta caja</button>
       <input class="in" id="b-q" placeholder="…o busca por nombre / SKU" style="margin-top:8px">
       <div id="b-results"></div>
       <button class="btn ghost block" id="b-manual" style="margin-top:6px">➕ Cargar a mano (no está en la base)</button>
@@ -398,8 +398,8 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
     <div id="b-manifest" class="card" style="display:none;margin-top:8px"></div>
     <button class="btn o block" id="b-save" style="margin-top:8px">💾 Guardar caja</button>
     <button class="btn b block" id="b-print" style="margin-top:8px">🖨️ Imprimir etiqueta 4×6 (caja)</button>
-    <button class="btn b block" id="b-print-items" style="margin-top:8px;background:linear-gradient(135deg,#6b46c1,#8b5cf6)">🏷️ Imprimir etiquetas de prendas (90×30)</button>
-    <button class="btn ghost block" id="b-del" style="margin-top:8px;color:#c0392b">🗑️ Borrar caja</button>
+    <button class="btn b block" id="b-print-items" style="margin-top:8px">🏷️ Imprimir etiquetas de prendas (90×30)</button>
+    <button class="btn ghost block" id="b-del" style="margin-top:8px;color:#5f6d7c">🗑️ Borrar caja</button>
   </div>
 </section>
 
@@ -557,7 +557,7 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
       </div>
     </div>
     <button class="btn ghost block" id="print-lbl">🖨️ Imprimir etiquetas (1 por unidad)</button>
-    <button class="btn ghost block" id="del-prod" style="color:var(--red);border-color:#f6c4c4">🗑️ Eliminar producto de la base</button>
+    <button class="btn ghost block" id="del-prod" style="color:var(--red);border-color:#ffd8a8">🗑️ Eliminar producto de la base</button>
   </div>
 </section>
 
@@ -1176,7 +1176,7 @@ function ocrHandle(f){if(!f)return;const rd=new FileReader();rd.onload=()=>{cons
 };img.src=rd.result;};rd.readAsDataURL(f);}
 function ocrCard(it){
   const d=document.createElement('div');d.className='card ocr-item';d.style.marginTop='10px';
-  d.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b class="oi-n">Producto</b><button type="button" class="oi-del" style="border:none;background:#fdeaea;color:#c0392b;border-radius:8px;padding:4px 12px;font-weight:800;font-size:15px">✕</button></div>'
+  d.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b class="oi-n">Producto</b><button type="button" class="oi-del" style="border:none;background:#eef2f6;color:#5f6d7c;border-radius:8px;padding:4px 12px;font-weight:800;font-size:15px">✕</button></div>'
     +'<div class="row2"><div><label class="fld">Marca</label><input class="in oi-brand" list="dl-brand"></div><div><label class="fld">Estilo</label><input class="in oi-style"></div></div>'
     +'<div style="height:8px"></div>'
     +'<div class="row2"><div><label class="fld">Color</label><input class="in oi-color" list="dl-color"></div><div><label class="fld">Cód. color</label><input class="in oi-cc" inputmode="numeric"></div></div>'
@@ -1302,7 +1302,7 @@ async function renderCount(){
   rows.forEach(r=>{
     const sys=+r.qty||0,cnt=+r.counted||0,d=cnt-sys;
     const name=[r.brand,r.style,r.color,r.size].filter(Boolean).join(' ');
-    const col=d===0?'#16a34a':(d>0?'#0369a1':'#c0392b');
+    const col=d===0?'#16a34a':(d>0?'#0369a1':'#5f6d7c');
     const el=document.createElement('div');el.style.cssText='border:1px solid #e5e7eb;border-radius:12px;padding:10px;margin-bottom:8px';
     el.innerHTML='<div style="font-weight:700">'+esc(name)+'</div><div class="muted" style="font-size:11px;margin-bottom:6px">'+esc(r.sku)+'</div>'
       +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">'
@@ -1368,7 +1368,7 @@ function renderBoxItems(){
     const el=document.createElement('div');el.style.cssText='border:1px solid #e5e7eb;border-radius:10px;padding:8px;margin-bottom:8px';
     const sub=[(it.cc?('cód '+esc(it.cc)):''),(it.upc?('UPC '+esc(it.upc)):'sin UPC')].filter(Boolean).join(' · ');
     el.innerHTML='<div style="display:flex;align-items:center;gap:8px"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px">'+esc(name)+'</div><div class="muted" style="font-size:11px">'+sub+'</div></div>'
-      +'<input class="in bi-qty" type="number" inputmode="numeric" style="width:66px;text-align:center" value="'+(+it.qty||0)+'"><button class="bi-print" style="border:none;background:#ede9fe;color:#6b46c1;border-radius:8px;padding:6px 9px;font-weight:800">🏷️</button><button class="bi-del" style="border:none;background:#fdeaea;color:#c0392b;border-radius:8px;padding:6px 9px;font-weight:800">✕</button></div>'
+      +'<input class="in bi-qty" type="number" inputmode="numeric" style="width:66px;text-align:center" value="'+(+it.qty||0)+'"><button class="bi-print" style="border:none;background:#e9f1f8;color:#0d2f4b;border-radius:8px;padding:6px 9px;font-weight:800">🏷️</button><button class="bi-del" style="border:none;background:#eef2f6;color:#5f6d7c;border-radius:8px;padding:6px 9px;font-weight:800">✕</button></div>'
       +'<div class="row2" style="margin-top:6px"><input class="in bi-color" list="dl-color" placeholder="Color"><input class="in bi-cc" inputmode="numeric" placeholder="Cód. color"></div>'
       +'<div class="row2" style="margin-top:6px"><input class="in bi-size" placeholder="Talla"><input class="in bi-cat" list="dl-cat" placeholder="Tipo (Polo, Hoodie…)"></div>'
       +'<div class="row2" style="margin-top:6px"><select class="in bi-gender"><option value="">Género —</option><option>Men</option><option>Ladies</option><option>Youth</option><option>Kid</option><option>Baby</option><option>Unisex</option></select><input class="in bi-sku" placeholder="SKU (editable)" style="font-size:12px"></div>';
