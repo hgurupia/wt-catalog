@@ -172,7 +172,8 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
 .brandmark{background:linear-gradient(135deg,#0d2f4b,#12405f);border-radius:16px;padding:20px 16px;text-align:center;box-shadow:0 8px 24px rgba(13,47,75,.22);margin-bottom:14px}
 .brandmark .wm{font-size:30px;font-weight:900;color:#fff;letter-spacing:-.02em;text-shadow:0 2px 12px rgba(169,192,211,.5)}
 .brandmark .wm .dot{color:var(--brand)}
-.brandmark .app{margin-top:5px;font-size:11px;color:#a9c0d3;letter-spacing:.14em;text-transform:uppercase;font-weight:800}
+.brandmark .glogo-w{display:block;width:160px;max-width:64%;height:auto;margin:0 auto}
+.brandmark .app{margin-top:8px;font-size:11px;color:#a9c0d3;letter-spacing:.14em;text-transform:uppercase;font-weight:800}
 .qin{width:58px;padding:6px 4px;text-align:center;border:1px solid var(--line);border-radius:8px;font-size:14px;font-weight:800;color:var(--navy);background:#fff}
 .qin:focus{outline:none;border-color:var(--sky,#45b1e1);background:#f5fbff}
 .qin::-webkit-inner-spin-button,.qin::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
@@ -246,7 +247,7 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
   <div class="top"><h1>PML App</h1></div>
   <div class="center">
     <div class="brandmark">
-      <div class="wm">Gurupia<span class="dot">.</span></div>
+      <img class="glogo-w" src="gurupia-logo-white.png" alt="Gurupia">
       <div class="app">PML App</div>
     </div>
     <p class="muted" style="text-align:center;margin:0 0 4px">Product Management &amp; Listing. Escanea, ubica y carga stock — varias personas, una sola base.</p>
@@ -267,7 +268,7 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
   </div>
   <div class="body">
     <div class="brandmark">
-      <div class="wm">Gurupia<span class="dot">.</span></div>
+      <img class="glogo-w" src="gurupia-logo-white.png" alt="Gurupia">
       <div class="app">PML App · Inventario</div>
     </div>
     <div class="agrid">
@@ -453,6 +454,13 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
   <div class="top"><button class="bk" data-back>‹</button><h1 style="flex:1">Resumen de inventario</h1></div>
   <div class="body">
     <div class="seg" id="isum-mode"><button class="on" data-m="brand">Por marca</button><button data-m="style">Por producto</button></div>
+    <input class="in" id="isum-q" placeholder="Buscar marca, estilo, color, SKU…" autocomplete="off">
+    <div class="ffrow">
+      <select class="ff" id="isum-brand"><option value="">Marca</option></select>
+      <select class="ff" id="isum-color"><option value="">Color</option></select>
+      <select class="ff" id="isum-size"><option value="">Talla</option></select>
+      <select class="ff" id="isum-loc"><option value="">Ubicación</option><option value="in">En caja</option><option value="out">Sin ubicar</option></select>
+    </div>
     <div class="invtblwrap">
       <table class="invtbl sumtbl">
         <thead><tr><th>Grupo</th><th>Productos</th><th>Unidades</th></tr></thead>
@@ -991,9 +999,26 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 (function(){var b=$('#inv-sum');if(b)b.addEventListener('click',openSummary);$$('#sum-mode button').forEach(function(x){x.addEventListener('click',function(){SUMMODE=x.getAttribute('data-m');$$('#sum-mode button').forEach(function(y){y.classList.toggle('on',y===x);});renderSum();});});var f=$('#sum-ch');if(f)f.addEventListener('change',function(){SUMCH=f.value;renderSum();});})();
 /* ---- Resumen de inventario por marca/producto (drilleable a productos editables) ---- */
 let INVSUMG='brand';
+function isumFilters(){var qe=$('#isum-q');return{q:(qe?norm(qe.value):'').trim(),brand:($('#isum-brand')||{}).value||'',color:($('#isum-color')||{}).value||'',size:($('#isum-size')||{}).value||'',loc:($('#isum-loc')||{}).value||''};}
+function isumMatch(d,f){
+  if(f.q){var toks=f.q.split(/\s+/).filter(Boolean);var hay=norm([d.brand,d.style,d.color,d.size,d.sku,d.cat,d.gender,d.upc].join(' '));if(!toks.every(function(tk){return hay.indexOf(tk)>=0;}))return false;}
+  if(f.brand&&((d.brand||'')+'').trim()!==f.brand)return false;
+  if(f.color&&canonColor(d.color)!==f.color)return false;
+  if(f.size&&((d.size||'')+'').trim()!==f.size)return false;
+  if(f.loc==='in'&&!LOCIDX[d.sku])return false;
+  if(f.loc==='out'&&LOCIDX[d.sku])return false;
+  return true;
+}
+function fillIsum(rows){
+  var uniq=function(fn){var s={};rows.forEach(function(d){var v=fn(d);if(v)s[v]=1;});return Object.keys(s).sort(function(a,b){return a.localeCompare(b,'es',{numeric:true});});};
+  var set=function(id,vals,lbl){var el=$('#'+id);if(!el)return;var cur=el.value;el.innerHTML='<option value="">'+lbl+'</option>'+vals.map(function(v){return '<option value="'+esc(v)+'">'+esc(v)+'</option>';}).join('');el.value=cur;};
+  set('isum-brand',uniq(function(d){return ((d.brand||'')+'').trim();}),'Marca');
+  set('isum-color',uniq(function(d){return canonColor(d.color);}),'Color');
+  set('isum-size',uniq(function(d){return ((d.size||'')+'').trim();}),'Talla');
+}
 function invGroups(mode){
-  var g={};
-  (INVROWS||[]).forEach(function(d){var q=+d.qty||0;var key=(mode==='brand'?(((d.brand||'')+'').trim()||'—'):(prodKey(d)||'—'));var o=g[key]||(g[key]={n:0,u:0});o.n++;o.u+=q;});
+  var f=isumFilters();var g={};
+  (INVROWS||[]).forEach(function(d){if(!isumMatch(d,f))return;var q=+d.qty||0;var key=(mode==='brand'?(((d.brand||'')+'').trim()||'—'):(prodKey(d)||'—'));var o=g[key]||(g[key]={n:0,u:0});o.n++;o.u+=q;});
   return Object.keys(g).map(function(k){return{k:k,n:g[k].n,u:g[k].u};}).sort(function(a,b){return b.u-a.u;});
 }
 function renderInvSum(){
@@ -1013,12 +1038,15 @@ function drillInv(mode,key){
   applyInv();
 }
 function openInvSum(){
-  var run=function(){go('s-invsum');renderInvSum();};
+  var run=function(){var qe=$('#isum-q');if(qe)qe.value='';['isum-brand','isum-color','isum-size','isum-loc'].forEach(function(id){var e=$('#'+id);if(e)e.selectedIndex=0;});fillIsum(INVROWS);go('s-invsum');renderInvSum();};
   if(INVROWS&&INVROWS.length){run();return;}
-  $('#isumbody')&&($('#isumbody').innerHTML='<tr><td colspan="3" class="muted" style="text-align:center;padding:20px">Cargando…</td></tr>');go('s-invsum');
-  Promise.all([DB.list(3000),DB.listBoxes().catch(function(){return[];})]).then(function(r){INVROWS=r[0];buildLocIdx(r[1]);fillFilters(INVROWS);renderInvSum();}).catch(function(){toast('No se pudo cargar','err');});
+  go('s-invsum');var b=$('#isumbody');if(b)b.innerHTML='<tr><td colspan="3" class="muted" style="text-align:center;padding:20px">Cargando…</td></tr>';
+  Promise.all([DB.list(3000),DB.listBoxes().catch(function(){return[];})]).then(function(r){INVROWS=r[0];buildLocIdx(r[1]);fillFilters(INVROWS);run();}).catch(function(){toast('No se pudo cargar','err');});
 }
-(function(){$$('#isum-mode button').forEach(function(x){x.addEventListener('click',function(){INVSUMG=x.getAttribute('data-m');$$('#isum-mode button').forEach(function(y){y.classList.toggle('on',y===x);});renderInvSum();});});})();
+(function(){
+  $$('#isum-mode button').forEach(function(x){x.addEventListener('click',function(){INVSUMG=x.getAttribute('data-m');$$('#isum-mode button').forEach(function(y){y.classList.toggle('on',y===x);});renderInvSum();});});
+  ['isum-q','isum-brand','isum-color','isum-size','isum-loc'].forEach(function(id){var e=$('#'+id);if(e)e.addEventListener(id==='isum-q'?'input':'change',renderInvSum);});
+})();
 async function openInv(){
   INVMODE=false;INVSEL.clear();$('#bulkbar').style.display='none';$('#bulk-n').textContent='0';$('#inv-selmode').textContent='☑︎ Seleccionar';
   go('s-inv');$('#invq').value='';['f-brand','f-style','f-color','f-size','f-loc'].forEach(id=>{const e=$('#'+id);if(e)e.selectedIndex=0;});
