@@ -649,6 +649,15 @@ const DB={
     }
     return '';
   },
+  async colorsForStyle(brand,style){
+    if(MODE!=='online')return [];
+    const b=(''+(brand||'')).trim(),s=(''+(style||'')).trim();if(!s)return [];
+    let q=SB_URL+'/rest/v1/wt_reference?style=eq.'+encodeURIComponent(s)+'&select=color,color_code&limit=300';
+    if(b)q+='&brand=ilike.'+encodeURIComponent('%'+b+'%');
+    let a=[];try{const r=await fetch(q,{headers:sbHeaders()});a=r.ok?await r.json():[];}catch(e){}
+    const seen=new Set(),out=[];for(const x of a){if(!x.color)continue;const k=x.color.toLowerCase();if(!seen.has(k)){seen.add(k);out.push({color:x.color,color_code:x.color_code||''});}}
+    return out;
+  },
   async refByUPC(upc){
     const u=(''+(upc||'')).replace(/\D/g,'');if(!u||MODE!=='online')return [];
     const r=await fetch(SB_URL+'/rest/v1/wt_reference?upc=eq.'+encodeURIComponent(u)+'&select=sku,upc,brand,style,color,color_code,size&limit=8',{headers:sbHeaders()});
@@ -1101,6 +1110,9 @@ function renderBoxItems(){
     el.querySelector('.bi-print').addEventListener('click',async()=>{const it2=curBox.items[idx];const n=await uiPrompt('Imprimir etiqueta 9×3',[it2.brand,it2.style,it2.color,it2.size].filter(Boolean).join(' ')+'\n¿Cuántas etiquetas de esta prenda?',(+it2.qty||1));if(n===null)return;const s=document.getElementById('boxpage');if(s)s.remove();printItems({brand:it2.brand,style:it2.style,color:it2.color,size:it2.size,gender:it2.gender||'',cat:it2.cat||'',upc:it2.upc||'',sku:it2.sku},Math.max(1,+n||1));});
     const regen=()=>{const p=curBox.items[idx];if(!p.skuLocked){p.sku=genSku(p.brand,p.style,p.color,p.size);const sk=el.querySelector('.bi-sku');if(sk)sk.value=p.sku;}};
     const col=el.querySelector('.bi-color');col.value=it.color||'';col.addEventListener('input',e=>{curBox.items[idx].color=e.target.value.trim();regen();refreshManifest();});
+    let colorMap={};const dlId='dlc'+idx;col.setAttribute('list',dlId);const dl=document.createElement('datalist');dl.id=dlId;el.appendChild(dl);
+    if(it.brand&&it.style){DB.colorsForStyle(it.brand,it.style).then(list=>{dl.innerHTML=list.map(x=>'<option value="'+esc(x.color)+'">'+esc(x.color_code?('cód '+x.color_code):'')+'</option>').join('');list.forEach(x=>{colorMap[x.color.toLowerCase()]=x.color_code;});}).catch(()=>{});}
+    col.addEventListener('change',()=>{const p=curBox.items[idx];const code=colorMap[(p.color||'').toLowerCase()];if(code){p.cc=code;const cel=el.querySelector('.bi-cc');if(cel)cel.value=code;regen();refreshManifest();}});
     const ccx=el.querySelector('.bi-cc');ccx.value=it.cc||'';ccx.addEventListener('input',e=>{curBox.items[idx].cc=e.target.value.trim();refreshManifest();});
     ccx.addEventListener('change',async()=>{const p=curBox.items[idx];if(p.cc&&!p.color&&p.brand){const nm=await DB.colorName(p.brand,p.cc);if(nm){p.color=nm;const c=el.querySelector('.bi-color');if(c)c.value=nm;regen();refreshManifest();toast('Color: '+nm,'ok');}}});
     const sz=el.querySelector('.bi-size');sz.value=it.size||'';sz.addEventListener('input',e=>{curBox.items[idx].size=e.target.value.trim();regen();refreshManifest();});
