@@ -140,6 +140,14 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
 .invtbl tr.sel{background:#eaf4fb}
 .locchip{display:inline-block;background:#eef3f8;border:1px solid #d6e1ec;color:#2c4a66;border-radius:8px;padding:2px 7px;font-size:10.5px;font-weight:700;white-space:nowrap}
 .invtbl td.lc .muted{color:#aab6c2}
+.feerow{display:flex;align-items:center;gap:8px;margin:8px 0}
+.feerow .in{width:66px;text-align:center;padding:8px}
+.sumtbl{font-size:12px}
+.sumtbl th,.sumtbl td{padding:7px 6px;text-align:right;white-space:nowrap}
+.sumtbl th:first-child,.sumtbl td.gk{text-align:left;white-space:normal}
+.sumtbl td.gk{font-weight:700;color:var(--navy)}
+.sumtbl td.net{font-weight:800;color:#1b7a3d}
+.sumtbl tfoot td{border-top:2px solid var(--line);font-weight:900;color:var(--navy);background:#f5f8fb;position:sticky;bottom:0}
 .qin{width:58px;padding:6px 4px;text-align:center;border:1px solid var(--line);border-radius:8px;font-size:14px;font-weight:800;color:var(--navy);background:#fff}
 .qin:focus{outline:none;border-color:var(--sky,#45b1e1);background:#f5fbff}
 .qin::-webkit-inner-spin-button,.qin::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
@@ -368,7 +376,7 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
 
 <!-- ============ INVENTARIO (tabla) ============ -->
 <section class="screen" id="s-inv">
-  <div class="top"><button class="bk" data-back>‹</button><h1 style="flex:1">Inventario</h1><button class="btn" id="inv-selmode" style="background:rgba(255,255,255,.14);color:#fff;padding:8px 12px;font-size:13px">☑︎ Seleccionar</button></div>
+  <div class="top"><button class="bk" data-back>‹</button><h1 style="flex:1">Inventario</h1><button class="btn" id="inv-sum" style="background:rgba(255,255,255,.14);color:#fff;padding:8px 10px;font-size:13px;margin-right:6px">📊 Resumen</button><button class="btn" id="inv-selmode" style="background:rgba(255,255,255,.14);color:#fff;padding:8px 10px;font-size:13px">☑︎</button></div>
   <div class="body">
     <div class="invsum" id="invsum"></div>
     <input class="in" id="invq" placeholder="Buscar marca, estilo, color, SKU, UPC…" autocomplete="off">
@@ -392,6 +400,23 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
     <button class="btn ghost" id="bulk-gender" style="flex:1">✏️ Género</button>
     <button class="btn ghost" id="bulk-brand" style="flex:1">✏️ Marca</button>
     <button class="btn ghost" id="bulk-color" style="flex:1">✏️ Color</button>
+  </div>
+</section>
+
+<!-- ============ RESUMEN FINANCIERO ============ -->
+<section class="screen" id="s-sum">
+  <div class="top"><button class="bk" data-back>‹</button><h1 style="flex:1">Resumen financiero</h1></div>
+  <div class="body">
+    <div class="seg" id="sum-mode"><button class="on" data-m="brand">Por marca</button><button data-m="style">Por producto</button></div>
+    <div class="feerow"><span class="muted">Fees marketplace</span><input class="in" id="sum-fee" inputmode="decimal" value="15"><span class="muted">%</span></div>
+    <div class="invtblwrap">
+      <table class="invtbl sumtbl">
+        <thead><tr><th>Grupo</th><th>Qty</th><th>Costo</th><th>Venta</th><th>Fees</th><th>Net</th><th>Mg%</th><th>ROI%</th></tr></thead>
+        <tbody id="sumbody"></tbody>
+        <tfoot id="sumfoot"></tfoot>
+      </table>
+    </div>
+    <p class="qlabel" style="margin-top:8px">Net = Venta − Fees − Costo · Margen = Net/Venta · ROI = Net/Costo</p>
   </div>
 </section>
 
@@ -891,6 +916,23 @@ function fillFilters(rows){
   set('f-size',uniqFn(d=>((d.size||'')+'').trim()),'Talla');
 }
 function renderSummary(rows){rows=rows||INVFILT;const p=rows.length,u=rows.reduce((s,d)=>s+(+d.qty||0),0),inbox=rows.filter(d=>LOCIDX[d.sku]).length;const el=$('#invsum');if(el)el.innerHTML='<div><b>'+p+'</b><span>productos</span></div><div><b>'+u+'</b><span>unidades</span></div><div><b>'+inbox+'</b><span>en cajas</span></div>';}
+/* ---- Resumen financiero (adaptado del gestor PML): Net=Venta-Fees-Costo, ROI=Net/Costo, Margen=Net/Venta ---- */
+let SUMMODE='brand',FEERATE=0.15;
+function computeSum(mode){
+  const g={};
+  (INVROWS||[]).forEach(d=>{const q=+d.qty||0;if(!q)return;const cost=parseFloat(d.cost)||0;const price=parseFloat(d.price!=null?d.price:d.retail)||0;const key=(mode==='brand'?(((d.brand||'')+'').trim()||'—'):(prodKey(d)||'—'));const o=g[key]||(g[key]={qty:0,cost:0,sell:0});o.qty+=q;o.cost+=cost*q;o.sell+=price*q;});
+  return Object.keys(g).map(k=>{const o=g[k];const fees=o.sell*FEERATE;const net=o.sell-fees-o.cost;return{k:k,qty:o.qty,cost:o.cost,sell:o.sell,fees:fees,net:net,margin:o.sell>0?net/o.sell*100:0,roi:o.cost>0?net/o.cost*100:0};}).sort((a,b)=>b.net-a.net);
+}
+function fmtMoney(v){return '$'+Math.round(v||0).toLocaleString('en-US');}
+function renderSum(){
+  const rows=computeSum(SUMMODE);
+  const t={qty:0,cost:0,sell:0,fees:0,net:0};rows.forEach(r=>{t.qty+=r.qty;t.cost+=r.cost;t.sell+=r.sell;t.fees+=r.fees;t.net+=r.net;});
+  const tm=t.sell>0?t.net/t.sell*100:0,tr=t.cost>0?t.net/t.cost*100:0;
+  $('#sumbody').innerHTML=rows.length?rows.map(r=>'<tr><td class="gk">'+esc(r.k)+'</td><td>'+r.qty+'</td><td>'+fmtMoney(r.cost)+'</td><td>'+fmtMoney(r.sell)+'</td><td>'+fmtMoney(r.fees)+'</td><td class="net">'+fmtMoney(r.net)+'</td><td>'+Math.round(r.margin)+'%</td><td>'+Math.round(r.roi)+'%</td></tr>').join(''):'<tr><td colspan="8" class="muted" style="text-align:center;padding:20px">Sin datos de costo/precio</td></tr>';
+  $('#sumfoot').innerHTML='<tr><td class="gk">TOTAL</td><td>'+t.qty+'</td><td>'+fmtMoney(t.cost)+'</td><td>'+fmtMoney(t.sell)+'</td><td>'+fmtMoney(t.fees)+'</td><td class="net">'+fmtMoney(t.net)+'</td><td>'+Math.round(tm)+'%</td><td>'+Math.round(tr)+'%</td></tr>';
+}
+function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero el Inventario para calcular','err');return;}go('s-sum');renderSum();}
+(function(){var b=$('#inv-sum');if(b)b.addEventListener('click',openSummary);$$('#sum-mode button').forEach(function(x){x.addEventListener('click',function(){SUMMODE=x.getAttribute('data-m');$$('#sum-mode button').forEach(function(y){y.classList.toggle('on',y===x);});renderSum();});});var f=$('#sum-fee');if(f)f.addEventListener('input',function(){FEERATE=(parseFloat(f.value)||0)/100;renderSum();});})();
 async function openInv(){
   INVMODE=false;INVSEL.clear();$('#bulkbar').style.display='none';$('#bulk-n').textContent='0';$('#inv-selmode').textContent='☑︎ Seleccionar';
   go('s-inv');$('#invq').value='';['f-brand','f-style','f-color','f-size','f-loc'].forEach(id=>{const e=$('#'+id);if(e)e.selectedIndex=0;});
