@@ -140,6 +140,13 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
 .invtbl tr.sel{background:#eaf4fb}
 .locchip{display:inline-block;background:#eef3f8;border:1px solid #d6e1ec;color:#2c4a66;border-radius:8px;padding:2px 7px;font-size:10.5px;font-weight:700;white-space:nowrap}
 .invtbl td.lc .muted{color:#aab6c2}
+.invtbl th.ths{cursor:pointer;-webkit-user-select:none;user-select:none;white-space:nowrap}
+.invtbl th.ths:active{color:var(--navy)}
+.invtbl th .sar{font-size:9px;color:#9fb0c0;font-style:normal}
+.invtbl th .sar.on{color:var(--brand)}
+.selall{display:none;margin-right:6px;cursor:pointer;font-size:15px;vertical-align:-1px}
+.invtbl td.lc{cursor:pointer}
+.invtbl td.lc .addloc{color:var(--brand-ink);font-weight:700;font-size:11px}
 .feerow{display:flex;align-items:center;gap:8px;margin:8px 0}
 .feerow .in{width:66px;text-align:center;padding:8px}
 .sumtbl{font-size:12px}
@@ -418,7 +425,11 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
     </div>
     <div class="invtblwrap">
       <table class="invtbl">
-        <thead><tr><th>Producto</th><th>Ubicación</th><th class="qc">Cant.</th></tr></thead>
+        <thead><tr>
+          <th class="ths" data-k="prod"><span class="selall" id="inv-selall">☐</span>Producto <span class="sar" data-for="prod"></span></th>
+          <th class="ths" data-k="loc">Ubicación <span class="sar" data-for="loc"></span></th>
+          <th class="ths qc" data-k="qty">Cant. <span class="sar" data-for="qty"></span></th>
+        </tr></thead>
         <tbody id="invbody"></tbody>
       </table>
     </div>
@@ -966,6 +977,28 @@ async function unlockMoney(){
   if((''+v).trim()===MONEY_PIN){try{sessionStorage.setItem('wt_money','1');}catch(e){}return true;}
   toast('PIN incorrecto','err');return false;
 }
+let INVSORTK='prod', INVSORTD=1;
+function locOf(d){return ((d.location||'')+'').trim()||locText(d.sku)||'';}
+function sortVal(d,k){
+  if(k==='qty')return +d.qty||0;
+  if(k==='loc')return norm(locOf(d));
+  return norm((d.brand||'')+' '+(d.style||'')+' '+canonColor(d.color)+' '+(d.size||''));
+}
+function updSar(){
+  $$('#s-inv .invtbl .sar').forEach(function(s){var k=s.getAttribute('data-for');if(k===INVSORTK){s.textContent=INVSORTD>0?'▲':'▼';s.classList.add('on');}else{s.textContent='↕';s.classList.remove('on');}});
+}
+function editLoc(sku){
+  var d=INVROWS.find(function(x){return x.sku===sku;});if(!d)return;
+  Promise.resolve(uiPrompt('Ubicación','Rack / caja / lugar para '+(((d.brand||'')+' '+(d.style||'')).trim()||sku)+':',d.location||'')).then(function(v){
+    if(v==null)return;v=(''+v).trim();
+    DB.update(sku,{location:v}).then(function(){d.location=v;toast('Ubicación: '+(v||'—'),'ok');applyInv();}).catch(function(e){toast('Error: '+String(e).slice(0,70),'err');});
+  });
+}
+function toggleSelAll(){
+  var all=INVFILT.length&&INVFILT.every(function(d){return INVSEL.has(d.sku);});
+  INVFILT.forEach(function(d){if(all)INVSEL.delete(d.sku);else INVSEL.add(d.sku);});
+  $('#bulk-n').textContent=INVSEL.size;applyInv();
+}
 function buildLocIdx(boxes){LOCIDX={};(boxes||[]).forEach(b=>{(b.items||[]).forEach(it=>{if(!it||!it.sku)return;(LOCIDX[it.sku]=LOCIDX[it.sku]||[]).push({code:b.code,rack:b.rack,bin:b.bin});});});}
 function locText(sku){const a=LOCIDX[sku];if(!a||!a.length)return'';const f=a[0];let t=(f.code||'')+(f.rack?(' · R'+f.rack):'')+(f.bin?('·'+f.bin):'');if(a.length>1)t+=' +'+(a.length-1);return t;}
 function prodKey(d){return (((d.brand||'')+' '+(d.style||'')).replace(/\s+/g,' ')).trim();}
@@ -1057,6 +1090,15 @@ async function openInv(){
   }catch(e){$('#invbody').innerHTML='<tr><td colspan="3" class="muted" style="text-align:center;padding:24px">No se pudo cargar.</td></tr>';}
 }
 ['invq','f-brand','f-style','f-color','f-size','f-loc'].forEach(id=>{const e=$('#'+id);if(e)e.addEventListener(id==='invq'?'input':'change',applyInv);});
+(function(){
+  $$('#s-inv .invtbl th.ths').forEach(function(th){th.addEventListener('click',function(e){
+    if(e.target&&e.target.id==='inv-selall')return;
+    var k=th.getAttribute('data-k');if(!k)return;
+    if(INVSORTK===k)INVSORTD=-INVSORTD;else{INVSORTK=k;INVSORTD=(k==='qty')?-1:1;}
+    applyInv();
+  });});
+  var sa=$('#inv-selall');if(sa)sa.addEventListener('click',function(e){e.stopPropagation();toggleSelAll();});
+})();
 function invTitle(d){return [d.brand,d.style,d.color,d.size].filter(Boolean).join(' ')||d.sku;}
 function applyInv(){
   let rows=INVROWS.slice();
@@ -1069,21 +1111,21 @@ function applyInv(){
   if(fs)rows=rows.filter(d=>((d.size||'')+'').trim()===fs);
   if(fl==='in')rows=rows.filter(d=>LOCIDX[d.sku]);
   else if(fl==='out')rows=rows.filter(d=>!LOCIDX[d.sku]);
-  rows.sort((a,b)=>norm((a.brand||'')+' '+(a.style||'')+' '+canonColor(a.color)+' '+(a.size||'')).localeCompare(norm((b.brand||'')+' '+(b.style||'')+' '+canonColor(b.color)+' '+(b.size||'')),'es',{numeric:true}));
-  INVFILT=rows;renderInv(rows);renderSummary(rows);
+  rows.sort(function(a,b){var va=sortVal(a,INVSORTK),vb=sortVal(b,INVSORTK);if(typeof va==='number'&&typeof vb==='number')return (va-vb)*INVSORTD;return (''+va).localeCompare(''+vb,'es',{numeric:true})*INVSORTD;});
+  INVFILT=rows;renderInv(rows);renderSummary(rows);updSar();
 }
 function renderInv(rows){
   const shown=rows.slice(0,400);INVSHOWN=shown;const tb=$('#invbody');
   if(!rows.length){tb.innerHTML='<tr><td colspan="3" class="muted" style="text-align:center;padding:24px">Sin resultados.</td></tr>';return;}
   tb.innerHTML=shown.map((d,i)=>{
-    const sel=INVSEL.has(d.sku),loc=locText(d.sku);
+    const sel=INVSEL.has(d.sku),loc=locOf(d);
     const nm=[d.brand,d.style].filter(Boolean).join(' ');
     const sub=[canonColor(d.color),d.size,d.cat].filter(Boolean).join(' · ');
     return '<tr class="ivr'+(sel?' sel':'')+'" data-i="'+i+'">'
       +'<td class="pc"><div class="pcw">'+(INVMODE?'<span class="ck">'+(sel?'☑️':'⬜️')+'</span>':'')
       +'<img src="'+esc(d.img||'')+'" onerror="this.style.visibility=\'hidden\'">'
       +'<div class="pt"><b>'+esc(nm)+'</b><span>'+esc(sub)+'<br>'+esc(d.sku)+'</span></div></div></td>'
-      +'<td class="lc">'+(loc?'<span class="locchip">'+esc(loc)+'</span>':'<span class="muted">—</span>')+'</td>'
+      +'<td class="lc" data-sku="'+esc(d.sku)+'">'+(loc?'<span class="locchip">'+esc(loc)+'</span>':'<span class="addloc">+ ubicar</span>')+'</td>'
       +'<td class="qc"><input class="qin" type="number" inputmode="numeric" min="0" value="'+(d.qty==null?'':d.qty)+'" data-sku="'+esc(d.sku)+'"></td></tr>';
   }).join('')+(rows.length>400?'<tr><td colspan="3" class="muted" style="text-align:center;padding:10px">Mostrando 400 — filtra para ver el resto</td></tr>':'');
   tb.querySelectorAll('.ivr').forEach(el=>{
@@ -1104,6 +1146,8 @@ function renderInv(rows){
       catch(e){toast('Error: '+String(e).slice(0,80),'err');inp.value=cur;}
     });
   });
+  tb.querySelectorAll('.lc').forEach(function(td){td.addEventListener('click',function(e){e.stopPropagation();editLoc(td.getAttribute('data-sku'));});});
+  var sa=$('#inv-selall');if(sa){sa.style.display=INVMODE?'inline':'none';sa.textContent=(INVFILT.length&&INVFILT.every(function(d){return INVSEL.has(d.sku);}))?'☑':'☐';}
 }
 $('#inv-selmode').addEventListener('click',()=>{
   INVMODE=!INVMODE;INVSEL.clear();$('#bulk-n').textContent='0';
