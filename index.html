@@ -416,7 +416,7 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
     <p class="muted" id="ocr-status" style="text-align:center;margin:0"></p>
     <div id="ocr-form" style="display:none">
       <div class="imgnote" id="ocr-note" style="display:none"></div>
-      <div id="ocr-list"></div>
+      <div id="ocr-list"></div><datalist id="dl-oicolor"></datalist>
       <button class="btn ghost block" id="ocr-add" style="margin-top:6px">✚ Agregar otra fila</button>
       <button class="btn o block" id="ocr-addbox" style="margin-top:8px;display:none">➕ Agregar a la caja actual</button>
       <button class="btn b block" id="ocr-tobox" style="margin-top:8px;background:linear-gradient(135deg,#b45309,#f59e0b)">📦 Crear caja con estos productos</button>
@@ -2132,7 +2132,7 @@ $('#ocr-addbox').addEventListener('click',()=>{
   const items=ocrCollectItems();
   if(!items.length){toast('No hay productos leídos','err');return;}
   if(!curBox){toast('Abre o crea una caja primero','err');return;}
-  items.forEach(it=>{const sku=genSku(it.brand,it.style,it.color,it.size);const ex=curBox.items.find(x=>itemKey(x)===itemKey(it));if(ex)ex.qty=(+ex.qty||0)+(+it.qty||1);else curBox.items.push({sku,upc:it.upc||'',brand:it.brand,style:it.style,color:it.color,cc:it.cc||'',size:it.size,cat:it.cat||'',gender:it.gender||'',qty:+it.qty||1});});
+  items.forEach(it=>{const sku=it.cc?canonSku(it.brand,it.style,it.cc,it.size):genSku(it.brand,it.style,it.color,it.size);const ex=curBox.items.find(x=>itemKey(x)===itemKey(it));if(ex)ex.qty=(+ex.qty||0)+(+it.qty||1);else curBox.items.push({sku,upc:it.upc||'',brand:it.brand,style:it.style,color:it.color,cc:it.cc||'',size:it.size,cat:it.cat||'',gender:it.gender||'',qty:+it.qty||1});});
   ocrMode=null;back();renderBoxItems();toast('Agregado a la caja '+curBox.code,'ok');
 });
 $('#ocr-photo').addEventListener('click',()=>$('#ocr-file').click());
@@ -2179,10 +2179,41 @@ function ocrCard(it){
   d.querySelector('.oi-qty').value=(+it.qty||0);
   d.querySelector('.oi-del').addEventListener('click',()=>{d.remove();renumberOcr();});
   d.querySelector('.oi-scan').addEventListener('click',()=>{ocrUpcTarget=d.querySelector('.oi-upc');goScan('ocrupc');});
+  (function(){
+    var brEl=d.querySelector('.oi-brand'),stEl=d.querySelector('.oi-style'),colEl=d.querySelector('.oi-color'),ccEl=d.querySelector('.oi-cc');
+    function octx(){return cmForStyle(brEl.value,stEl.value);}
+    colEl.setAttribute('list','dl-oicolor');
+    colEl.addEventListener('focus',async function(){
+      var list=await octx();var dl=$('#dl-oicolor');
+      if(dl)dl.innerHTML=list.map(function(x){return '<option value="'+esc(x.name)+'">'+esc(x.code?('cód '+x.code):'')+'</option>';}).join('');
+    });
+    ccEl.addEventListener('change',async function(){
+      var v=ccEl.value.trim();if(!v)return;
+      var nm=cmName(await octx(),v);
+      if(nm){colEl.value=nm;toast('Color: '+nm,'ok');}
+      else toast('Ese código no aparece en este estilo — mira 🎨 Colores','err');
+    });
+    colEl.addEventListener('change',async function(){
+      if(ccEl.value.trim())return;
+      var c=cmCode(await octx(),colEl.value);
+      if(c)ccEl.value=c;
+    });
+  })();
   return d;
 }
+function ocrAutoCC(){
+  document.querySelectorAll('#ocr-list .ocr-item').forEach(function(c){
+    var cc=c.querySelector('.oi-cc'),col=c.querySelector('.oi-color'),br=c.querySelector('.oi-brand'),st=c.querySelector('.oi-style');
+    if(cc.value.trim()||!col.value.trim()||!st.value.trim())return;
+    cmForStyle(br.value,st.value).then(function(list){
+      if(cc.value.trim())return;
+      var code=cmCode(list,col.value);
+      if(code)cc.value=code;
+    }).catch(function(){});
+  });
+}
 function renumberOcr(){document.querySelectorAll('#ocr-list .ocr-item .oi-n').forEach((b,i)=>b.textContent='Producto '+(i+1));}
-function renderOcrItems(items){const L=$('#ocr-list');L.innerHTML='';items.forEach(it=>L.appendChild(ocrCard(it)));renumberOcr();}
+function renderOcrItems(items){const L=$('#ocr-list');L.innerHTML='';items.forEach(it=>L.appendChild(ocrCard(it)));renumberOcr();ocrAutoCC();}
 $('#ocr-add').addEventListener('click',()=>{$('#ocr-list').appendChild(ocrCard({}));renumberOcr();});
 function ocrCollectItems(){
   return [...document.querySelectorAll('#ocr-list .ocr-item')].map(c=>{
@@ -2195,7 +2226,7 @@ $('#ocr-tobox').addEventListener('click',async()=>{
   if(!items.length){toast('No hay productos leídos','err');return;}
   let code='CAJA-0001';try{code=await DB.nextBoxCode();}catch(e){}
   curBox={code,name:'',kind:'pool',rack:'',bin:'',pieces:0,_orig:null,
-    items:items.map(it=>({sku:genSku(it.brand,it.style,it.color,it.size),upc:it.upc||'',brand:it.brand,style:it.style,color:it.color,cc:it.cc||'',size:it.size,cat:it.cat||'',gender:it.gender||'',qty:+it.qty||1}))};
+    items:items.map(it=>({sku:(it.cc?canonSku(it.brand,it.style,it.cc,it.size):genSku(it.brand,it.style,it.color,it.size)),upc:it.upc||'',brand:it.brand,style:it.style,color:it.color,cc:it.cc||'',size:it.size,cat:it.cat||'',gender:it.gender||'',qty:+it.qty||1}))};
   openBoxEditor(true);
   toast('Caja armada desde la etiqueta — asigna Rack/Comp y Guarda','ok');
 });
@@ -2208,7 +2239,7 @@ $('#ocr-save').addEventListener('click',async()=>{
     const gv=q=>(c.querySelector(q).value||'').trim();
     const brand=gv('.oi-brand'),style=gv('.oi-style'),color=gv('.oi-color'),cc=gv('.oi-cc').replace(/\D/g,''),size=gv('.oi-size'),cat=gv('.oi-cat'),gender=c.querySelector('.oi-gender').value,upc=gv('.oi-upc').replace(/\D/g,''),qty=+c.querySelector('.oi-qty').value||0;
     if(!brand&&!style&&!color&&!size){skipped++;continue;}
-    const sku='WT-'+(slug(brand).slice(0,4).toUpperCase()||'NA')+'-'+(slug(style).toUpperCase()||'NA')+'-'+(slug(color).slice(0,3).toUpperCase()||'NA')+'-'+(size.toUpperCase()||'NA');
+    const sku=cc?canonSku(brand,style,cc,size):('WT-'+(slug(brand).slice(0,4).toUpperCase()||'NA')+'-'+(slug(style).toUpperCase()||'NA')+'-'+(slug(color).slice(0,3).toUpperCase()||'NA')+'-'+(size.toUpperCase()||'NA'));
     const o={sku,upc,brand,style,color,cc,size,cat,gender,qty,cost:0,img:'',title:[brand,style,color,size].filter(Boolean).join(' ')};
     try{const ex=await DB.bySku(sku);
       if(ex){await DB.adjust(sku,qty,'entrada');summed++;}
