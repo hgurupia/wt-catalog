@@ -158,6 +158,56 @@ input.in:focus,select.in:focus{outline:none;border-color:var(--sky)}
 .sumtbl td.gk{font-weight:700;color:var(--navy)}
 .sumtbl td.net{font-weight:800;color:#c76a10}
 .sumtbl tfoot td{border-top:2px solid var(--line);font-weight:900;color:var(--navy);background:#f5f8fb;position:sticky;bottom:0}
+/* ---- Repricer (matriz por canal) ---- */
+body.rwide #app{max-width:1200px}
+.rchips{display:flex;gap:6px;margin:0 0 8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+.rchips button{flex:0 0 auto;padding:8px 14px;border-radius:999px;border:1.5px solid var(--line);background:#fff;font-weight:800;font-size:12.5px;color:var(--navy)}
+.rchips button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.rbar{display:flex;align-items:center;gap:8px;margin:0 0 8px;flex-wrap:wrap}
+.rbar .lbl{font-size:12px;color:var(--slate);font-weight:700}
+.rbar input[type=number]{width:64px;text-align:right;padding:7px 8px;border:1px solid var(--line);border-radius:10px;font-size:13px;font-weight:700;color:var(--navy);background:#fff}
+.rtgl{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--slate);font-weight:700}
+.rcfgbtn{margin-left:auto;display:flex;align-items:center;gap:5px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 10px;font-size:12px;font-weight:800;color:var(--navy)}
+.rcfgbtn svg{width:15px;height:15px}
+.rcfg{display:none;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;margin:0 0 10px}
+.rcfg.on{display:block}
+.rcfg h4{margin:0 0 6px;font-size:12px;color:var(--slate);text-transform:uppercase;letter-spacing:.04em}
+.rcfg .row{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:12.5px;color:var(--ink)}
+.rcfg .row b{flex:1;color:var(--navy);font-size:12.5px}
+.rcfg input{width:62px;text-align:right;padding:6px 7px;border:1px solid var(--line);border-radius:8px;font-size:12.5px;font-weight:700;color:var(--navy)}
+.rkpis{display:flex;gap:4px;background:var(--navy);border-radius:14px;padding:10px 8px;margin:0 0 8px;color:#fff}
+.rkpis>div{flex:1;text-align:center;min-width:0}
+.rkpis b{display:block;font-size:15px;font-weight:900;white-space:nowrap}
+.rkpis span{font-size:10px;color:#8fb3cc;white-space:nowrap}
+.rkpis b.hi{color:var(--brand)}
+.rprwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -14px;padding:0 0 4px}
+.rprtbl{border-collapse:collapse;min-width:100%;width:max-content}
+.rprtbl thead th{position:sticky;top:0;background:#fff;text-align:right;color:var(--slate);font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:6px 8px;border-bottom:2px solid var(--line);z-index:3;white-space:nowrap;cursor:pointer;-webkit-user-select:none;user-select:none}
+.rprtbl thead th:first-child{text-align:left;left:0;z-index:4}
+.rprtbl td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:right;font-size:12.5px;white-space:nowrap;vertical-align:middle}
+.rprtbl td:first-child,.rprtbl th:first-child{position:sticky;left:0;background:#fff;padding-left:14px;max-width:190px;box-shadow:inset -1px 0 0 var(--line)}
+.rprtbl td:first-child{text-align:left;cursor:pointer;z-index:2;overflow:hidden}
+.rprtbl th .sar{font-size:9px;color:#9fb0c0;font-style:normal}
+.rprtbl th .sar.on{color:var(--brand)}
+.rprtbl td:first-child b{display:block;color:var(--navy);font-size:12px;line-height:1.2;overflow:hidden;text-overflow:ellipsis}
+.rprtbl td:first-child small{color:var(--slate);font-size:10.5px}
+.rprtbl .rin{width:62px;text-align:right;padding:5px 6px;border:1px solid transparent;border-bottom:1px dashed #9cc4de;border-radius:6px;background:transparent;font-size:12.5px;font-weight:700;color:var(--ink);-moz-appearance:textfield}
+.rprtbl .rin::-webkit-outer-spin-button,.rprtbl .rin::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.rprtbl .rin:focus{outline:none;border:1px solid var(--sky);background:#fff;border-radius:8px}
+.rprtbl .rin.ov{color:var(--brand-ink)}
+.rprtbl .pos{color:#1a7f4e;font-weight:800}
+.rprtbl .neg{color:#b3261e;font-weight:800}
+.rprtbl .dim{color:var(--slate)}
+.rprtbl tr.rx>td{background:#eef4f9!important;border-bottom:1px solid var(--line)}
+.rprtbl tr.rx>td:first-child{position:static;max-width:none;box-shadow:none;cursor:default;overflow:visible}
+.rpnl{padding:4px 0 6px}
+.rpnl table{border-collapse:collapse;width:100%;min-width:420px}
+.rpnl th{font-size:10px;color:var(--slate);text-transform:uppercase;letter-spacing:.03em;text-align:right;padding:3px 8px;font-weight:800}
+.rpnl th:first-child,.rpnl td:first-child{text-align:left;position:static!important;box-shadow:none!important;max-width:none;padding-left:8px}
+.rpnl td{padding:3px 8px;border-bottom:0;font-size:12px;background:transparent!important}
+.rpnl td:first-child{font-weight:800;color:var(--navy);cursor:default}
+.rpnl tr.cur td:first-child{color:var(--brand-ink)}
+@media(min-width:760px){.rprtbl td,.rprtbl thead th{padding:7px 10px}.rprtbl td:first-child,.rprtbl th:first-child{max-width:260px}}
 /* ---- Branding PML App + iconografía de línea ---- */
 :root{--brand:#f2851c;--brand-ink:#c76a10}
 .glogo{display:block;max-width:180px;height:auto;margin:0 auto 12px}
@@ -433,7 +483,7 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
 
 <!-- ============ INVENTARIO (tabla) ============ -->
 <section class="screen" id="s-inv">
-  <div class="top"><button class="bk" data-back>‹</button><h1 style="flex:1">Inventario</h1><button class="btn" id="inv-sum" style="background:rgba(255,255,255,.14);color:#fff;padding:8px 10px;font-size:13px;margin-right:6px">📊 Resumen</button><button class="btn" id="inv-selmode" style="background:rgba(255,255,255,.14);color:#fff;padding:8px 10px;font-size:13px">Limpiar</button></div>
+  <div class="top"><button class="bk" data-back>‹</button><h1 style="flex:1">Inventario</h1><button class="btn" id="inv-repr" style="background:rgba(255,255,255,.14);color:#fff;padding:8px 10px;font-size:13px;margin-right:6px;display:inline-flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L4.4 14.2V4H14.6l6 6a2 2 0 0 1 0 3.4z"/><circle cx="8" cy="8" r="1.3"/></svg>Precios</button><button class="btn" id="inv-sum" style="background:rgba(255,255,255,.14);color:#fff;padding:8px 10px;font-size:13px;margin-right:6px">📊 Resumen</button><button class="btn" id="inv-selmode" style="background:rgba(255,255,255,.14);color:#fff;padding:8px 10px;font-size:13px">Limpiar</button></div>
   <div class="body">
     <div class="invsum" id="invsum"></div>
     <input class="in" id="invq" placeholder="Buscar marca, estilo, color, SKU, UPC…" autocomplete="off">
@@ -491,6 +541,60 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
       </table>
     </div>
     <p class="qlabel" style="margin-top:8px">Net = Venta − Fees − Costo · Margen = Net/Venta · ROI = Net/Costo</p>
+  </div>
+</section>
+
+<!-- ============ REPRICER (matriz por canal) ============ -->
+<section class="screen" id="s-repr">
+  <div class="top"><button class="bk" data-back>‹</button><h1 style="flex:1">Repricer</h1><span id="rpr-save" style="font-size:11px;color:#8fb3cc;font-weight:700"></span></div>
+  <div class="body">
+    <div class="rchips" id="rpr-ch">
+      <button data-ch="directo">Directo</button>
+      <button data-ch="ebay" class="on">eBay</button>
+      <button data-ch="amazon">Amazon</button>
+      <button data-ch="walmart">Walmart</button>
+      <button data-ch="shopify">Shopify</button>
+    </div>
+    <div class="rbar">
+      <span class="lbl">Margen ×</span><input type="number" id="rpr-mg" min="0" step="0.1" value="2">
+      <label class="rtgl"><input type="checkbox" id="rpr-autop">precio auto</label>
+      <button class="rcfgbtn" id="rpr-cfgbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Fees</button>
+    </div>
+    <div class="rcfg" id="rpr-cfg">
+      <h4>Fees por canal</h4>
+      <div class="row"><b>eBay</b><input type="number" step="0.1" data-cfg="fees.ebay.ref">% + $<input type="number" step="0.05" data-cfg="fees.ebay.fixed"></div>
+      <div class="row"><b>Amazon</b><input type="number" step="0.1" data-cfg="fees.amazon.ref">% + $<input type="number" step="0.05" data-cfg="fees.amazon.fixed"></div>
+      <div class="row"><b>Walmart</b><input type="number" step="0.1" data-cfg="fees.walmart.ref">% + $<input type="number" step="0.05" data-cfg="fees.walmart.fixed"></div>
+      <div class="row"><b>Shopify</b><input type="number" step="0.1" data-cfg="fees.shopify.ref">% + $<input type="number" step="0.05" data-cfg="fees.shopify.fixed"></div>
+      <h4 style="margin-top:10px">Envío por listing (no aplica en Directo)</h4>
+      <div class="row"><b>Base 1ª lb</b>$<input type="number" step="0.25" data-cfg="ship.base"></div>
+      <div class="row"><b>Lb adicional</b>$<input type="number" step="0.25" data-cfg="ship.addl"></div>
+      <div class="row"><b>Peso mínimo (lb)</b><input type="number" step="0.5" data-cfg="ship.dfltWt"></div>
+      <p class="qlabel" style="margin:8px 0 0">La config se guarda en la nube (compartida entre tus dispositivos).</p>
+    </div>
+    <div class="rkpis" id="rpr-kpis"></div>
+    <div class="rbar" style="margin-bottom:4px">
+      <input class="in" id="rpr-q" placeholder="Buscar marca, estilo, color, SKU…" autocomplete="off" style="flex:2;min-width:130px;margin:0">
+      <select class="ff" id="rpr-brand" style="flex:1;margin:0"><option value="">Marca</option></select>
+      <select class="ff" id="rpr-stock" style="flex:1;margin:0"><option value="1">Con stock</option><option value="">Todos</option></select>
+    </div>
+    <div class="rprwrap">
+      <table class="rprtbl">
+        <thead><tr>
+          <th data-k="prod">Producto <span class="sar" data-for="prod"></span></th>
+          <th data-k="qty">Qty <span class="sar" data-for="qty"></span></th>
+          <th data-k="cost">Costo <span class="sar" data-for="cost"></span></th>
+          <th data-k="mg">Mg×</th>
+          <th data-k="price">Precio <span class="sar" data-for="price"></span></th>
+          <th data-k="fees">Fees</th>
+          <th data-k="ship">Envío</th>
+          <th data-k="net">Net <span class="sar" data-for="net"></span></th>
+          <th data-k="roi">ROI <span class="sar" data-for="roi"></span></th>
+        </tr></thead>
+        <tbody id="rprbody"></tbody>
+      </table>
+    </div>
+    <p class="qlabel" style="margin-top:8px">Toca un producto para ver los 5 canales. Precio en <b style="color:var(--brand-ink)">naranja</b> = fijado a mano; azul punteado = editable. Net = Precio − Costo − Fees − Envío.</p>
   </div>
 </section>
 
@@ -916,9 +1020,9 @@ const DB={
 function upcVariants(u){u=(u||'').replace(/\s/g,'');const v=new Set([u]);if(u.length===13&&u[0]==='0')v.add(u.slice(1));if(u.length===12)v.add('0'+u);v.add(u.replace(/^0+/,''));return[...v].filter(Boolean);}
 
 /* =================== NAV =================== */
-function show(id){$$('.screen').forEach(s=>s.classList.remove('on'));$('#'+id).classList.add('on');window.scrollTo(0,0);updateTabbar(id);}
+function show(id){$$('.screen').forEach(s=>s.classList.remove('on'));$('#'+id).classList.add('on');window.scrollTo(0,0);document.body.classList.toggle('rwide',id==='s-repr');updateTabbar(id);}
 var TABBAR_ON={'s-home':1,'s-search':1,'s-inv':1,'s-invsum':1,'s-sum':1,'s-boxes':1};
-var TABMAP={'s-search':'search','s-scan':'search','s-ocr':'search','s-new':'new','s-boxes':'boxes','s-box':'boxes','s-inv':'inv','s-invsum':'inv','s-sum':'inv','s-prod':'inv','s-hist':'inv'};
+var TABMAP={'s-search':'search','s-scan':'search','s-ocr':'search','s-new':'new','s-boxes':'boxes','s-box':'boxes','s-inv':'inv','s-invsum':'inv','s-sum':'inv','s-repr':'inv','s-prod':'inv','s-hist':'inv'};
 function updateTabbar(id){
   var tb=$('#tabbar');if(!tb)return;
   var on=!!TABBAR_ON[id] && !(id==='s-inv'&&typeof INVSEL!=='undefined'&&INVSEL.size>0);
@@ -1084,6 +1188,217 @@ function renderSum(){
 async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero el Inventario para calcular','err');return;}if(!(await unlockMoney()))return;go('s-sum');renderSum();}
 (function(){var b=$('#inv-sum');if(b)b.addEventListener('click',openSummary);$$('#sum-mode button').forEach(function(x){x.addEventListener('click',function(){SUMMODE=x.getAttribute('data-m');$$('#sum-mode button').forEach(function(y){y.classList.toggle('on',y===x);});renderSum();});});var f=$('#sum-ch');if(f)f.addEventListener('change',function(){SUMCH=f.value;renderSum();});
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
+
+/* =================== REPRICER (matriz por canal) =================== */
+var RCH='ebay', RSORTK='prod', RSORTD=1, RXP={}, RROWS=null, RSHOWN=[];
+var RCHN={directo:'Directo',ebay:'eBay',amazon:'Amazon',walmart:'Walmart',shopify:'Shopify'};
+var RCHS=['directo','ebay','amazon','walmart','shopify'];
+var RCFG={fees:{ebay:{ref:15.3,fixed:0.40},amazon:{ref:17,fixed:0},walmart:{ref:15,fixed:0},shopify:{ref:2.9,fixed:0.30},directo:{ref:0,fixed:0}},ship:{base:6,addl:2.5,dfltWt:1},mg:{directo:2,ebay:2,amazon:2,walmart:2,shopify:2},autop:false};
+function rDeep(t,s){Object.keys(s||{}).forEach(function(k){var v=s[k];if(v&&typeof v==='object'&&!Array.isArray(v)){if(!t[k]||typeof t[k]!=='object')t[k]={};rDeep(t[k],v);}else if(v!=null)t[k]=v;});}
+async function rCfgLoad(){
+  try{var raw=localStorage.getItem('wt_repricer_cfg');if(raw)rDeep(RCFG,JSON.parse(raw));}catch(e){}
+  try{var r=await fetch(SB_URL+'/rest/v1/wt_config?key=eq.repricer&select=val',{headers:sbHeaders()});if(r.ok){var a=await r.json();if(a[0]&&a[0].val)rDeep(RCFG,a[0].val);}}catch(e){}
+}
+var rCfgT=null;
+function rCfgSave(){
+  try{localStorage.setItem('wt_repricer_cfg',JSON.stringify(RCFG));}catch(e){}
+  clearTimeout(rCfgT);
+  rCfgT=setTimeout(function(){
+    fetch(SB_URL+'/rest/v1/wt_config?on_conflict=key',{method:'POST',headers:sbHeaders({Prefer:'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({key:'repricer',val:RCFG,updated_at:new Date().toISOString()})})
+      .then(function(r){rSaveMark(r.ok?'config en nube':'config local');})
+      .catch(function(){rSaveMark('config local');});
+  },800);
+}
+var rSaveT=null;
+function rSaveMark(t){var el=$('#rpr-save');if(!el)return;el.textContent='✓ '+t;clearTimeout(rSaveT);rSaveT=setTimeout(function(){el.textContent='';},1800);}
+/* --- economia por fila --- */
+function rPack(d){return d.pack!=null?(+d.pack||1):1;}
+function rWt(d){var w=parseFloat(d.weight);if(!isNaN(w)&&w>0)return w;return Math.max(+RCFG.ship.dfltWt||1,Math.ceil(rPack(d)*0.35));}
+function rMgOv(d){var p=d.prices;return (p&&p.mg!=null&&p.mg!=='')?+p.mg:null;}
+function rPriceOv(d,ch){ch=ch||RCH;if(ch==='directo')return (d.price!=null&&d.price!=='')?+d.price:null;var p=d.prices;return (p&&p[ch]!=null&&p[ch]!=='')?+p[ch]:null;}
+function rAuto(d,ch){ch=ch||RCH;var o=rMgOv(d);var m=(o!=null)?o:(+RCFG.mg[ch]||2);return +(((+d.cost||0)*rPack(d)*m).toFixed(2));}
+function rPrice(d,ch){var o=rPriceOv(d,ch);return o!=null?o:rAuto(d,ch);}
+function rShip(d,ch){ch=ch||RCH;if(ch==='directo')return 0;return +((+RCFG.ship.base||0)+Math.max(0,Math.ceil(rWt(d))-1)*(+RCFG.ship.addl||0)).toFixed(2);}
+function rFee(d,ch){ch=ch||RCH;var f=RCFG.fees[ch]||RCFG.fees.directo;return +((rPrice(d,ch)*((+f.ref||0)/100))+(+f.fixed||0)).toFixed(2);}
+function rNet(d,ch){return +(rPrice(d,ch)-(+d.cost||0)*rPack(d)-rFee(d,ch)-rShip(d,ch)).toFixed(2);}
+function rRoi(d,ch){var b=(+d.cost||0)*rPack(d);return b>0?Math.round(rNet(d,ch)/b*100):null;}
+/* --- guardar fila (nunca qty/conteo) --- */
+function rSetPriceOv(d,ch,v){
+  if(ch==='directo'){d.price=(v==null?null:v);return {price:d.price};}
+  if(!d.prices||typeof d.prices!=='object')d.prices={};
+  if(v==null)delete d.prices[ch];else d.prices[ch]=v;
+  return {prices:d.prices};
+}
+function rPatch(d,obj){
+  DB.update(d.sku,obj).then(function(){rSaveMark('guardado');}).catch(function(e){toast('Error al guardar: '+String(e).slice(0,70),'err');});
+}
+/* --- filtros / orden / render --- */
+function rFilt(){
+  var q=norm($('#rpr-q').value||''), b=$('#rpr-brand').value, st=$('#rpr-stock').value;
+  return (RROWS||[]).filter(function(d){
+    if(st&&!(+d.qty>0))return false;
+    if(b&&(((d.brand||'')+'').trim())!==b)return false;
+    if(q){var hay=norm((d.sku||'')+' '+(d.upc||'')+' '+(d.brand||'')+' '+(d.style||'')+' '+(d.color||'')+' '+(d.size||'')+' '+(d.title||''));if(hay.indexOf(q)<0)return false;}
+    return true;
+  });
+}
+function rSortRows(rows){
+  var k=RSORTK,dir=RSORTD;
+  function num(d){
+    if(k==='qty')return +d.qty||0;
+    if(k==='cost')return +d.cost||0;
+    if(k==='mg'){var o=rMgOv(d);return o!=null?o:(+RCFG.mg[RCH]||2);}
+    if(k==='price')return rPrice(d);
+    if(k==='fees')return rFee(d);
+    if(k==='ship')return rShip(d);
+    if(k==='net')return rNet(d);
+    if(k==='roi'){var b=(+d.cost||0)*rPack(d);return b>0?rNet(d)/b:-9999;}
+    return 0;
+  }
+  return rows.slice().sort(function(a,b){
+    if(k==='prod'){
+      var va=norm((a.brand||'')+' '+(a.style||'')+' '+(a.color||'')+' '+(a.size||'')),vb=norm((b.brand||'')+' '+(b.style||'')+' '+(b.color||'')+' '+(b.size||''));
+      return va<vb?-dir:va>vb?dir:0;
+    }
+    return (num(a)-num(b))*dir;
+  });
+}
+function rXpHTML(d){
+  var rows='';
+  RCHS.forEach(function(ch){
+    var net=rNet(d,ch),roi=rRoi(d,ch),po=rPriceOv(d,ch);
+    rows+='<tr class="'+(ch===RCH?'cur':'')+'"><td>'+RCHN[ch]+'</td>'+
+      '<td><input class="rin'+(po!=null?' ov':'')+'" type="number" inputmode="decimal" step="0.01" min="0" data-xch="'+ch+'" value="'+rPrice(d,ch).toFixed(2)+'"></td>'+
+      '<td class="dim">'+rFee(d,ch).toFixed(2)+'</td><td class="dim">'+rShip(d,ch).toFixed(2)+'</td>'+
+      '<td class="'+(net>=0?'pos':'neg')+'">'+(net>=0?'+':'')+net.toFixed(2)+'</td>'+
+      '<td class="'+(net>=0?'pos':'neg')+'">'+(roi==null?'—':roi+'%')+'</td></tr>';
+  });
+  return '<tr class="rx" data-xsku="'+esc(d.sku)+'"><td colspan="9"><div class="rpnl"><table><thead><tr><th>Canal</th><th>Precio</th><th>Fees</th><th>Envío</th><th>Net</th><th>ROI</th></tr></thead><tbody>'+rows+'</tbody></table></div></td></tr>';
+}
+function rRowHTML(d){
+  var name=(((d.brand||'')+' '+(d.style||'')).replace(/\s+/g,' ')).trim()||d.sku;
+  var sub=[canonColor(d.color),((d.size||'')+'').trim()].filter(Boolean).join(' · ');
+  var mgo=rMgOv(d),po=rPriceOv(d),net=rNet(d),roi=rRoi(d);
+  return '<tr data-sku="'+esc(d.sku)+'">'+
+    '<td><b>'+esc(name)+'</b><small>'+esc(sub||d.sku)+'</small></td>'+
+    '<td class="dim">'+(+d.qty||0)+'</td>'+
+    '<td><input class="rin" type="number" inputmode="decimal" step="0.01" min="0" data-f="cost" value="'+((+d.cost||0)?(+d.cost).toFixed(2):'')+'"></td>'+
+    '<td><input class="rin'+(mgo!=null?' ov':'')+'" type="number" inputmode="decimal" step="0.1" min="0" data-f="mg" placeholder="'+(+RCFG.mg[RCH]||2)+'" value="'+(mgo!=null?mgo:'')+'"></td>'+
+    '<td><input class="rin'+(po!=null?' ov':'')+'" type="number" inputmode="decimal" step="0.01" min="0" data-f="price" value="'+rPrice(d).toFixed(2)+'"></td>'+
+    '<td class="dim">'+rFee(d).toFixed(2)+'</td>'+
+    '<td class="dim">'+rShip(d).toFixed(2)+'</td>'+
+    '<td class="'+(net>=0?'pos':'neg')+'">'+(net>=0?'+':'')+net.toFixed(2)+'</td>'+
+    '<td class="'+(net>=0?'pos':'neg')+'">'+(roi==null?'—':roi+'%')+'</td>'+
+  '</tr>'+(RXP[d.sku]?rXpHTML(d):'');
+}
+function rKpis(rows){
+  var u=0,cost=0,sale=0,fee=0,ship=0;
+  rows.forEach(function(d){var q=+d.qty||0;if(!q)return;var s=q/rPack(d);u+=q;cost+=(+d.cost||0)*q;sale+=rPrice(d)*s;fee+=rFee(d)*s;ship+=rShip(d)*s;});
+  var net=sale-cost-fee-ship,roi=cost>0?Math.round(net/cost*100):0;
+  $('#rpr-kpis').innerHTML='<div><b>'+u.toLocaleString('en-US')+'</b><span>unidades</span></div>'+
+    '<div><b>'+fmtMoney(sale)+'</b><span>venta</span></div>'+
+    '<div><b>'+fmtMoney(fee+ship)+'</b><span>fees+envío</span></div>'+
+    '<div><b class="hi">'+fmtMoney(net)+'</b><span>net</span></div>'+
+    '<div><b class="hi">'+roi+'%</b><span>ROI</span></div>';
+}
+function rUpdSar(){
+  $$('#s-repr .rprtbl thead .sar').forEach(function(s){var k=s.getAttribute('data-for');if(k===RSORTK){s.textContent=RSORTD>0?'▲':'▼';s.classList.add('on');}else{s.textContent='↕';s.classList.remove('on');}});
+}
+function rRender(){
+  var rows=rSortRows(rFilt());
+  RSHOWN=rows;
+  $('#rprbody').innerHTML=rows.length?rows.map(rRowHTML).join(''):'<tr><td colspan="9" class="dim" style="text-align:center;padding:18px">Sin resultados</td></tr>';
+  rKpis(rows);rUpdSar();
+  var mgEl=$('#rpr-mg');if(mgEl&&document.activeElement!==mgEl)mgEl.value=+RCFG.mg[RCH]||2;
+}
+function rFillBrands(){
+  var vals=[];(RROWS||[]).forEach(function(d){var b=((d.brand||'')+'').trim();if(b&&vals.indexOf(b)<0)vals.push(b);});
+  vals.sort(function(a,b){return a.localeCompare(b,'es');});
+  var s=$('#rpr-brand'),cur=s.value;
+  s.innerHTML='<option value="">Marca</option>'+vals.map(function(v){return '<option value="'+esc(v)+'">'+esc(v)+'</option>';}).join('');
+  s.value=cur;
+}
+function rCfgFill(){
+  $$('#rpr-cfg input[data-cfg]').forEach(function(inp){
+    var path=inp.getAttribute('data-cfg').split('.'),o=RCFG;
+    for(var i=0;i<path.length-1;i++)o=o[path[i]]||{};
+    var v=o[path[path.length-1]];inp.value=(v==null?'':v);
+  });
+}
+async function openRepricer(){
+  if(!(await unlockMoney()))return;
+  go('s-repr');
+  if(!RROWS){
+    $('#rprbody').innerHTML='<tr><td colspan="9" class="dim" style="text-align:center;padding:18px">Cargando…</td></tr>';
+    await rCfgLoad();
+    $('#rpr-autop').checked=!!RCFG.autop;rCfgFill();
+    try{RROWS=await DB.list(3000);}catch(e){RROWS=[];toast('No se pudo cargar','err');}
+    rFillBrands();
+  }
+  rRender();
+}
+(function(){
+  var b=$('#inv-repr');if(b)b.addEventListener('click',openRepricer);
+  $$('#rpr-ch button').forEach(function(x){x.addEventListener('click',function(){RCH=x.getAttribute('data-ch');$$('#rpr-ch button').forEach(function(y){y.classList.toggle('on',y===x);});rRender();});});
+  var mg=$('#rpr-mg');if(mg)mg.addEventListener('change',function(){RCFG.mg[RCH]=parseFloat(mg.value)||0;rCfgSave();rRender();});
+  var ap=$('#rpr-autop');if(ap)ap.addEventListener('change',function(){RCFG.autop=ap.checked;rCfgSave();});
+  var cb=$('#rpr-cfgbtn');if(cb)cb.addEventListener('click',function(){var p=$('#rpr-cfg');p.classList.toggle('on');if(p.classList.contains('on'))rCfgFill();});
+  $$('#rpr-cfg input[data-cfg]').forEach(function(inp){inp.addEventListener('change',function(){
+    var path=inp.getAttribute('data-cfg').split('.'),o=RCFG;
+    for(var i=0;i<path.length-1;i++){if(!o[path[i]]||typeof o[path[i]]!=='object')o[path[i]]={};o=o[path[i]];}
+    o[path[path.length-1]]=parseFloat(inp.value)||0;
+    rCfgSave();rRender();
+  });});
+  var rqT=null,rq=$('#rpr-q');
+  if(rq)rq.addEventListener('input',function(){clearTimeout(rqT);rqT=setTimeout(rRender,180);});
+  var rb=$('#rpr-brand');if(rb)rb.addEventListener('change',rRender);
+  var rs=$('#rpr-stock');if(rs)rs.addEventListener('change',rRender);
+  $$('#s-repr .rprtbl thead th').forEach(function(th){th.addEventListener('click',function(){
+    var k=th.getAttribute('data-k');if(!k)return;
+    if(RSORTK===k)RSORTD=-RSORTD;else{RSORTK=k;RSORTD=(k==='prod')?1:-1;}
+    rRender();
+  });});
+  var body=$('#rprbody');
+  if(body){
+    body.addEventListener('click',function(e){
+      var td=e.target.closest('td');if(!td||e.target.closest('input'))return;
+      var tr=td.parentElement;if(!tr||!tr.getAttribute('data-sku'))return;
+      if(td!==tr.firstElementChild)return;
+      var sku=tr.getAttribute('data-sku');
+      if(RXP[sku])delete RXP[sku];else RXP[sku]=1;
+      rRender();
+    });
+    body.addEventListener('change',function(e){
+      var inp=e.target;if(!inp.classList||!inp.classList.contains('rin'))return;
+      var xch=inp.getAttribute('data-xch');
+      var tr=inp.closest('tr[data-sku],tr[data-xsku]');if(!tr)return;
+      var sku=tr.getAttribute('data-sku')||tr.getAttribute('data-xsku');
+      var d=(RROWS||[]).find(function(x){return x.sku===sku;});if(!d)return;
+      var raw=inp.value.trim(),v=raw===''?null:(parseFloat(raw)||0);
+      var patch={};
+      if(xch){
+        var auto=rAuto(d,xch);
+        patch=rSetPriceOv(d,xch,(v==null||Math.abs(v-auto)<0.005)?null:v);
+      }else{
+        var f=inp.getAttribute('data-f');
+        if(f==='cost'){
+          d.cost=(v==null?null:v);patch.cost=d.cost;
+          if(RCFG.autop){var p2=rSetPriceOv(d,RCH,null);Object.keys(p2).forEach(function(k){patch[k]=p2[k];});}
+        }else if(f==='mg'){
+          if(!d.prices||typeof d.prices!=='object')d.prices={};
+          if(v==null)delete d.prices.mg;else d.prices.mg=v;
+          var p3=rSetPriceOv(d,RCH,null);
+          patch.prices=d.prices;Object.keys(p3).forEach(function(k){patch[k]=p3[k];});
+        }else if(f==='price'){
+          var auto2=rAuto(d,RCH);
+          patch=rSetPriceOv(d,RCH,(v==null||Math.abs(v-auto2)<0.005)?null:v);
+        }
+      }
+      rPatch(d,patch);
+      rRender();
+    });
+  }
+})();
 /* ---- Resumen de inventario por marca/producto (drilleable a productos editables) ---- */
 let INVSUMG='brand', ISUMSORTK='u', ISUMSORTD=-1;
 function updISumSar(){$$('#s-invsum .sar').forEach(function(s){var k=s.getAttribute('data-for');if(k===ISUMSORTK){s.textContent=ISUMSORTD>0?'▲':'▼';s.classList.add('on');}else{s.textContent='↕';s.classList.remove('on');}});}
