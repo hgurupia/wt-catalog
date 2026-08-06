@@ -1307,11 +1307,26 @@ $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',fun
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
 var CMCACHE={};
+/* Gurupia (marca propia): codigos de PACK segun "Tabla de Colores G001 y G002" + template G006 */
+var GURUPIA_COLORS={
+ 'G001':{'01':'White','02':'Black Heather','03':'Basics Heather Assorted','04':'Dark Grey Heather','05':'Heather Greys','06':'Heather Stones','07':'Essential Assorted','08':'Heather Blues','09':'Heather Navy'},
+ 'G002':{'01':'White','02':'Black Heather','03':'Basics Heather Assorted','04':'Dark Grey Heather','05':'Heather Greys','06':'Heather Stones','07':'Essential Assorted','08':'Heather Blues','09':'Heather Navy','10':'Ocean Blues'},
+ 'G006':{'00':'White','02':'Ash','03':'Black/Stonewash/Charcoal','04':'Black/Stonewash/Shiraz','25':'Stonewash Denim','31':'Desert Pink','35':'Charcoal','50':'Black','53':'Shiraz','54':'Royal Pine'}
+};
+function gurList(styleU){
+  if(styleU&&GURUPIA_COLORS[styleU])return Object.keys(GURUPIA_COLORS[styleU]).map(function(c){return {brand:'Gurupia',code:c,name:GURUPIA_COLORS[styleU][c]};});
+  var seen={},out=[];
+  Object.keys(GURUPIA_COLORS).forEach(function(st){Object.keys(GURUPIA_COLORS[st]).forEach(function(c){var k=c+'|'+GURUPIA_COLORS[st][c];if(!seen[k]){seen[k]=1;out.push({brand:'Gurupia',code:c,name:GURUPIA_COLORS[st][c]});}});});
+  return out;
+}
 async function cmForStyle(brand,style){
   var b=((brand||'')+'').trim(), s=((style||'')+'').trim();
   var key=b.toLowerCase()+'|'+s.toLowerCase();
   if(CMCACHE[key])return CMCACHE[key];
   var out=[];
+  var stU=s.toUpperCase();
+  if(GURUPIA_COLORS[stU]){out=gurList(stU);CMCACHE[key]=out;return out;}
+  if(!s&&norm(b).indexOf('guru')>=0){out=gurList('');CMCACHE[key]=out;return out;}
   if(s){
     try{
       var q=SB_URL+'/rest/v1/wt_colors?style=eq.'+encodeURIComponent(s)+'&select=brand,code,name&limit=400';
@@ -1374,6 +1389,12 @@ async function colRender(){
   if(!b&&!s){tb.innerHTML='<tr><td colspan="3" class="muted" style="text-align:center;padding:18px">Escribe una marca o un estilo</td></tr>';return;}
   tb.innerHTML='<tr><td colspan="3" class="muted" style="text-align:center;padding:14px">Buscando…</td></tr>';
   var rows=[];
+  var sU=s.toUpperCase();
+  if(GURUPIA_COLORS[sU]||(norm(b).indexOf('guru')>=0)){
+    (GURUPIA_COLORS[sU]?[sU]:Object.keys(GURUPIA_COLORS)).forEach(function(st){
+      Object.keys(GURUPIA_COLORS[st]).forEach(function(c){rows.push({style:st,code:c,name:GURUPIA_COLORS[st][c]});});
+    });
+  }else{
   try{
     var url=SB_URL+'/rest/v1/wt_colors?select=style,code,name&limit=2000';
     if(s)url+='&style=eq.'+encodeURIComponent(s);
@@ -1381,6 +1402,7 @@ async function colRender(){
     var r=await fetch(url,{headers:sbHeaders()});
     if(r.ok)rows=await r.json();
   }catch(e){}
+  }
   var g={};
   rows.forEach(function(x){
     var k=x.code+'|'+((x.name||'')+'').toLowerCase();
