@@ -1348,6 +1348,22 @@ async function openPML(){
   }else{pmlFillBrands();}
   if(!Object.keys(LOCIDX).length){try{buildLocIdx(await DB.listBoxes());}catch(e){}}
   pmlRender();
+  pmlHealImgs();
+}
+var PMLHEALED=false;
+function pmlHealImgs(){
+  if(PMLHEALED)return;PMLHEALED=true;
+  var miss=(RROWS||[]).filter(function(d){return !((d.img||'')+'').trim()&&!(Array.isArray(d.gallery)&&d.gallery.length)&&((d.upc||'')+'').trim();}).slice(0,150);
+  if(!miss.length)return;
+  var upcs=miss.map(function(d){return '"'+d.upc+'"';}).join(',');
+  fetch(SB_URL+'/rest/v1/wt_reference?upc=in.('+encodeURIComponent(upcs)+')&select=upc,image',{headers:sbHeaders()})
+    .then(function(r){return r.ok?r.json():[];})
+    .then(function(a){
+      var map={};a.forEach(function(x){if(x.image)map[x.upc]=(''+x.image).replace(/\._SL\d+_\./,'.');});
+      var n=0;
+      miss.forEach(function(d){var u=map[d.upc];if(!u)return;d.img=u;d.gallery=[u];DB.update(d.sku,{img:u,gallery:[u]}).catch(function(){});n++;});
+      if(n){pmlRender();toast(n+' fotos recuperadas de la base Harps','ok');}
+    }).catch(function(){});
 }
 (function(){
   var hb=$('#home-pml');if(hb)hb.addEventListener('click',openPML);
