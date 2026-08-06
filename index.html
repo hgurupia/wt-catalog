@@ -1403,7 +1403,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v72 · UPC directo a revisar';
+var APP_VER='v73 · fotos S&S + canónicos';
 (function(){var el=document.querySelector('#s-home .brandmark .app');if(el)el.innerHTML+=' <span style="font-size:10px;color:#8fb3cc;font-weight:600">'+APP_VER+'</span>';})();
 var CMCACHE={};
 /* Gurupia (marca propia): codigos de PACK segun "Tabla de Colores G001 y G002" + template G006 */
@@ -1809,6 +1809,17 @@ function pmlHealImgs(){
       var n=0;
       miss.forEach(function(d){var u=map[d.upc];if(!u)return;d.img=u;d.gallery=[u];DB.update(d.sku,{img:u,gallery:[u]}).catch(function(){});n++;});
       if(n){pmlRender();toast(n+' fotos recuperadas de la base Harps','ok');}
+      /* segunda pasada: fotos reales S&S (ss_products) para lo que siga sin imagen */
+      var rest=(RROWS||[]).filter(function(d){return !((d.img||'')+'').trim()&&((d.style||'')+'').trim();}).slice(0,40);
+      (async function(){
+        var m=0;
+        for(var i=0;i<rest.length;i++){
+          var d=rest[i];
+          var u=await ssPhoto(d.brand,d.style,d.color);
+          if(u){d.img=u;d.gallery=[u];DB.update(d.sku,{img:u,gallery:[u]}).catch(function(){});m++;}
+        }
+        if(m){pmlRender();toast(m+' fotos S&S agregadas','ok');}
+      })();
     }).catch(function(){});
 }
 (function(){
@@ -2902,12 +2913,31 @@ $('#p-file2').addEventListener('change',e=>{prodImgFile(e.target.files[0]);e.tar
 function updDelta(){$('#p-qty').textContent=current?current.qty:0;$('#in-n').textContent=moveN>1?(' '+moveN):'';$('#out-n').textContent=moveN>1?(' '+moveN):'';$('#deltahint').textContent='Vas a mover '+moveN+' unidad'+(moveN>1?'es':'');}
 $('#q-plus').addEventListener('click',()=>{moveN++;updDelta()});
 $('#q-minus').addEventListener('click',()=>{if(moveN>1)moveN--;updDelta()});
+/* Foto real S&S desde ss_products (brand+style, color con match difuso) */
+async function ssPhoto(brand,style,color){
+  const st=((style||'')+'').trim();if(!st)return '';
+  try{
+    let q=SB_URL+'/rest/v1/ss_products?style=eq.'+encodeURIComponent(st)+'&select=brand,colors&limit=3';
+    const r=await fetch(q,{headers:sbHeaders()});
+    const a=r.ok?await r.json():[];
+    const b=norm(brand||'');
+    const p=a.find(x=>{const xb=norm(x.brand||'');return !b||!xb||xb.indexOf(b)>=0||b.indexOf(xb)>=0;})||a[0];
+    if(!p||!Array.isArray(p.colors)||!p.colors.length)return '';
+    const cn=norm(color||'');
+    let c=p.colors.find(x=>norm(x.name)===cn);
+    if(!c&&cn)c=p.colors.find(x=>{const n=norm(x.name);return n.indexOf(cn)>=0||cn.indexOf(n)>=0;});
+    c=c||p.colors[0];
+    return c.front||c.side||c.back||'';
+  }catch(e){return '';}
+}
 /* Garantiza que el producto exista en wt_inventory (aterriza data de la referencia) */
 async function ensureInv(d){
   if(!d||!d.sku)return false;
   try{const ex=await DB.bySku(d.sku);if(ex){if(d.qty==null)d.qty=ex.qty;return true;}}catch(e){}
-  const o={sku:d.sku,upc:(''+(d.upc||'')),asin:d.asin||'',brand:d.brand||'',style:d.style||'',color:d.color||'',cc:(''+(d.cc||'')),size:d.size||'',cat:d.cat||'',gender:d.gender||'',qty:0,cost:0,img:d.img||'',title:[d.brand,d.style,d.color,d.size].filter(Boolean).join(' ')||d.sku};
-  if(d.img)o.gallery=[d.img];
+  let img=d.img||'';
+  if(!img){try{img=await ssPhoto(d.brand,d.style,d.color);}catch(e){}}
+  const o={sku:d.sku,upc:(''+(d.upc||'')),asin:d.asin||'',brand:d.brand||'',style:d.style||'',color:d.color||'',cc:(''+(d.cc||'')),size:d.size||'',cat:d.cat||'',gender:d.gender||'',qty:0,cost:0,img:img,title:[d.brand,d.style,d.color,d.size].filter(Boolean).join(' ')||d.sku};
+  if(img)o.gallery=[img];
   try{await DB.create(o);}catch(e){return false;}
   d.qty=0;
   try{if(!CATALOG.find(function(x){return x.sku===o.sku;}))CATALOG.unshift(o);}catch(e){}
