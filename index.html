@@ -499,6 +499,7 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
     <div id="b-manifest" class="card" style="display:none;margin-top:8px"></div>
     <div class="row2" style="margin-top:8px"><button class="btn ghost" id="b-counted">✓ Marcar contada</button><button class="btn ghost" id="b-uncounted">↺ Reiniciar conteo</button></div>
     <button class="btn o block" id="b-save" style="margin-top:8px">💾 Guardar caja</button>
+    <button class="btn ghost block" id="b-stock" style="margin-top:8px">⬆ Pasar TODO el contenido al inventario (solo cajas viejas)</button>
     <button class="btn b block" id="b-print" style="margin-top:8px">🖨️ Imprimir etiqueta 4×6 (caja)</button>
     <button class="btn b block" id="b-print-items" style="margin-top:8px">🏷️ Imprimir etiquetas de prendas (90×30)</button>
     <button class="btn ghost block" id="b-del" style="margin-top:8px;color:#5f6d7c">🗑️ Borrar caja</button>
@@ -1306,7 +1307,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v65 · colores';
+var APP_VER='v66 · sync inventario';
 (function(){var el=document.querySelector('#s-home .brandmark .app');if(el)el.innerHTML+=' <span style="font-size:10px;color:#8fb3cc;font-weight:600">'+APP_VER+'</span>';})();
 var CMCACHE={};
 /* Gurupia (marca propia): codigos de PACK segun "Tabla de Colores G001 y G002" + template G006 */
@@ -2570,21 +2571,50 @@ $('#b-save').addEventListener('click',async()=>{
   const orig=curBox._orig;
   curBox.code=newCode;curBox.kind=$('#b-kind').value;curBox.rack=$('#b-rack').value.trim();curBox.bin=$('#b-bin').value.trim();curBox.name=$('#b-name').value.trim();curBox.pieces=boxPieces();
   const payload={code:curBox.code,name:curBox.name,kind:curBox.kind,rack:curBox.rack,bin:curBox.bin,items:curBox.items,pieces:curBox.pieces};
-  try{await DB.saveBox(payload);
+  try{
+    // 1) leer lo que la caja tenía guardado ANTES (para ajustar solo la diferencia)
+    const oldItems=await boxItemsInDB(orig||newCode);
+    await DB.saveBox(payload);
     if(orig&&orig!==newCode){try{await DB.removeBox(orig);}catch(e){}}
     curBox._orig=newCode;
     toast('Caja guardada: '+newCode,'ok');back();renderBoxList('');
-    // Alimentar la base: registrar en el inventario los productos nuevos (qty 0, no pisa existentes)
-    let nuevos=0;
-    for(const it of (curBox.items||[])){
-      if(!it.sku)continue;
-      try{const ex=await DB.bySku(it.sku);
-        if(!ex){await DB.create({sku:it.sku,upc:it.upc||'',brand:it.brand||'',style:it.style||'',color:it.color||'',cc:it.cc||'',size:it.size||'',cat:it.cat||'',gender:it.gender||'',qty:0,cost:0,img:'',title:[it.brand,it.style,it.color,it.size].filter(Boolean).join(' ')});const c=CATALOG.find(x=>x.sku===it.sku);if(!c)CATALOG.unshift({sku:it.sku,upc:it.upc||'',brand:it.brand||'',style:it.style||'',color:it.color||'',cc:it.cc||'',size:it.size||'',cat:it.cat||'',gender:it.gender||'',qty:0});nuevos++;}
-      }catch(e){}
+    // 2) sincronizar inventario por DIFERENCIA (idempotente: re-guardar no duplica)
+    const oldMap={};(oldItems||[]).forEach(function(it){if(it&&it.sku)oldMap[it.sku]=(oldMap[it.sku]||0)+(+it.qty||0);});
+    const newMap={};(curBox.items||[]).forEach(function(it){if(it&&it.sku)newMap[it.sku]=(newMap[it.sku]||0)+(+it.qty||0);});
+    const all={};Object.keys(oldMap).forEach(function(k){all[k]=1;});Object.keys(newMap).forEach(function(k){all[k]=1;});
+    let adj=0,units=0;
+    for(const sku of Object.keys(all)){
+      const delta=(newMap[sku]||0)-(oldMap[sku]||0);
+      const it=(curBox.items||[]).find(function(x){return x&&x.sku===sku;});
+      await ensureInv(it||{sku:sku});
+      if(delta!==0){try{await DB.adjust(sku,delta,'entrada');adj++;units+=delta;}catch(e){}}
     }
-    if(nuevos)toast('+'+nuevos+' productos nuevos registrados en la base','ok');
+    if(adj)toast('📦→📊 Inventario actualizado: '+(units>0?'+':'')+units+' uds en '+adj+' SKUs','ok');
   }
   catch(e){toast('Error: '+String(e).slice(0,90),'err');}
+});
+async function boxItemsInDB(code){
+  if(!code)return [];
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/wt_boxes?code=eq.'+encodeURIComponent(code)+'&select=items',{headers:sbHeaders()});
+    const a=r.ok?await r.json():[];
+    return (a[0]&&a[0].items)||[];
+  }catch(e){return [];}
+}
+$('#b-stock').addEventListener('click',async()=>{
+  const items=(curBox.items||[]).filter(function(it){return it&&it.sku&&(+it.qty||0)>0;});
+  if(!items.length){toast('La caja no tiene productos con cantidad','err');return;}
+  const tot=items.reduce(function(s,it){return s+(+it.qty||0);},0);
+  const ok=await uiConfirm('⬆ Pasar caja al inventario','Suma las '+tot+' unidades de esta caja al stock (kind: entrada).\n\n⚠️ SOLO para cajas guardadas ANTES de hoy (las nuevas ya se suman solas al Guardar). Usarlo dos veces duplica.\n\n¿Continuar?',{okText:'Sí, pasar al inventario'});
+  if(!ok)return;
+  const btn=$('#b-stock');btn.disabled=true;btn.textContent='Pasando…';
+  let n=0;
+  for(const it of items){
+    await ensureInv(it);
+    try{await DB.adjust(it.sku,(+it.qty||0),'entrada');n++;}catch(e){}
+  }
+  btn.disabled=false;btn.textContent='⬆ Pasar TODO el contenido al inventario (solo cajas viejas)';
+  toast('+'+tot+' unidades ('+n+' SKUs) sumadas al inventario','ok');
 });
 $('#b-del').addEventListener('click',async()=>{
   if(!(await uiConfirm('Borrar caja','¿Borrar '+curBox.code+'? Solo borra la caja, no las prendas.',{danger:true,okText:'Borrar'})))return;
@@ -2650,7 +2680,13 @@ async function onCode(code){
   const matches=await DB.byUPC(code);
   if(matches.length===1){stopCam();openProduct(matches[0]);}
   else if(matches.length>1){stopCam();showMatches(matches,code);}
-  else{stopCam();noMatch(code);}
+  else{
+    let ref=[];try{ref=await DB.refByUPC(code);}catch(e){}
+    stopCam();
+    if(ref.length===1){openProduct(ref[0]);toast('Viene de la base Harps — dale ＋Entrada y queda en tu inventario','ok');}
+    else if(ref.length>1){showMatches(ref,code);}
+    else{noMatch(code);}
+  }
 }
 $('#scan-manual').addEventListener('click',async()=>{const c=await uiPrompt('Escribir UPC','Escribe o pega el código UPC:');if(c)onCode(c.trim());});
 
@@ -2759,9 +2795,23 @@ $('#p-file2').addEventListener('change',e=>{prodImgFile(e.target.files[0]);e.tar
 function updDelta(){$('#p-qty').textContent=current?current.qty:0;$('#in-n').textContent=moveN>1?(' '+moveN):'';$('#out-n').textContent=moveN>1?(' '+moveN):'';$('#deltahint').textContent='Vas a mover '+moveN+' unidad'+(moveN>1?'es':'');}
 $('#q-plus').addEventListener('click',()=>{moveN++;updDelta()});
 $('#q-minus').addEventListener('click',()=>{if(moveN>1)moveN--;updDelta()});
+/* Garantiza que el producto exista en wt_inventory (aterriza data de la referencia) */
+async function ensureInv(d){
+  if(!d||!d.sku)return false;
+  try{const ex=await DB.bySku(d.sku);if(ex){if(d.qty==null)d.qty=ex.qty;return true;}}catch(e){}
+  const o={sku:d.sku,upc:(''+(d.upc||'')),asin:d.asin||'',brand:d.brand||'',style:d.style||'',color:d.color||'',cc:(''+(d.cc||'')),size:d.size||'',cat:d.cat||'',gender:d.gender||'',qty:0,cost:0,img:d.img||'',title:[d.brand,d.style,d.color,d.size].filter(Boolean).join(' ')||d.sku};
+  if(d.img)o.gallery=[d.img];
+  try{await DB.create(o);}catch(e){return false;}
+  d.qty=0;
+  try{if(!CATALOG.find(function(x){return x.sku===o.sku;}))CATALOG.unshift(o);}catch(e){}
+  try{if(typeof INVROWS!=='undefined'&&INVROWS&&!INVROWS.find(function(x){return x.sku===o.sku;}))INVROWS.unshift(o);}catch(e){}
+  try{if(typeof RROWS!=='undefined'&&RROWS&&!RROWS.find(function(x){return x.sku===o.sku;}))RROWS.unshift(o);}catch(e){}
+  return true;
+}
 async function move(delta,kind){
   if(!current)return;
-  try{const nq=await DB.adjust(current.sku,delta,kind);current.qty=nq;updDelta();
+  try{await ensureInv(current);
+    const nq=await DB.adjust(current.sku,delta,kind);current.qty=nq;updDelta();
     toast((delta>0?'+':'')+delta+' → '+current.sku+' = '+nq,'ok');
   }catch(e){toast('Error: '+String(e).slice(0,80),'err')}
 }
@@ -2772,7 +2822,7 @@ $('#fix-qty').addEventListener('click',async()=>{
   const v=await uiPrompt('Corregir cantidad','Cantidad EXACTA en inventario para '+current.sku+':',current.qty);
   if(v===null)return;const nq=Math.max(0,Math.floor(+v||0));const delta=nq-(+current.qty||0);
   if(delta===0){toast('Sin cambios');return;}
-  try{const r=await DB.adjust(current.sku,delta,'ajuste');current.qty=r;updDelta();toast('Corregido: '+current.sku+' = '+r,'ok');}
+  try{await ensureInv(current);const r=await DB.adjust(current.sku,delta,'ajuste');current.qty=r;updDelta();toast('Corregido: '+current.sku+' = '+r,'ok');}
   catch(e){toast('Error: '+String(e).slice(0,80),'err')}
 });
 $('#assign-upc').addEventListener('click',()=>goScan('assign'));
