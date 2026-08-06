@@ -207,7 +207,16 @@ body.rwide #app{max-width:1200px}
 .rpnl td{padding:3px 8px;border-bottom:0;font-size:12px;background:transparent!important}
 .rpnl td:first-child{font-weight:800;color:var(--navy);cursor:default}
 .rpnl tr.cur td:first-child{color:var(--brand-ink)}
-@media(min-width:760px){.rprtbl td,.rprtbl thead th{padding:7px 10px}.rprtbl td:first-child,.rprtbl th:first-child{max-width:260px}}
+.rprtbl td.pmlp{cursor:pointer}
+.pmlp .pth{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;width:34px;height:34px;border-radius:8px;overflow:hidden;background:var(--mist);flex:none}
+.pmlp .pth img{width:100%;height:100%;object-fit:cover;display:block}
+.pmlp .pth .nopic{font-size:16px;opacity:.5}
+.pmlp .ptx{display:inline-block;vertical-align:middle;margin-left:8px;max-width:128px;overflow:hidden}
+.pfich{background:var(--mist);border:1px solid var(--line);border-radius:8px;padding:5px 9px;font-size:13px;color:var(--navy);cursor:pointer}
+.pfich:active{background:#e3ebf3}
+.iqa{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;font-size:12px;padding:9px 4px}
+.iqa svg{width:15px;height:15px;flex:none}
+@media(min-width:760px){.rprtbl td,.rprtbl thead th{padding:7px 10px}.rprtbl td:first-child,.rprtbl th:first-child{max-width:260px}.pmlp .ptx{max-width:190px}}
 /* ---- Branding PML App + iconografía de línea ---- */
 :root{--brand:#f2851c;--brand-ink:#c76a10}
 .glogo{display:block;max-width:180px;height:auto;margin:0 auto 12px}
@@ -242,6 +251,10 @@ body.rwide #app{max-width:1200px}
 .tab.on{color:var(--navy)}
 .tab.on svg{color:var(--brand)}
 .tab:active{transform:scale(.94)}
+.toplogo{margin-left:auto;background:none;border:none;padding:2px 0 2px 8px;cursor:pointer;flex:none;display:flex;align-items:center}
+.toplogo img{height:15px;width:auto;display:block;opacity:.92}
+.toplogo:active{opacity:.7}
+.top h1{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 body.hastab .screen .body{padding-bottom:78px}
 .qin{width:58px;padding:6px 4px;text-align:center;border:1px solid var(--line);border-radius:8px;font-size:14px;font-weight:800;color:var(--navy);background:#fff}
 .qin:focus{outline:none;border-color:var(--sky,#45b1e1);background:#f5fbff}
@@ -345,6 +358,8 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
       <button class="acard" id="home-new"><span class="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span><b>Añadir</b><small>Individual o a caja</small></button>
       <button class="acard" id="home-boxes"><span class="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg></span><b>Cajas</b><small>Rack · etiqueta 4×6</small></button>
       <button class="acard" id="home-inv"><span class="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9.5h18M3 14.5h18M9 4v16M15 4v16"/></svg></span><b>Inventario</b><small>Tabla · ubicación · resumen</small></button>
+      <button class="acard" id="home-pml"><span class="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/><circle cx="15.5" cy="14.5" r="2.2"/><path d="M15.5 13.5v2l1 .6"/></svg></span><b>Tabla PML</b><small>Fotos · precios · marketplaces</small></button>
+      <button class="acard" id="home-cat"><span class="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9"/><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/><path d="M5 11.5V21h14v-9.5"/><path d="M9 21v-6h6v6"/></svg></span><b>Catálogo mayor</b><small>Compartir · vender en bulk</small></button>
     </div>
     <div class="grid2">
       <div class="stat" id="stat-prods" style="cursor:pointer"><b id="st-prods">0</b><span>productos ▸</span></div>
@@ -362,10 +377,10 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
 
 <!-- ============ BARRA DE PESTAÑAS (fija abajo) ============ -->
 <nav class="tabbar" id="tabbar">
-  <button class="tab" data-tab="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><span>Buscar</span></button>
-  <button class="tab" data-tab="new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg><span>Añadir</span></button>
-  <button class="tab" data-tab="boxes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg><span>Cajas</span></button>
-  <button class="tab" data-tab="inv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9.5h18M3 14.5h18M9 4v16M15 4v16"/></svg><span>Inventario</span></button>
+  <button class="tab" data-tab="inv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg><span>Inventario</span></button>
+  <button class="tab" data-tab="pml"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9.5h18M3 14.5h18M9 4v16M15 4v16"/></svg><span>PML</span></button>
+  <button class="tab" data-tab="pricing"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M14.8 8.8c-.6-.9-1.6-1.3-2.8-1.3-1.7 0-3 .9-3 2.3 0 2.9 6 1.6 6 4.4 0 1.4-1.3 2.3-3 2.3-1.2 0-2.2-.4-2.8-1.3"/></svg><span>Pricing</span></button>
+  <button class="tab" data-tab="cat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9"/><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/><path d="M5 11.5V21h14v-9.5"/><path d="M9 21v-6h6v6"/></svg><span>Catálogo</span></button>
 </nav>
 
 <!-- ============ HISTORIAL ============ -->
@@ -485,6 +500,12 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
 <section class="screen" id="s-inv">
   <div class="top"><button class="bk" data-back>‹</button><h1 style="flex:1">Inventario</h1><button class="btn" id="inv-repr" style="background:rgba(255,255,255,.14);color:#fff;padding:8px 10px;font-size:13px;margin-right:6px;display:inline-flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L4.4 14.2V4H14.6l6 6a2 2 0 0 1 0 3.4z"/><circle cx="8" cy="8" r="1.3"/></svg>Precios</button><button class="btn" id="inv-sum" style="background:rgba(255,255,255,.14);color:#fff;padding:8px 10px;font-size:13px;margin-right:6px">📊 Resumen</button><button class="btn" id="inv-selmode" style="background:rgba(255,255,255,.14);color:#fff;padding:8px 10px;font-size:13px">Limpiar</button></div>
   <div class="body">
+    <div class="rbar" style="margin:0 0 4px">
+      <button class="btn ghost iqa" id="iq-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Buscar</button>
+      <button class="btn ghost iqa" id="iq-new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>Añadir</button>
+      <button class="btn ghost iqa" id="iq-boxes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>Cajas</button>
+      <button class="btn ghost iqa" id="iq-count"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h12M9 12h12M9 18h12"/><path d="M4 5l1 1 2-2M4 11l1 1 2-2M4 17l1 1 2-2"/></svg>Conteo</button>
+    </div>
     <div class="invsum" id="invsum"></div>
     <input class="in" id="invq" placeholder="Buscar marca, estilo, color, SKU, UPC…" autocomplete="off">
     <div class="ffrow">
@@ -544,9 +565,45 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
   </div>
 </section>
 
+<!-- ============ TABLA PML (maestra: foto+stock+precios por canal) ============ -->
+<section class="screen" id="s-pml">
+  <div class="top"><button class="bk" data-back>‹</button><h1 style="flex:1">Tabla PML</h1><span id="pml-save" style="font-size:11px;color:#8fb3cc;font-weight:700"></span></div>
+  <div class="body">
+    <div class="rbar" style="margin-bottom:8px">
+      <button class="btn ghost" id="pml-torepr" style="flex:1;padding:9px 8px;font-size:12.5px">💰 Repricer</button>
+      <button class="btn ghost" id="pml-tosum" style="flex:1;padding:9px 8px;font-size:12.5px">📊 Resumen</button>
+      <button class="btn ghost" id="pml-tocat" style="flex:1;padding:9px 8px;font-size:12.5px">🛍️ Catálogo</button>
+    </div>
+    <div class="rkpis" id="pml-kpis"></div>
+    <div class="rbar" style="margin-bottom:4px">
+      <input class="in" id="pml-q" placeholder="Buscar marca, estilo, color, SKU, UPC…" autocomplete="off" style="flex:2;min-width:130px;margin:0">
+      <select class="ff" id="pml-brand" style="flex:1;margin:0"><option value="">Marca</option></select>
+      <select class="ff" id="pml-stock" style="flex:1;margin:0"><option value="1">Con stock</option><option value="">Todos</option><option value="nofoto">Sin foto</option></select>
+    </div>
+    <div class="rprwrap">
+      <table class="rprtbl" id="pmltbl">
+        <thead><tr>
+          <th data-k="prod">Producto <span class="sar" data-for="prod"></span></th>
+          <th data-k="upc">UPC</th>
+          <th data-k="qty">Qty <span class="sar" data-for="qty"></span></th>
+          <th data-k="loc">Ubicación</th>
+          <th data-k="cost">Costo <span class="sar" data-for="cost"></span></th>
+          <th data-k="ebay">eBay <span class="sar" data-for="ebay"></span></th>
+          <th data-k="amazon">Amazon <span class="sar" data-for="amazon"></span></th>
+          <th data-k="walmart">Walmart <span class="sar" data-for="walmart"></span></th>
+          <th data-k="shopify">Shopify <span class="sar" data-for="shopify"></span></th>
+          <th></th>
+        </tr></thead>
+        <tbody id="pmlbody"></tbody>
+      </table>
+    </div>
+    <p class="qlabel" style="margin-top:8px">Toca la foto o el nombre para abrir la ficha completa (galería, textos, bullets). Precios editables por canal; naranja = fijado a mano. Cantidades y ubicación se manejan en Inventario.</p>
+  </div>
+</section>
+
 <!-- ============ REPRICER (matriz por canal) ============ -->
 <section class="screen" id="s-repr">
-  <div class="top"><button class="bk" data-back>‹</button><h1 style="flex:1">Repricer</h1><span id="rpr-save" style="font-size:11px;color:#8fb3cc;font-weight:700"></span></div>
+  <div class="top"><button class="bk" data-back>‹</button><h1 style="flex:1">Pricing</h1><span id="rpr-save" style="font-size:11px;color:#8fb3cc;font-weight:700"></span></div>
   <div class="body">
     <div class="rchips" id="rpr-ch">
       <button data-ch="directo">Directo</button>
@@ -577,6 +634,7 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
       <input class="in" id="rpr-q" placeholder="Buscar marca, estilo, color, SKU…" autocomplete="off" style="flex:2;min-width:130px;margin:0">
       <select class="ff" id="rpr-brand" style="flex:1;margin:0"><option value="">Marca</option></select>
       <select class="ff" id="rpr-stock" style="flex:1;margin:0"><option value="1">Con stock</option><option value="">Todos</option></select>
+      <button class="btn o" id="rpr-bulk" style="flex:1 1 100%;padding:10px;font-size:13px">⚡ Aplicar margen × a los filtrados (canal actual)</button>
     </div>
     <div class="rprwrap">
       <table class="rprtbl">
@@ -1020,19 +1078,32 @@ const DB={
 function upcVariants(u){u=(u||'').replace(/\s/g,'');const v=new Set([u]);if(u.length===13&&u[0]==='0')v.add(u.slice(1));if(u.length===12)v.add('0'+u);v.add(u.replace(/^0+/,''));return[...v].filter(Boolean);}
 
 /* =================== NAV =================== */
-function show(id){$$('.screen').forEach(s=>s.classList.remove('on'));$('#'+id).classList.add('on');window.scrollTo(0,0);document.body.classList.toggle('rwide',id==='s-repr');updateTabbar(id);}
-var TABBAR_ON={'s-home':1,'s-search':1,'s-inv':1,'s-invsum':1,'s-sum':1,'s-boxes':1};
-var TABMAP={'s-search':'search','s-scan':'search','s-ocr':'search','s-new':'new','s-boxes':'boxes','s-box':'boxes','s-inv':'inv','s-invsum':'inv','s-sum':'inv','s-repr':'inv','s-prod':'inv','s-hist':'inv'};
+function show(id){$$('.screen').forEach(s=>s.classList.remove('on'));$('#'+id).classList.add('on');window.scrollTo(0,0);document.body.classList.toggle('rwide',id==='s-repr'||id==='s-pml');updateTabbar(id);}
+var TABBAR_OFF={'s-lock':1,'s-scan':1,'s-new':1,'s-ocr':1};
+var TABMAP={'s-search':'inv','s-scan':'inv','s-ocr':'inv','s-new':'inv','s-boxes':'inv','s-box':'inv','s-inv':'inv','s-invsum':'inv','s-count':'inv','s-hist':'inv','s-sum':'pricing','s-repr':'pricing','s-pml':'pml','s-prod':'pml'};
 function updateTabbar(id){
   var tb=$('#tabbar');if(!tb)return;
-  var on=!!TABBAR_ON[id] && !(id==='s-inv'&&typeof INVSEL!=='undefined'&&INVSEL.size>0);
+  var on=!TABBAR_OFF[id] && !(id==='s-inv'&&typeof INVSEL!=='undefined'&&INVSEL.size>0);
   tb.classList.toggle('on',on);document.body.classList.toggle('hastab',on);
   var active=TABMAP[id]||'';
   $$('#tabbar .tab').forEach(function(t){t.classList.toggle('on',t.getAttribute('data-tab')===active);});
 }
+function goHome(){stopCam();nav=['s-home'];show('s-home');onEnter('s-home');}
+var CATALOG_URL='https://deploy-harps-catalog.vercel.app/';
 (function(){
-  var acts={search:function(){var b=$('#home-search');if(b)b.click();},'new':function(){openWizard('');},boxes:function(){goBoxes();},inv:function(){openInv();}};
+  var acts={inv:function(){openInv();},pml:function(){openPML();},pricing:function(){openRepricer();},cat:function(){window.open(CATALOG_URL,'_blank');}};
   $$('#tabbar .tab').forEach(function(t){t.addEventListener('click',function(){var a=acts[t.getAttribute('data-tab')];if(a)a();});});
+})();
+/* logo Gurupia en cada header → Home */
+(function(){
+  $$('.screen .top').forEach(function(top){
+    if(top.closest('#s-lock'))return;
+    var b=document.createElement('button');
+    b.className='toplogo';b.setAttribute('aria-label','Ir al inicio');
+    b.innerHTML='<img src="gurupia-logo-white.png?3" alt="Gurupia">';
+    b.addEventListener('click',goHome);
+    top.appendChild(b);
+  });
 })();
 function go(id){if(nav[nav.length-1]!==id)nav.push(id);show(id);onEnter(id);}
 function back(){stopCam();if(nav.length>1)nav.pop();const id=nav[nav.length-1];show(id);onEnter(id);}
@@ -1188,6 +1259,142 @@ function renderSum(){
 async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero el Inventario para calcular','err');return;}if(!(await unlockMoney()))return;go('s-sum');renderSum();}
 (function(){var b=$('#inv-sum');if(b)b.addEventListener('click',openSummary);$$('#sum-mode button').forEach(function(x){x.addEventListener('click',function(){SUMMODE=x.getAttribute('data-m');$$('#sum-mode button').forEach(function(y){y.classList.toggle('on',y===x);});renderSum();});});var f=$('#sum-ch');if(f)f.addEventListener('change',function(){SUMCH=f.value;renderSum();});
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
+
+/* =================== TABLA PML (maestra) =================== */
+var PMLSORTK='prod', PMLSORTD=1;
+var PMLCHS=['ebay','amazon','walmart','shopify'];
+function pmlThumb(d){
+  var u=d.img||(Array.isArray(d.gallery)&&d.gallery[0])||'';
+  return u?'<img src="'+esc(u)+'" loading="lazy" alt="">':'<span class="nopic">👕</span>';
+}
+function pmlLoc(d){return ((d.location||'')+'').trim()||locText(d.sku)||'';}
+function pmlFilt(){
+  var q=norm($('#pml-q').value||''), b=$('#pml-brand').value, st=$('#pml-stock').value;
+  return (RROWS||[]).filter(function(d){
+    if(st==='1'&&!(+d.qty>0))return false;
+    if(st==='nofoto'&&(d.img||(Array.isArray(d.gallery)&&d.gallery.length)))return false;
+    if(b&&(((d.brand||'')+'').trim())!==b)return false;
+    if(q){var hay=norm((d.sku||'')+' '+(d.upc||'')+' '+(d.brand||'')+' '+(d.style||'')+' '+(d.color||'')+' '+(d.size||'')+' '+(d.title||'')+' '+(d.listtitle||''));if(hay.indexOf(q)<0)return false;}
+    return true;
+  });
+}
+function pmlSortRows(rows){
+  var k=PMLSORTK,dir=PMLSORTD;
+  return rows.slice().sort(function(a,b){
+    if(k==='prod'||k==='upc'||k==='loc'){
+      var sa=k==='prod'?norm((a.brand||'')+' '+(a.style||'')+' '+(a.color||'')+' '+(a.size||'')):k==='upc'?(a.upc||''):norm(pmlLoc(a));
+      var sb=k==='prod'?norm((b.brand||'')+' '+(b.style||'')+' '+(b.color||'')+' '+(b.size||'')):k==='upc'?(b.upc||''):norm(pmlLoc(b));
+      return (''+sa).localeCompare(''+sb,'es',{numeric:true})*dir;
+    }
+    function num(d){
+      if(k==='qty')return +d.qty||0;
+      if(k==='cost')return +d.cost||0;
+      return rPrice(d,k);
+    }
+    return (num(a)-num(b))*dir;
+  });
+}
+function pmlRowHTML(d){
+  var name=(((d.brand||'')+' '+(d.style||'')).replace(/\s+/g,' ')).trim()||d.sku;
+  var sub=[canonColor(d.color),((d.size||'')+'').trim()].filter(Boolean).join(' · ');
+  var cells='';
+  PMLCHS.forEach(function(ch){
+    var po=rPriceOv(d,ch);
+    cells+='<td><input class="rin'+(po!=null?' ov':'')+'" type="number" inputmode="decimal" step="0.01" min="0" data-pch="'+ch+'" value="'+rPrice(d,ch).toFixed(2)+'"></td>';
+  });
+  var loc=pmlLoc(d);
+  return '<tr data-sku="'+esc(d.sku)+'">'+
+    '<td class="pmlp"><span class="pth">'+pmlThumb(d)+'</span><span class="ptx"><b>'+esc(name)+'</b><small>'+esc(sub||d.sku)+'</small></span></td>'+
+    '<td class="dim" style="font-size:11px">'+esc(d.upc||'—')+'</td>'+
+    '<td class="dim">'+(+d.qty||0)+'</td>'+
+    '<td class="dim" style="font-size:11px;max-width:110px;overflow:hidden;text-overflow:ellipsis">'+esc(loc||'—')+'</td>'+
+    '<td><input class="rin" type="number" inputmode="decimal" step="0.01" min="0" data-pf="cost" value="'+((+d.cost||0)?(+d.cost).toFixed(2):'')+'"></td>'+
+    cells+
+    '<td><button class="pfich" data-fich="'+esc(d.sku)+'">✎</button></td>'+
+  '</tr>';
+}
+function pmlKpis(rows){
+  var u=0,val=0,foto=0;
+  rows.forEach(function(d){var q=+d.qty||0;u+=q;var v=parseFloat(d.price!=null?d.price:d.retail)||0;val+=v*q;if(d.img||(Array.isArray(d.gallery)&&d.gallery.length))foto++;});
+  $('#pml-kpis').innerHTML='<div><b>'+rows.length.toLocaleString('en-US')+'</b><span>productos</span></div>'+
+    '<div><b>'+u.toLocaleString('en-US')+'</b><span>unidades</span></div>'+
+    '<div><b class="hi">'+fmtMoney(val)+'</b><span>valor venta</span></div>'+
+    '<div><b>'+foto+'/'+rows.length+'</b><span>con foto</span></div>';
+}
+function pmlUpdSar(){
+  $$('#pmltbl thead .sar').forEach(function(s){var k=s.getAttribute('data-for');if(k===PMLSORTK){s.textContent=PMLSORTD>0?'▲':'▼';s.classList.add('on');}else{s.textContent='↕';s.classList.remove('on');}});
+}
+function pmlRender(){
+  var rows=pmlSortRows(pmlFilt());
+  $('#pmlbody').innerHTML=rows.length?rows.map(pmlRowHTML).join(''):'<tr><td colspan="10" class="dim" style="text-align:center;padding:18px">Sin resultados</td></tr>';
+  pmlKpis(rows);pmlUpdSar();
+}
+function pmlFillBrands(){
+  var vals=[];(RROWS||[]).forEach(function(d){var b=((d.brand||'')+'').trim();if(b&&vals.indexOf(b)<0)vals.push(b);});
+  vals.sort(function(a,b){return a.localeCompare(b,'es');});
+  var s=$('#pml-brand'),cur=s.value;
+  s.innerHTML='<option value="">Marca</option>'+vals.map(function(v){return '<option value="'+esc(v)+'">'+esc(v)+'</option>';}).join('');
+  s.value=cur;
+}
+async function openPML(){
+  if(!(await unlockMoney()))return;
+  go('s-pml');
+  if(!RROWS){
+    $('#pmlbody').innerHTML='<tr><td colspan="10" class="dim" style="text-align:center;padding:18px">Cargando…</td></tr>';
+    await rCfgLoad();
+    var ap=$('#rpr-autop');if(ap)ap.checked=!!RCFG.autop;
+    try{RROWS=await DB.list(3000);}catch(e){RROWS=[];toast('No se pudo cargar','err');}
+    rFillBrands();pmlFillBrands();
+  }else{pmlFillBrands();}
+  if(!Object.keys(LOCIDX).length){try{buildLocIdx(await DB.listBoxes());}catch(e){}}
+  pmlRender();
+}
+(function(){
+  var hb=$('#home-pml');if(hb)hb.addEventListener('click',openPML);
+  var hc=$('#home-cat');if(hc)hc.addEventListener('click',function(){window.open(CATALOG_URL,'_blank');});
+  var tr2=$('#pml-torepr');if(tr2)tr2.addEventListener('click',function(){openRepricer();});
+  var ts=$('#pml-tosum');if(ts)ts.addEventListener('click',function(){if(RROWS&&RROWS.length&&!(INVROWS&&INVROWS.length))INVROWS=RROWS;openSummary();});
+  var tc=$('#pml-tocat');if(tc)tc.addEventListener('click',function(){window.open(CATALOG_URL,'_blank');});
+  var qT=null,q=$('#pml-q');
+  if(q)q.addEventListener('input',function(){clearTimeout(qT);qT=setTimeout(pmlRender,180);});
+  var pb=$('#pml-brand');if(pb)pb.addEventListener('change',pmlRender);
+  var ps=$('#pml-stock');if(ps)ps.addEventListener('change',pmlRender);
+  $$('#pmltbl thead th').forEach(function(th){th.addEventListener('click',function(){
+    var k=th.getAttribute('data-k');if(!k)return;
+    if(PMLSORTK===k)PMLSORTD=-PMLSORTD;else{PMLSORTK=k;PMLSORTD=(k==='prod'||k==='upc'||k==='loc')?1:-1;}
+    pmlRender();
+  });});
+  var body=$('#pmlbody');
+  if(body){
+    body.addEventListener('click',async function(e){
+      var fb=e.target.closest('[data-fich]');
+      var pc=e.target.closest('td.pmlp');
+      if(!fb&&!pc)return;
+      var tr=e.target.closest('tr[data-sku]');if(!tr)return;
+      var sku=tr.getAttribute('data-sku');
+      var d=(RROWS||[]).find(function(x){return x.sku===sku;});if(!d)return;
+      var fresh=d;try{fresh=(await DB.bySku(sku))||d;}catch(err){}
+      openProduct(fresh);
+      nav=['s-home','s-pml','s-prod'];
+    });
+    body.addEventListener('change',function(e){
+      var inp=e.target;if(!inp.classList||!inp.classList.contains('rin'))return;
+      var tr=inp.closest('tr[data-sku]');if(!tr)return;
+      var d=(RROWS||[]).find(function(x){return x.sku===tr.getAttribute('data-sku');});if(!d)return;
+      var raw=inp.value.trim(),v=raw===''?null:(parseFloat(raw)||0);
+      var patch={};
+      var pch=inp.getAttribute('data-pch');
+      if(pch){
+        var auto=rAuto(d,pch);
+        patch=rSetPriceOv(d,pch,(v==null||Math.abs(v-auto)<0.005)?null:v);
+      }else if(inp.getAttribute('data-pf')==='cost'){
+        d.cost=(v==null?null:v);patch.cost=d.cost;
+      }
+      DB.update(d.sku,patch).then(function(){var el=$('#pml-save');if(el){el.textContent='✓ guardado';clearTimeout(rSaveT);rSaveT=setTimeout(function(){el.textContent='';},1800);}}).catch(function(err){toast('Error al guardar: '+String(err).slice(0,70),'err');});
+      pmlRender();
+    });
+  }
+})();
 
 /* =================== REPRICER (matriz por canal) =================== */
 var RCH='ebay', RSORTK='prod', RSORTD=1, RXP={}, RROWS=null, RSHOWN=[];
@@ -1353,6 +1560,35 @@ async function openRepricer(){
   if(rq)rq.addEventListener('input',function(){clearTimeout(rqT);rqT=setTimeout(rRender,180);});
   var rb=$('#rpr-brand');if(rb)rb.addEventListener('change',rRender);
   var rs=$('#rpr-stock');if(rs)rs.addEventListener('change',rRender);
+  var bk=$('#rpr-bulk');
+  if(bk)bk.addEventListener('click',async function(){
+    var rows=(RSHOWN||[]).slice();
+    if(!rows.length){toast('No hay productos filtrados','err');return;}
+    var ok=await uiConfirm('⚡ Precio en bulk','Aplicar precio automático (costo × pack × margen '+(+RCFG.mg[RCH]||2)+') a '+rows.length+' productos en '+RCHN[RCH]+'.\nSobrescribe el precio de ese canal (respeta el Mg× propio de cada fila si lo tiene). ¿Continuar?');
+    if(!ok)return;
+    var payload=[];
+    rows.forEach(function(d){
+      var auto=rAuto(d,RCH);
+      if(!(auto>0))return;
+      rSetPriceOv(d,RCH,auto);
+      if(RCH==='directo')payload.push({sku:d.sku,price:d.price});
+      else payload.push({sku:d.sku,prices:d.prices});
+    });
+    if(!payload.length){toast('Ninguno tiene costo para calcular','err');return;}
+    bk.disabled=true;bk.textContent='Aplicando…';
+    try{
+      for(var i=0;i<payload.length;i+=80){
+        var b=payload.slice(i,i+80);
+        var r=await fetch(SB_URL+'/rest/v1/wt_inventory?on_conflict=sku',{method:'POST',headers:sbHeaders({Prefer:'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify(b)});
+        if(!r.ok)throw new Error(r.status+' '+(await r.text()).slice(0,120));
+      }
+      toast(payload.length+' precios aplicados en '+RCHN[RCH],'ok');
+    }catch(e){toast('Error: '+String(e).slice(0,80),'err');}
+    bk.disabled=false;bk.textContent='⚡ Aplicar margen × a los filtrados (canal actual)';
+    rRender();
+  });
+  var qa={ 'iq-search':function(){go('s-search');}, 'iq-new':function(){openWizard('');}, 'iq-boxes':function(){goBoxes();}, 'iq-count':function(){goCount();} };
+  Object.keys(qa).forEach(function(id){var el=$('#'+id);if(el)el.addEventListener('click',qa[id]);});
   $$('#s-repr .rprtbl thead th').forEach(function(th){th.addEventListener('click',function(){
     var k=th.getAttribute('data-k');if(!k)return;
     if(RSORTK===k)RSORTD=-RSORTD;else{RSORTK=k;RSORTD=(k==='prod')?1:-1;}
