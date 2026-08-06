@@ -1403,7 +1403,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v70 · búsqueda unificada';
+var APP_VER='v71 · UPC precarga todo';
 (function(){var el=document.querySelector('#s-home .brandmark .app');if(el)el.innerHTML+=' <span style="font-size:10px;color:#8fb3cc;font-weight:600">'+APP_VER+'</span>';})();
 var CMCACHE={};
 /* Gurupia (marca propia): codigos de PACK segun "Tabla de Colores G001 y G002" + template G006 */
@@ -3039,7 +3039,25 @@ function buildReview(){
   const rows=[['UPC',upc||'— sin UPC —'],['Cód. color',$('#n-cc').value.trim()||'—'],['Color',$('#n-color').value.trim()||'—'],['Talla',$('#n-size').value.trim()||'—'],['Tipo',$('#n-cat').value.trim()||'—'],['Género',$('#n-gender').value||'—'],['Marca',$('#n-brand').value.trim()]];
   $('#rev-list').innerHTML=rows.map(r=>'<div class="revrow"><span>'+r[0]+'</span><b>'+esc(r[1])+'</b></div>').join('');
 }
-$('#wiz-next').addEventListener('click',()=>{if(validStep(wstep))showStep(wstep+1);});
+/* Precarga TODO desde la base (inventario o matriz Harps) al poner el UPC */
+var wizPrefT=null;
+async function wizPrefillFromUPC(){
+  if(nmode&&nmode()==='noupc')return;
+  const u=($('#n-upc').value||'').replace(/\D/g,'');
+  if(u.length<8)return;
+  const setIf=(id,v)=>{const el=$('#'+id);if(el&&!el.value.trim()&&v)el.value=v;};
+  let hit=null,origen='';
+  try{const inv=await DB.byUPC(u);if(inv&&inv.length){hit=inv[0];origen='inv';}}catch(e){}
+  if(!hit){try{const ref=await DB.refByUPC(u);if(ref&&ref.length){hit=ref[0];origen='ref';}}catch(e){}}
+  if(!hit)return;
+  setIf('n-brand',hit.brand);setIf('n-style',hit.style);setIf('n-color',hit.color);setIf('n-cc',(''+(hit.cc||'')));setIf('n-size',hit.size);setIf('n-cat',hit.cat);
+  if(hit.gender&&!$('#n-gender').value)$('#n-gender').value=hit.gender;
+  if(hit.img&&!photoData&&!autoImg){autoImg=hit.img;setPreview(autoImg);const nt=$('#n-imgnote');if(nt){nt.textContent='📷 Foto de la base';nt.style.display='block';}}
+  $('#n-upcbadge').textContent=origen==='inv'?('⚠️ YA en inventario ('+(+hit.qty||0)+' uds) — al guardar se SUMA'):'✓ precargado de la base Harps';
+  toast(origen==='inv'?'Ese UPC ya está en tu inventario — datos precargados':'Datos precargados de la base Harps','ok');
+}
+(function(){var up=$('#n-upc');if(up){up.addEventListener('input',function(){clearTimeout(wizPrefT);wizPrefT=setTimeout(wizPrefillFromUPC,500);});up.addEventListener('change',wizPrefillFromUPC);}})();
+$('#wiz-next').addEventListener('click',async()=>{if(wstep===1){try{await wizPrefillFromUPC();}catch(e){}}if(validStep(wstep))showStep(wstep+1);});
 $('#wiz-prev').addEventListener('click',()=>showStep(wstep-1));
 $('#wiz-x').addEventListener('click',()=>{if(wstep>1)showStep(wstep-1);else back();});
 $('#wiz-save').addEventListener('click',async()=>{
