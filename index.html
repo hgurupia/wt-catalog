@@ -1454,7 +1454,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v88 · imprimir guarda primero';
+var APP_VER='v89 · caja a mano robusta';
 (function(){var el=document.querySelector('#s-home .brandmark .app');if(el)el.innerHTML+=' <span style="font-size:10px;color:#8fb3cc;font-weight:600">'+APP_VER+'</span>';})();
 var CMCACHE={};
 /* Gurupia (marca propia): codigos de PACK segun "Tabla de Colores G001 y G002" + template G006 */
@@ -2443,7 +2443,7 @@ function openInvSum(){
   var run=function(){var qe=$('#isum-q');if(qe)qe.value='';['isum-brand','isum-color','isum-size','isum-loc'].forEach(function(id){var e=$('#'+id);if(e)e.selectedIndex=0;});fillIsum(INVROWS);go('s-invsum');renderInvSum();};
   if(INVROWS&&INVROWS.length){run();return;}
   go('s-invsum');var b=$('#isumbody');if(b)b.innerHTML='<tr><td colspan="3" class="muted" style="text-align:center;padding:20px">Cargando…</td></tr>';
-  Promise.all([DB.list(3000),DB.listBoxes().catch(function(){return[];})]).then(function(r){INVROWS=r[0];buildLocIdx(r[1]);fillFilters(INVROWS);run();}).catch(function(){toast('No se pudo cargar','err');});
+  Promise.all([DB.list(3000),DB.listBoxes().catch(function(){return[];})]).then(function(r){INVROWS=r[0];buildLocIdx(r[1]);fillFilters(INVROWS);refreshCatsDatalist();run();}).catch(function(){toast('No se pudo cargar','err');});
 }
 (function(){
   $$('#isum-mode button').forEach(function(x){x.addEventListener('click',function(){INVSUMG=x.getAttribute('data-m');$$('#isum-mode button').forEach(function(y){y.classList.toggle('on',y===x);});renderInvSum();});});
@@ -3068,11 +3068,13 @@ $('#bm-add').addEventListener('click',()=>{
   const brand=$('#bm-brand').value.trim(),style=$('#bm-style').value.trim(),color=$('#bm-color').value.trim(),cc=$('#bm-cc').value.trim().replace(/\D/g,''),size=$('#bm-size').value.trim(),cat=$('#bm-cat').value.trim(),gender=$('#bm-gender').value,upc=$('#bm-upc').value.trim().replace(/\D/g,''),qty=Math.max(1,+$('#bm-qty').value||1);
   if(!brand&&!style&&!color&&!size){toast('Llena al menos un campo (marca, estilo, color o talla)','err');return;}
   const skuManual=$('#bm-sku').value.trim();
-  const sku=skuManual||('WT-'+(slug(brand).slice(0,4).toUpperCase()||'NA')+'-'+(slug(style).toUpperCase()||'NA')+'-'+(slug(color).slice(0,3).toUpperCase()||'NA')+'-'+(size.toUpperCase()||'NA'));
+  const sku=skuManual||(cc?canonSku(brand,style,cc,size):('WT-'+(slug(brand).slice(0,4).toUpperCase()||'NA')+'-'+(slug(style).toUpperCase()||'NA')+'-'+(slug(color).slice(0,3).toUpperCase()||'NA')+'-'+(size.toUpperCase()||'NA')));
   const ex=curBox.items.find(i=>itemKey(i)===itemKey({brand,style,color,cc,size,upc}));
   const name=[brand,style,color,size].filter(Boolean).join(' ')||sku;
   if(ex){ex.qty=(+ex.qty||0)+qty;toast('Ya estaba — sumado: '+name+' = '+ex.qty,'ok');}
   else{curBox.items.push({sku,upc,brand,style,color,cc,size,cat,gender,qty,skuLocked:!!skuManual});toast('Agregado: '+name,'ok');}
+  ['bm-brand','bm-style','bm-color','bm-cc','bm-size','bm-upc','bm-cat','bm-sku'].forEach(function(id){var e=$('#'+id);if(e)e.value='';});
+  $('#bm-gender').value='';$('#bm-qty').value=1;
   $('#b-manualform').style.display='none';$('#b-q').value='';$('#b-results').innerHTML='';renderBoxItems();
 });
 $('#bm-upc').addEventListener('change',async()=>{
@@ -3115,6 +3117,11 @@ $('#b-q').addEventListener('input',()=>{
 async function saveCurBox(){
   const newCode=$('#b-code').value.trim();
   if(!newCode){toast('Ponle un código a la caja','err');return false;}
+  /* si quedó un producto escrito en "Cargar a mano" sin agregar, se agrega solo (nunca más etiquetas vacías) */
+  try{
+    const pend=['bm-brand','bm-style','bm-color','bm-upc','bm-sku'].some(function(id){var e=$('#'+id);return e&&e.value.trim();});
+    if(pend){$('#bm-add').click();}
+  }catch(e){}
   const orig=curBox._orig;
   curBox.code=newCode;curBox.kind=$('#b-kind').value;curBox.rack=$('#b-rack').value.trim();curBox.bin=$('#b-bin').value.trim();curBox.name=$('#b-name').value.trim();curBox.pieces=boxPieces();
   const payload={code:curBox.code,name:curBox.name,kind:curBox.kind,rack:curBox.rack,bin:curBox.bin,items:curBox.items,pieces:curBox.pieces};
@@ -3647,7 +3654,16 @@ function slug(s){return (''+(s||'')).normalize('NFD').replace(/[̀-ͯ]/g,'').rep
 function genSku(brand,style,color,size){return 'WT-'+(slug(brand).slice(0,4).toUpperCase()||'NA')+'-'+(slug(style).toUpperCase()||'NA')+'-'+(slug(color).slice(0,3).toUpperCase()||'NA')+'-'+((''+(size||'')).toUpperCase()||'NA');}
 function itemKey(r){return [r.brand,r.style,r.color,r.cc,r.size,(r.upc||'')].map(x=>(''+(x||'')).trim().toLowerCase()).join('|');}
 // datalists
-(function(){const b=[...new Set(CATALOG.map(d=>d.brand).filter(Boolean))].sort();$('#dl-brand').innerHTML=b.map(x=>'<option value="'+esc(x)+'">').join('');const c=[...new Set(CATALOG.map(d=>d.cat).filter(Boolean))].sort();$('#dl-cat').innerHTML=c.map(x=>'<option value="'+esc(x)+'">').join('');const co=[...new Set(CATALOG.map(d=>d.color).filter(Boolean))].sort();$('#dl-color').innerHTML=co.map(x=>'<option value="'+esc(x)+'">').join('');})();
+var STD_CATS=['T-Shirt','Polo','Hoodie','Sweatshirt','Tank Top','Long Sleeve','Jacket','Fleece','Pants','Shorts','Pajama Pants','Hat','Socks','Bag'];
+function refreshCatsDatalist(){
+  var cats=STD_CATS.slice();
+  try{CATALOG.forEach(function(d){var c=((d.cat||'')+'').trim();if(c&&cats.indexOf(c)<0)cats.push(c);});}catch(e){}
+  try{(typeof RROWS!=='undefined'&&RROWS?RROWS:[]).forEach(function(d){var c=((d.cat||'')+'').trim();if(c&&cats.indexOf(c)<0)cats.push(c);});}catch(e){}
+  try{(typeof INVROWS!=='undefined'&&INVROWS?INVROWS:[]).forEach(function(d){var c=((d.cat||'')+'').trim();if(c&&cats.indexOf(c)<0)cats.push(c);});}catch(e){}
+  cats.sort(function(a,b){return a.localeCompare(b,'es');});
+  var dl=$('#dl-cat');if(dl)dl.innerHTML=cats.map(function(x){return '<option value="'+esc(x)+'">';}).join('');
+}
+(function(){const b=[...new Set(CATALOG.map(d=>d.brand).filter(Boolean))].sort();$('#dl-brand').innerHTML=b.map(x=>'<option value="'+esc(x)+'">').join('');refreshCatsDatalist();const co=[...new Set(CATALOG.map(d=>d.color).filter(Boolean))].sort();$('#dl-color').innerHTML=co.map(x=>'<option value="'+esc(x)+'">').join('');})();
 </script>
 </body>
 </html>
