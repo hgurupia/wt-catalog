@@ -1403,7 +1403,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v75 · menús por marca';
+var APP_VER='v76 · catálogo completo';
 (function(){var el=document.querySelector('#s-home .brandmark .app');if(el)el.innerHTML+=' <span style="font-size:10px;color:#8fb3cc;font-weight:600">'+APP_VER+'</span>';})();
 var CMCACHE={};
 /* Gurupia (marca propia): codigos de PACK segun "Tabla de Colores G001 y G002" + template G006 */
@@ -1425,16 +1425,28 @@ async function cmForStyle(brand,style){
   var out=[];
   var stU=s.toUpperCase();
   /* Gurupia: packs propios + colores por UNIDAD heredados (G001/G002=Bella 3001CVC, G006=Next Level 5033) */
-  if(GURUPIA_COLORS[stU]){
-    var donor=(stU==='G006')?await cmForStyle('Next Level','5033'):await cmForStyle('Bella','3001CVC');
-    out=gurList(stU).concat((donor||[]).map(function(x){return {brand:'Gurupia',code:(x.code||'')+'',name:x.name};}));
-    if(out.length)CMCACHE[key]=out;return out;
-  }
-  if(!s&&norm(b).indexOf('guru')>=0){
-    var d1=await cmForStyle('Bella','3001CVC'),d2=await cmForStyle('Next Level','5033');
+  var esGuru=norm(b).indexOf('guru')>=0;
+  if(GURUPIA_COLORS[stU]||(esGuru&&!s)){
+    var packs=gurList(GURUPIA_COLORS[stU]?stU:'').map(function(x){return {brand:'Gurupia',code:(x.code||'')+'',name:x.name,pack:true};});
+    var donors=[];
+    if(stU==='G006'){donors=await cmForStyle('Next Level','5033');}
+    else if(GURUPIA_COLORS[stU]){donors=await cmForStyle('Bella','3001CVC');}
+    else{
+      var d1=await cmForStyle('Bella','3001CVC'),d2=await cmForStyle('Next Level','5033');
+      donors=(d1||[]).concat(d2||[]);
+    }
     var seenG={};out=[];
-    gurList('').concat(d1||[],d2||[]).forEach(function(x){var k2=((x.code||'')+'')+'|'+cmNorm(x.name);if(!seenG[k2]){seenG[k2]=1;out.push({brand:'Gurupia',code:(x.code||'')+'',name:x.name});}});
-    if(out.length)CMCACHE[key]=out;return out;
+    packs.concat((donors||[]).map(function(x){return {brand:'Gurupia',code:(x.code||'')+'',name:x.name};})).forEach(function(x){
+      var k2=((x.code||'')+'')+'|'+cmNorm(x.name)+'|'+(x.pack?'p':'');
+      if(!seenG[k2]){seenG[k2]=1;out.push(x);}
+    });
+    if(donors&&donors.length)CMCACHE[key]=out;
+    return out;
+  }
+  if(esGuru&&s&&!GURUPIA_COLORS[stU]){
+    out=await cmForStyle('',s);
+    if(out.length)CMCACHE[key]=out;
+    return out;
   }
   if(s){
     try{
@@ -1443,9 +1455,30 @@ async function cmForStyle(brand,style){
       var r=await fetch(q,{headers:sbHeaders()});
       if(r.ok)out=await r.json();
     }catch(e){}
+    if(!out.length&&b){
+      /* la marca puede no coincidir textual — reintentar el estilo sin filtro de marca */
+      try{
+        var r0=await fetch(SB_URL+'/rest/v1/wt_colors?style=eq.'+encodeURIComponent(s)+'&select=brand,code,name&limit=400',{headers:sbHeaders()});
+        if(r0.ok)out=await r0.json();
+      }catch(e){}
+    }
     if(!out.length){
       try{out=(await DB.colorsForStyle(b,s)).map(function(x){return {brand:b,code:(x.color_code||'')+'',name:x.color};}).filter(function(x){return x.code;});}catch(e){}
     }
+    /* completar con el catálogo S&S completo (ss_products): colores que nunca pasaron por recepción, sin código */
+    try{
+      var rs=await fetch(SB_URL+'/rest/v1/ss_products?style=eq.'+encodeURIComponent(s)+'&select=brand,colors&limit=2',{headers:sbHeaders()});
+      if(rs.ok){
+        var ps=await rs.json();var p0=ps[0];
+        if(p0&&Array.isArray(p0.colors)){
+          var have={};out.forEach(function(x){have[cmNorm(x.name)]=1;});
+          p0.colors.forEach(function(c){
+            var n2=cmNorm(c.name||'');
+            if(n2&&!have[n2]){have[n2]=1;out.push({brand:b||p0.brand||'',code:'',name:c.name});}
+          });
+        }
+      }
+    }catch(e){}
   }else if(b){
     try{
       var r2=await fetch(SB_URL+'/rest/v1/wt_colors?brand=ilike.'+encodeURIComponent('%'+b+'%')+'&select=brand,code,name&limit=1500',{headers:sbHeaders()});
@@ -2359,7 +2392,7 @@ function ocrCard(it){
     /* Talla y Tipo: menús con las opciones estándar + lo leído */
     (function(){
       var cur=((it.size||'')+'').trim().toUpperCase();
-      var sizes=['XS','S','M','L','XL','2XL','3XL','4XL','5XL','OS','S/M','L/XL'];
+      var sizes=['XS','S','M','L','XL','2XL','3XL','4XL','5XL','6XL','OS','S/M','L/XL'];
       var o='<option value="">— talla —</option>';
       if(cur&&sizes.indexOf(cur)<0)o+='<option selected>'+esc(cur)+'</option>';
       sizes.forEach(function(z){o+='<option'+(cur===z?' selected':'')+'>'+z+'</option>';});
@@ -2380,7 +2413,7 @@ function ocrCard(it){
       if(cur&&!(list||[]).some(function(x){return cmNorm(x.name)===cmNorm(cur);}))o+='<option value="'+esc(cur)+'" selected>✏️ '+esc(cur)+' (leído)</option>';
       (list||[]).slice().sort(function(a,b){return ((parseInt(a.code,10)||9999)-(parseInt(b.code,10)||9999))||((''+a.code)<(''+b.code)?-1:1);}).forEach(function(x){
         var code=(x.code||'')+'';
-        o+='<option value="'+esc(x.name)+'" data-cc="'+esc(code)+'"'+(cmNorm(x.name)===cmNorm(cur)?' selected':'')+'>'+esc(code)+' · '+esc(x.name)+'</option>';
+        o+='<option value="'+esc(x.name)+'" data-cc="'+esc(code)+'"'+(cmNorm(x.name)===cmNorm(cur)?' selected':'')+'>'+esc(code||'—')+' · '+esc(x.name)+(x.pack?' · PACK':'')+'</option>';
       });
       colSel.innerHTML=o;
       var op=colSel.options[colSel.selectedIndex];
@@ -2621,7 +2654,17 @@ function renderBoxItems(){
   });
   refreshManifest();
 }
-function sortItems(items){return (items||[]).slice().sort((a,b)=>([a.brand,a.style,a.color,a.size].join(' ')).toLowerCase().localeCompare(([b.brand,b.style,b.color,b.size].join(' ')).toLowerCase(),undefined,{numeric:true,sensitivity:'base'}));}
+/* REGLA GLOBAL: las tallas NUNCA se ordenan alfanumérico — siempre XS,S,M,L,XL,2XL,3XL,4XL,5XL,6XL */
+var SIZE_ORDER=['XS','S','M','L','XL','2XL','3XL','4XL','5XL','6XL'];
+function sizeRank(s){s=canonSize(s);var i=SIZE_ORDER.indexOf(s);return i<0?99:i;}
+function sortItems(items){return (items||[]).slice().sort(function(a,b){
+  var ka=([a.brand,a.style,a.color].join(' ')).toLowerCase(), kb=([b.brand,b.style,b.color].join(' ')).toLowerCase();
+  var c=ka.localeCompare(kb,undefined,{numeric:true,sensitivity:'base'});
+  if(c!==0)return c;
+  var ra=sizeRank(a.size),rb=sizeRank(b.size);
+  if(ra!==rb)return ra-rb;
+  return ((a.size||'')+'').localeCompare((b.size||'')+'',undefined,{numeric:true});
+});}
 function boxManifestPreviewHTML(box){
   const items=sortItems(box.items);
   const td='border:1px solid #e2e8f0;padding:4px 6px';
