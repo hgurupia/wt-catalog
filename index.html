@@ -549,6 +549,7 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
     <button class="btn ghost" id="bulk-loc" style="flex:1 1 100%">📍 Ubicación</button>
     <button class="btn ghost" id="bulk-counted" style="flex:1">✓ Contado</button>
     <button class="btn ghost" id="bulk-uncounted" style="flex:1">↺ Reiniciar</button>
+    <button class="btn o" id="bulk-validate" style="flex:1 1 100%">✔ Validar: Cant. = Contado</button>
   </div>
 </section>
 
@@ -1448,7 +1449,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v82 · desglose por caja';
+var APP_VER='v83 · viejo vs nuevo en Inventario';
 (function(){var el=document.querySelector('#s-home .brandmark .app');if(el)el.innerHTML+=' <span style="font-size:10px;color:#8fb3cc;font-weight:600">'+APP_VER+'</span>';})();
 var CMCACHE={};
 /* Gurupia (marca propia): codigos de PACK segun "Tabla de Colores G001 y G002" + template G006 */
@@ -2453,9 +2454,16 @@ function renderInv(rows){
       +'<td class="pc"><div class="pcw"><span class="ck" data-sku="'+esc(d.sku)+'">'+(sel?'☑️':'⬜️')+'</span>'
       +'<img src="'+esc(d.img||'')+'" onerror="this.style.visibility=\'hidden\'">'
       +'<div class="pt"><b>'+esc(nm)+'</b><span>'+esc(sub)+'<br>'+esc(d.sku)+'</span><span class="cbadge'+(cted?' on':'')+'" data-sku="'+esc(d.sku)+'">'+(cted?'✓ contado':'○ sin contar')+'</span></div></div></td>'
-      +'<td class="lc bx" data-sku="'+esc(d.sku)+'">'+(boxCodeOf(d.sku)?'<span class="locchip">'+esc(boxCodeOf(d.sku))+'</span>':'<span class="addloc">+ caja</span>')+'</td>'
+      +'<td class="lc bx" data-sku="'+esc(d.sku)+'">'+(function(){
+          var bx=(LOCIDX[d.sku]||[]),agg={},order=[];
+          bx.forEach(function(e){if(!(e.code in agg)){agg[e.code]=0;order.push(e.code);}agg[e.code]+=(+e.qty||0);});
+          if(!order.length)return '<span class="addloc">+ caja</span>';
+          return '<span style="font-size:10.5px;line-height:1.5;color:var(--slate)">'+order.map(function(c){return esc(c)+' · <b style="color:var(--navy)">'+agg[c]+'</b>';}).join('<br>')+'</span>';
+        })()+'</td>'
       +'<td class="lc rk" data-sku="'+esc(d.sku)+'">'+(rackOf(d)?'<span class="locchip">'+esc(rackOf(d))+'</span>':'<span class="addloc">+ rack</span>')+'</td>'
-      +'<td class="qc"><input class="qin" type="number" inputmode="numeric" min="0" value="'+(d.qty==null?'':d.qty)+'" data-sku="'+esc(d.sku)+'"></td></tr>';
+      +'<td class="qc"><input class="qin" type="number" inputmode="numeric" min="0" value="'+(d.qty==null?'':d.qty)+'" data-sku="'+esc(d.sku)+'">'
+        +(d.counted!=null?(function(){var df=(+d.counted||0)-(+d.qty||0);var col=df===0?'var(--slate)':(df>0?'#1a7f4e':'#b3261e');return '<div style="font-size:10px;font-weight:800;margin-top:2px;color:'+col+'">Nuevo '+(+d.counted||0)+' ('+(df>0?'+':'')+df+')</div>';})():'')
+      +'</td></tr>';
   }).join('')+(rows.length>400?'<tr><td colspan="4" class="muted" style="text-align:center;padding:10px">Mostrando 400 — filtra para ver el resto</td></tr>':'');
   tb.querySelectorAll('.ivr').forEach(el=>{
     const pc=el.querySelector('.pc');
@@ -2510,6 +2518,24 @@ async function bulkEdit(field,label){
   try{await DB.updateMany(skus,obj);const s=new Set(skus);INVROWS.forEach(d=>{if(s.has(d.sku))Object.assign(d,obj);});CATALOG.forEach(d=>{if(s.has(d.sku))Object.assign(d,obj);});toast(label+' actualizado en '+skus.length,'ok');applyInv();}
   catch(e){toast('Error: '+String(e).slice(0,80),'err');}
 }
+$('#bulk-validate').addEventListener('click',async()=>{
+  const skus=[...INVSEL].filter(sk=>{const d=INVROWS.find(x=>x.sku===sk);return d&&d.counted!=null;});
+  if(!skus.length){toast('Selecciona productos que tengan Contado (línea "Nuevo")','err');return;}
+  if(!(await uiConfirm('✔ Validar '+skus.length+' productos','Cant. (viejo) pasará a ser lo CONTADO (nuevo) en cada uno. Queda en el historial (kind conteo).\n\n¿Continuar?',{okText:'Validar'})))return;
+  let n=0;
+  for(const sku of skus){
+    const d=INVROWS.find(x=>x.sku===sku);if(!d)continue;
+    const delta=(+d.counted||0)-(+d.qty||0);
+    try{
+      if(delta!==0)await DB.adjust(sku,delta,'conteo');
+      await DB.clearCount(sku);
+      d.qty=(+d.counted||0);d.counted=null;n++;
+    }catch(e){}
+  }
+  INVSEL.clear();$('#bulk-n').textContent='0';
+  toast('✔ '+n+' validados — viejo actualizado al nuevo','ok');
+  applyInv();
+});
 $('#bulk-cat').addEventListener('click',()=>bulkEdit('cat','Tipo'));
 $('#bulk-gender').addEventListener('click',()=>bulkEdit('gender','Género'));
 $('#bulk-brand').addEventListener('click',()=>bulkEdit('brand','Marca'));
