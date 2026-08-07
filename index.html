@@ -534,7 +534,8 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
           <th class="ths" data-k="prod"><span class="selall" id="inv-selall">☐</span>Producto <span class="sar" data-for="prod"></span></th>
           <th class="ths" data-k="loc">Caja <span class="sar" data-for="loc"></span></th>
           <th class="ths" data-k="rack">Rack <span class="sar" data-for="rack"></span></th>
-          <th class="ths qc" data-k="qty">Cant. <span class="sar" data-for="qty"></span></th>
+          <th class="ths qc" data-k="qty">Viejo <span class="sar" data-for="qty"></span></th>
+          <th class="ths qc" data-k="cnt">Nuevo <span class="sar" data-for="cnt"></span></th>
         </tr></thead>
         <tbody id="invbody"></tbody>
       </table>
@@ -1312,6 +1313,7 @@ let INVSORTK='prod', INVSORTD=1;
 function locOf(d){return ((d.location||'')+'').trim()||locText(d.sku)||'';}
 function sortVal(d,k){
   if(k==='qty')return +d.qty||0;
+  if(k==='cnt')return d.counted==null?-1:(+d.counted||0);
   if(k==='loc')return norm(boxCodeOf(d.sku)||locOf(d));
   if(k==='rack')return norm(rackOf(d));
   return norm((d.brand||'')+' '+(d.style||'')+' '+canonColor(d.color)+' '+(d.size||''));
@@ -1452,7 +1454,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v84 · aprobar conteo + log';
+var APP_VER='v85 · columnas Viejo y Nuevo';
 (function(){var el=document.querySelector('#s-home .brandmark .app');if(el)el.innerHTML+=' <span style="font-size:10px;color:#8fb3cc;font-weight:600">'+APP_VER+'</span>';})();
 var CMCACHE={};
 /* Gurupia (marca propia): codigos de PACK segun "Tabla de Colores G001 y G002" + template G006 */
@@ -2486,7 +2488,7 @@ function applyInv(){
 }
 function renderInv(rows){
   const shown=rows.slice(0,400);INVSHOWN=shown;const tb=$('#invbody');
-  if(!rows.length){tb.innerHTML='<tr><td colspan="4" class="muted" style="text-align:center;padding:24px">Sin resultados en tu inventario.</td></tr>';invRefSuggest($('#invq').value,tb,4);return;}
+  if(!rows.length){tb.innerHTML='<tr><td colspan="5" class="muted" style="text-align:center;padding:24px">Sin resultados en tu inventario.</td></tr>';invRefSuggest($('#invq').value,tb,5);return;}
   tb.innerHTML=shown.map((d,i)=>{
     const sel=INVSEL.has(d.sku),loc=locOf(d),cted=d.counted!=null;
     const nm=[d.brand,d.style].filter(Boolean).join(' ');
@@ -2502,10 +2504,10 @@ function renderInv(rows){
           return '<span style="font-size:10.5px;line-height:1.5;color:var(--slate)">'+order.map(function(c){return esc(c)+' · <b style="color:var(--navy)">'+agg[c]+'</b>';}).join('<br>')+'</span>';
         })()+'</td>'
       +'<td class="lc rk" data-sku="'+esc(d.sku)+'">'+(rackOf(d)?'<span class="locchip">'+esc(rackOf(d))+'</span>':'<span class="addloc">+ rack</span>')+'</td>'
-      +'<td class="qc"><input class="qin" type="number" inputmode="numeric" min="0" value="'+(d.qty==null?'':d.qty)+'" data-sku="'+esc(d.sku)+'">'
-        +(d.counted!=null?(function(){var df=(+d.counted||0)-(+d.qty||0);var col=df===0?'var(--slate)':(df>0?'#1a7f4e':'#b3261e');return '<div style="font-size:10px;font-weight:800;margin-top:2px;color:'+col+'">Nuevo '+(+d.counted||0)+' ('+(df>0?'+':'')+df+')</div>';})():'')
+      +'<td class="qc"><input class="qin" type="number" inputmode="numeric" min="0" value="'+(d.qty==null?'':d.qty)+'" data-sku="'+esc(d.sku)+'"></td>'
+      +'<td class="qc">'+(d.counted!=null?(function(){var df=(+d.counted||0)-(+d.qty||0);var col=df===0?'var(--slate)':(df>0?'#1a7f4e':'#b3261e');return '<b style="font-size:15px;color:var(--navy)">'+(+d.counted||0)+'</b><div style="font-size:10px;font-weight:800;color:'+col+'">'+(df>0?'+':'')+df+'</div>';})():'<span class="muted" style="color:#aab6c2">—</span>')
       +'</td></tr>';
-  }).join('')+(rows.length>400?'<tr><td colspan="4" class="muted" style="text-align:center;padding:10px">Mostrando 400 — filtra para ver el resto</td></tr>':'');
+  }).join('')+(rows.length>400?'<tr><td colspan="5" class="muted" style="text-align:center;padding:10px">Mostrando 400 — filtra para ver el resto</td></tr>':'');
   tb.querySelectorAll('.ivr').forEach(el=>{
     const pc=el.querySelector('.pc');
     pc.addEventListener('click',async()=>{
