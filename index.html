@@ -1412,7 +1412,7 @@ function toggleSelAll(){
   INVFILT.forEach(function(d){if(all)INVSEL.delete(d.sku);else INVSEL.add(d.sku);});
   $('#bulk-n').textContent=INVSEL.size;applyInv();
 }
-function buildLocIdx(boxes){LOCIDX={};(boxes||[]).forEach(b=>{(b.items||[]).forEach(it=>{if(!it||!it.sku)return;(LOCIDX[it.sku]=LOCIDX[it.sku]||[]).push({code:b.code,rack:b.rack,bin:b.bin});});});}
+function buildLocIdx(boxes){LOCIDX={};(boxes||[]).forEach(b=>{(b.items||[]).forEach(it=>{if(!it||!it.sku)return;(LOCIDX[it.sku]=LOCIDX[it.sku]||[]).push({code:b.code,rack:b.rack,bin:b.bin,qty:(+it.qty||0)});});});}
 function locText(sku){const a=LOCIDX[sku];if(!a||!a.length)return'';const f=a[0];let t=(f.code||'')+(f.rack?(' · R'+f.rack):'')+(f.bin?('·'+f.bin):'');if(a.length>1)t+=' +'+(a.length-1);return t;}
 function prodKey(d){return (((d.brand||'')+' '+(d.style||'')).replace(/\s+/g,' ')).trim();}
 function fillFilters(rows){
@@ -1448,7 +1448,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v81 · fotos packs';
+var APP_VER='v82 · desglose por caja';
 (function(){var el=document.querySelector('#s-home .brandmark .app');if(el)el.innerHTML+=' <span style="font-size:10px;color:#8fb3cc;font-weight:600">'+APP_VER+'</span>';})();
 var CMCACHE={};
 /* Gurupia (marca propia): codigos de PACK segun "Tabla de Colores G001 y G002" + template G006 */
@@ -1984,8 +1984,17 @@ function vRender(){
     var dcolor=df===0?'var(--slate)':(df>0?'#1a7f4e':'#b3261e');
     return '<tr data-sku="'+esc(d.sku)+'" style="cursor:pointer'+(sel?';background:#eaf4fb':'')+'">'
       +'<td class="pmlp"><span class="vck" style="font-size:16px;margin-right:6px">'+(sel?'☑️':'⬜️')+'</span><span class="pth">'+pmlThumb(d)+'</span><span class="ptx"><b>'+esc(nm)+'</b><small>'+esc(sub||'')+'<br>'+esc(d.sku)+'</small></span></td>'
-      +'<td class="dim">'+esc(boxCodeOf(d.sku)||'—')+'</td>'
-      +'<td class="dim">'+esc(rackOf(d)||'—')+'</td>'
+      +'<td class="dim" style="font-size:11px;line-height:1.5">'+(function(){
+          var bx=(LOCIDX[d.sku]||[]),agg={},order=[];
+          bx.forEach(function(e){if(!(e.code in agg)){agg[e.code]=0;order.push(e.code);}agg[e.code]+=(+e.qty||0);});
+          if(!order.length)return '—';
+          return order.map(function(c){return esc(c)+' · <b style="color:var(--navy)">'+agg[c]+'</b>';}).join('<br>');
+        })()+'</td>'
+      +'<td class="dim" style="font-size:11px;line-height:1.5">'+(function(){
+          var bx=(LOCIDX[d.sku]||[]),rks=[];
+          bx.forEach(function(e){var t=(e.rack?('R'+e.rack):'')+(e.bin?('·'+e.bin):'');if(t&&rks.indexOf(t)<0)rks.push(t);});
+          return rks.length?rks.map(esc).join('<br>'):esc(((d.location||'')+'').trim()||'—');
+        })()+'</td>'
       +'<td>'+qty+'</td>'
       +'<td style="font-weight:800;color:var(--navy)">'+cnt+'</td>'
       +'<td style="font-weight:800;color:'+dcolor+'">'+(df>0?'+':'')+df+'</td>'
