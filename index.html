@@ -502,6 +502,7 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
     <div class="row2" style="margin-top:8px"><button class="btn ghost" id="b-counted">✓ Marcar contada</button><button class="btn ghost" id="b-uncounted">↺ Reiniciar conteo</button></div>
     <button class="btn o block" id="b-save" style="margin-top:8px">💾 Guardar caja</button>
     <button class="btn n block" id="b-savenew" style="margin-top:8px">💾➡📦 Guardar y abrir caja NUEVA</button>
+    <button class="btn ghost block" id="b-dup" style="margin-top:8px">⧉ Duplicar contenido a caja NUEVA</button>
     <button class="btn ghost block" id="b-stock" style="margin-top:8px">🔁 Recalcular Contado desde las cajas</button>
     <button class="btn b block" id="b-print" style="margin-top:8px">🖨️ Imprimir etiqueta 4×6 (caja)</button>
     <button class="btn b block" id="b-print-items" style="margin-top:8px">🏷️ Imprimir etiquetas de prendas (90×30)</button>
@@ -1455,7 +1456,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v92';
+var APP_VER='v93';
 try{document.querySelectorAll('.toplogo .vertag').forEach(function(e){e.textContent=APP_VER;});}catch(e){}
 (function(){var el=document.querySelector('#s-home .brandmark .app');if(el)el.innerHTML+=' <span style="font-size:10px;color:#8fb3cc;font-weight:600">'+APP_VER+'</span>';})();
 var CMCACHE={};
@@ -3187,6 +3188,16 @@ async function saveCurBox(){
 }
 $('#b-save').addEventListener('click',async()=>{
   if(await saveCurBox()){back();renderBoxList('');}
+});
+$('#b-dup').addEventListener('click',async()=>{
+  const items=(curBox.items||[]).filter(function(it){return it&&it.sku;});
+  if(!items.length){toast('Esta caja está vacía — no hay qué duplicar','err');return;}
+  if(!(await saveCurBox()))return;
+  let code='CAJA-0001';try{code=await DB.nextBoxCode();}catch(e){}
+  const copia=JSON.parse(JSON.stringify(items));
+  curBox={code:code,name:curBox.name||'',kind:curBox.kind||'pool',rack:'',bin:'',items:copia,pieces:copia.reduce(function(t,it){return t+(+it.qty||0);},0),_orig:null};
+  openBoxEditor(true);
+  toast('⧉ Contenido copiado a '+code+' ('+curBox.pieces+' pzs) — ajusta lo que cambie y Guarda','ok');
 });
 $('#b-savenew').addEventListener('click',async()=>{
   if(!(await saveCurBox()))return;
