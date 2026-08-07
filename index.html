@@ -483,7 +483,7 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
       <div id="b-manualform" style="display:none;margin-top:8px;padding:10px;border:1px dashed #cbd5e1;border-radius:12px">
         <div class="row2"><div><label class="fld">Marca</label><input class="in" id="bm-brand" list="dl-brand"></div><div><label class="fld">Estilo</label><input class="in" id="bm-style"></div></div>
         <div style="height:6px"></div>
-        <div class="row2"><div><label class="fld">Color</label><input class="in" id="bm-color" list="dl-color"></div><div><label class="fld">Cód. color</label><input class="in" id="bm-cc" inputmode="numeric"></div></div>
+        <div class="row2"><div><label class="fld">Color</label><input class="in" id="bm-color" list="dl-bmcolor"><datalist id="dl-bmcolor"></datalist></div><div><label class="fld">Cód. color</label><input class="in" id="bm-cc" inputmode="numeric"></div></div>
         <div style="height:6px"></div>
         <div class="row2"><div><label class="fld">Talla</label><input class="in" id="bm-size"></div><div><label class="fld">Cantidad</label><input class="in" id="bm-qty" type="number" inputmode="numeric" value="1"></div></div>
         <div style="height:6px"></div>
@@ -1454,7 +1454,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v90';
+var APP_VER='v91';
 try{document.querySelectorAll('.toplogo .vertag').forEach(function(e){e.textContent=APP_VER;});}catch(e){}
 (function(){var el=document.querySelector('#s-home .brandmark .app');if(el)el.innerHTML+=' <span style="font-size:10px;color:#8fb3cc;font-weight:600">'+APP_VER+'</span>';})();
 var CMCACHE={};
@@ -3077,6 +3077,49 @@ $('#bm-add').addEventListener('click',()=>{
   ['bm-brand','bm-style','bm-color','bm-cc','bm-size','bm-upc','bm-cat','bm-sku'].forEach(function(id){var e=$('#'+id);if(e)e.value='';});
   $('#bm-gender').value='';$('#bm-qty').value=1;
   $('#b-manualform').style.display='none';$('#b-q').value='';$('#b-results').innerHTML='';renderBoxItems();
+});
+/* AUTOCOMPLETADO INVERSO del formulario manual: escribe marca+estilo+color+talla
+   y la app trae cc↔color (wt_colors), la lista de colores del estilo, y el UPC exacto de la matriz Harps. */
+var bmT=null;
+async function bmAutofill(){
+  const b=$('#bm-brand').value.trim(), st=$('#bm-style').value.trim();
+  if(!st)return;
+  let cc=$('#bm-cc').value.trim(), col=$('#bm-color').value.trim();
+  const sz=canonSize($('#bm-size').value.trim());
+  try{
+    const list=await cmForStyle(b,st);
+    const dl=$('#dl-bmcolor');
+    if(dl&&list.length)dl.innerHTML=list.map(function(x){return '<option value="'+esc(x.name)+'">'+esc(((x.code||'—')+''))+'</option>';}).join('');
+    if(cc&&!col){const nm=cmName(list,cc);if(nm){col=nm;$('#bm-color').value=nm;toast('Color: '+nm,'ok');}}
+    else if(col&&!cc){const c=cmCode(list,col);if(c){cc=c;$('#bm-cc').value=c;toast('Cód. color: '+c,'ok');}}
+  }catch(e){}
+  if(!$('#bm-upc').value.trim()&&sz&&(cc||col)){
+    try{
+      let q=SB_URL+'/rest/v1/wt_reference?style=eq.'+encodeURIComponent(st)+'&size=eq.'+encodeURIComponent(sz)+'&select=upc,color,color_code,asin,image&limit=200';
+      if(b)q+='&brand=ilike.'+encodeURIComponent('%'+b+'%');
+      let r=await fetch(q,{headers:sbHeaders()});
+      let a=r.ok?await r.json():[];
+      if(!a.length&&b){
+        r=await fetch(SB_URL+'/rest/v1/wt_reference?style=eq.'+encodeURIComponent(st)+'&size=eq.'+encodeURIComponent(sz)+'&select=upc,color,color_code,asin,image&limit=200',{headers:sbHeaders()});
+        a=r.ok?await r.json():[];
+      }
+      let hit=null;
+      const ccn=cc.replace(/^0+/,'');
+      if(cc)hit=a.find(function(x){return ((x.color_code||'')+'').replace(/^0+/,'')===ccn;});
+      if(!hit&&col)hit=a.find(function(x){return cmNorm(x.color)===cmNorm(col);})||a.find(function(x){var n=cmNorm(x.color),q2=cmNorm(col);return q2&&(n.indexOf(q2)>=0||q2.indexOf(n)>=0);});
+      if(hit&&hit.upc){
+        $('#bm-upc').value=(''+hit.upc).replace(/\D/g,'');
+        if(!$('#bm-cc').value.trim()&&hit.color_code)$('#bm-cc').value=(''+hit.color_code);
+        if(!$('#bm-color').value.trim()&&hit.color)$('#bm-color').value=hit.color;
+        toast('✓ UPC '+$('#bm-upc').value+' encontrado en la base Harps','ok');
+      }
+    }catch(e){}
+  }
+}
+['bm-brand','bm-style','bm-color','bm-cc','bm-size'].forEach(function(id){
+  var el=$('#'+id);if(!el)return;
+  el.addEventListener('change',function(){clearTimeout(bmT);bmT=setTimeout(bmAutofill,150);});
+  el.addEventListener('input',function(){clearTimeout(bmT);bmT=setTimeout(bmAutofill,700);});
 });
 $('#bm-upc').addEventListener('change',async()=>{
   const u=$('#bm-upc').value.trim().replace(/\D/g,'');if(u.length<6)return;
