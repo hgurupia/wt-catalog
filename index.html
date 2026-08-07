@@ -436,6 +436,7 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
       <input class="in" id="count-q" placeholder="…o busca por nombre / estilo / SKU">
       <div id="count-results"></div>
       <button class="btn ghost block" id="count-fromboxes" style="margin-top:8px">📦 Traer Contado desde las cajas</button>
+      <button class="btn o block" id="count-validtable" style="margin-top:8px">📋 Tabla comparativa: viejo vs contado</button>
     </div>
     <div class="card">
       <div id="count-prog" class="muted" style="font-size:14px">Avance…</div>
@@ -574,6 +575,32 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
       </table>
     </div>
     <p class="qlabel" style="margin-top:8px">Net = Venta − Fees − Costo · Margen = Net/Venta · ROI = Net/Costo</p>
+  </div>
+</section>
+
+<!-- ============ VALIDACIÓN: viejo vs contado ============ -->
+<section class="screen" id="s-valid">
+  <div class="top"><button class="bk" data-back>‹</button><h1 style="flex:1">Validar conteo</h1><button class="btn" id="v-export" style="background:rgba(255,255,255,.14);color:#fff;padding:8px 10px;font-size:13px">⬇ Exportar</button></div>
+  <div class="body">
+    <div class="rkpis" id="v-kpis"></div>
+    <div class="rbar" style="margin-bottom:4px">
+      <input class="in" id="v-q" placeholder="Buscar marca, estilo, SKU…" autocomplete="off" style="flex:2;min-width:130px;margin:0">
+      <select class="ff" id="v-mode" style="flex:1;margin:0"><option value="dif">Solo diferencias</option><option value="all">Todo lo contado</option></select>
+    </div>
+    <div class="rprwrap">
+      <table class="rprtbl" id="vtbl">
+        <thead><tr>
+          <th style="text-align:left"><span class="selall" id="v-selall" style="cursor:pointer">☐</span> Producto</th>
+          <th>Caja</th><th>Rack</th>
+          <th>Cant. vieja</th><th>Contado</th><th>Dif</th>
+        </tr></thead>
+        <tbody id="vbody"></tbody>
+      </table>
+    </div>
+    <p class="qlabel" style="margin-top:8px">✓ Validar = Cant. pasa a ser lo Contado (queda en el historial, kind conteo). Marca las filas OK y valida — luego exporta a los canales.</p>
+  </div>
+  <div class="wiznav" id="v-bar" style="gap:8px">
+    <button class="btn o" id="v-validate" style="flex:1">✓ Validar seleccionados (<span id="v-n">0</span>)</button>
   </div>
 </section>
 
@@ -1149,9 +1176,9 @@ const DB={
 function upcVariants(u){u=(u||'').replace(/\s/g,'');const v=new Set([u]);if(u.length===13&&u[0]==='0')v.add(u.slice(1));if(u.length===12)v.add('0'+u);v.add(u.replace(/^0+/,''));return[...v].filter(Boolean);}
 
 /* =================== NAV =================== */
-function show(id){$$('.screen').forEach(s=>s.classList.remove('on'));$('#'+id).classList.add('on');window.scrollTo(0,0);document.body.classList.toggle('rwide',id==='s-repr'||id==='s-pml');updateTabbar(id);}
-var TABBAR_OFF={'s-lock':1,'s-scan':1,'s-new':1,'s-ocr':1};
-var TABMAP={'s-search':'inv','s-scan':'inv','s-ocr':'inv','s-new':'inv','s-boxes':'inv','s-box':'inv','s-inv':'inv','s-invsum':'inv','s-count':'inv','s-hist':'inv','s-colors':'inv','s-sum':'pricing','s-repr':'pricing','s-pml':'pml','s-prod':'pml','s-dedup':'pml'};
+function show(id){$$('.screen').forEach(s=>s.classList.remove('on'));$('#'+id).classList.add('on');window.scrollTo(0,0);document.body.classList.toggle('rwide',id==='s-repr'||id==='s-pml'||id==='s-valid');updateTabbar(id);}
+var TABBAR_OFF={'s-lock':1,'s-scan':1,'s-new':1,'s-ocr':1,'s-valid':1};
+var TABMAP={'s-search':'inv','s-scan':'inv','s-ocr':'inv','s-new':'inv','s-boxes':'inv','s-box':'inv','s-inv':'inv','s-invsum':'inv','s-count':'inv','s-valid':'inv','s-hist':'inv','s-colors':'inv','s-sum':'pricing','s-repr':'pricing','s-pml':'pml','s-prod':'pml','s-dedup':'pml'};
 function updateTabbar(id){
   var tb=$('#tabbar');if(!tb)return;
   var on=!TABBAR_OFF[id] && !(id==='s-inv'&&typeof INVSEL!=='undefined'&&INVSEL.size>0);
@@ -1421,7 +1448,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v79 · conteo+exports';
+var APP_VER='v80 · tabla validación';
 (function(){var el=document.querySelector('#s-home .brandmark .app');if(el)el.innerHTML+=' <span style="font-size:10px;color:#8fb3cc;font-weight:600">'+APP_VER+'</span>';})();
 var CMCACHE={};
 /* Gurupia (marca propia): codigos de PACK segun "Tabla de Colores G001 y G002" + template G006 */
@@ -1920,6 +1947,94 @@ function pmlHealImgs(){
       pmlRender();
     });
   }
+})();
+
+/* =================== VALIDACIÓN: viejo vs contado =================== */
+var VSEL=new Set();
+async function openValid(){
+  go('s-valid');
+  $('#vbody').innerHTML='<tr><td colspan="6" class="dim" style="text-align:center;padding:18px">Cargando…</td></tr>';
+  try{RROWS=await DB.list(3000);}catch(e){RROWS=RROWS||[];}
+  try{buildLocIdx(await DB.listBoxes());}catch(e){}
+  VSEL=new Set();
+  vRender();
+}
+function vRows(){
+  var mode=$('#v-mode').value,q=norm($('#v-q').value||'');
+  var rows=(RROWS||[]).filter(function(d){return d.counted!=null;});
+  if(mode==='dif')rows=rows.filter(function(d){return (+d.counted||0)!==(+d.qty||0);});
+  if(q)rows=rows.filter(function(d){return norm([d.sku,d.brand,d.style,d.color,d.size,d.upc].join(' ')).indexOf(q)>=0;});
+  rows.sort(function(a,b){
+    var ka=[a.brand,a.style,a.color].join(' ').toLowerCase(),kb=[b.brand,b.style,b.color].join(' ').toLowerCase();
+    return ka.localeCompare(kb,undefined,{numeric:true})||sizeRank(a.size)-sizeRank(b.size);
+  });
+  return rows;
+}
+function vRender(){
+  var rows=vRows();
+  var tot=(RROWS||[]).filter(function(d){return d.counted!=null;});
+  var dif=tot.filter(function(d){return (+d.counted||0)!==(+d.qty||0);});
+  var qv=tot.reduce(function(s,d){return s+(+d.qty||0);},0),qc=tot.reduce(function(s,d){return s+(+d.counted||0);},0);
+  $('#v-kpis').innerHTML='<div><b>'+tot.length+'</b><span>contados</span></div><div><b class="hi">'+dif.length+'</b><span>con diferencia</span></div><div><b>'+qv.toLocaleString('en-US')+'</b><span>uds sistema</span></div><div><b class="hi">'+qc.toLocaleString('en-US')+'</b><span>uds contadas</span></div>';
+  $('#vbody').innerHTML=rows.length?rows.map(function(d){
+    var sel=VSEL.has(d.sku);
+    var nm=[d.brand,d.style].filter(Boolean).join(' ')||d.sku;
+    var sub=[canonColor(d.color),((d.size||'')+'').trim()].filter(Boolean).join(' · ');
+    var qty=(+d.qty||0),cnt=(+d.counted||0),df=cnt-qty;
+    var dcolor=df===0?'var(--slate)':(df>0?'#1a7f4e':'#b3261e');
+    return '<tr data-sku="'+esc(d.sku)+'" style="cursor:pointer'+(sel?';background:#eaf4fb':'')+'">'
+      +'<td class="pmlp"><span class="vck" style="font-size:16px;margin-right:6px">'+(sel?'☑️':'⬜️')+'</span><span class="pth">'+pmlThumb(d)+'</span><span class="ptx"><b>'+esc(nm)+'</b><small>'+esc(sub||'')+'<br>'+esc(d.sku)+'</small></span></td>'
+      +'<td class="dim">'+esc(boxCodeOf(d.sku)||'—')+'</td>'
+      +'<td class="dim">'+esc(rackOf(d)||'—')+'</td>'
+      +'<td>'+qty+'</td>'
+      +'<td style="font-weight:800;color:var(--navy)">'+cnt+'</td>'
+      +'<td style="font-weight:800;color:'+dcolor+'">'+(df>0?'+':'')+df+'</td>'
+    +'</tr>';
+  }).join(''):'<tr><td colspan="6" class="dim" style="text-align:center;padding:18px">'+(((RROWS||[]).some(function(d){return d.counted!=null;}))?'Sin filas con este filtro 🎉':'Nada contado todavía — guarda cajas o usa 🔢 Conteo')+'</td></tr>';
+  var vn=$('#v-n');if(vn)vn.textContent=VSEL.size;
+  var all=rows.length&&rows.every(function(d){return VSEL.has(d.sku);});
+  $('#v-selall').textContent=all?'☑':'☐';
+}
+(function(){
+  var b=$('#count-validtable');if(b)b.addEventListener('click',openValid);
+  var t=null,q=$('#v-q');if(q)q.addEventListener('input',function(){clearTimeout(t);t=setTimeout(vRender,180);});
+  var m=$('#v-mode');if(m)m.addEventListener('change',vRender);
+  var sa=$('#v-selall');if(sa)sa.addEventListener('click',function(e){
+    e.stopPropagation();
+    var rows=vRows();var all=rows.length&&rows.every(function(d){return VSEL.has(d.sku);});
+    rows.forEach(function(d){if(all)VSEL.delete(d.sku);else VSEL.add(d.sku);});
+    vRender();
+  });
+  var vb=$('#vbody');
+  if(vb)vb.addEventListener('click',function(e){
+    var tr=e.target.closest('tr[data-sku]');if(!tr)return;
+    var sku=tr.getAttribute('data-sku');
+    if(VSEL.has(sku))VSEL.delete(sku);else VSEL.add(sku);
+    vRender();
+  });
+  var ex=$('#v-export');if(ex)ex.addEventListener('click',function(){$('#expov').classList.add('on');});
+  var val=$('#v-validate');
+  if(val)val.addEventListener('click',async function(){
+    var skus=Array.from(VSEL);
+    if(!skus.length){toast('Marca las filas que están OK (toca la fila)','err');return;}
+    if(!(await uiConfirm('✓ Validar '+skus.length+' productos','En cada uno: Cant. pasa a ser lo CONTADO (ajuste con historial, kind conteo).\n\n¿Continuar?',{okText:'Validar y actualizar'})))return;
+    val.disabled=true;var n=0;
+    for(const sku of skus){
+      val.textContent='Validando '+(n+1)+'/'+skus.length+'…';
+      var d=(RROWS||[]).find(function(x){return x.sku===sku;});
+      if(!d||d.counted==null)continue;
+      var delta=(+d.counted||0)-(+d.qty||0);
+      try{
+        if(delta!==0)await DB.adjust(sku,delta,'conteo');
+        await DB.clearCount(sku);
+        d.qty=(+d.counted||0);d.counted=null;n++;
+      }catch(e){}
+    }
+    VSEL=new Set();
+    val.disabled=false;val.innerHTML='✓ Validar seleccionados (<span id="v-n">0</span>)';
+    toast('✓ '+n+' validados — inventario actualizado','ok');
+    vRender();
+  });
 })();
 
 /* =================== EXPORTS (Excel + marketplaces) =================== */
