@@ -1409,7 +1409,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v77 · buscador de colores';
+var APP_VER='v78 · editar tras guardar';
 (function(){var el=document.querySelector('#s-home .brandmark .app');if(el)el.innerHTML+=' <span style="font-size:10px;color:#8fb3cc;font-weight:600">'+APP_VER+'</span>';})();
 var CMCACHE={};
 /* Gurupia (marca propia): codigos de PACK segun "Tabla de Colores G001 y G002" + template G006 */
@@ -2532,7 +2532,7 @@ $('#ocr-save').addEventListener('click',async()=>{
   const cards=[...document.querySelectorAll('#ocr-list .ocr-item')];
   if(!cards.length){toast('No hay productos para subir','err');return;}
   const btn=$('#ocr-save');btn.disabled=true;const orig=btn.textContent;btn.textContent='Subiendo…';
-  let created=0,summed=0,skipped=0,errs=0;
+  let created=0,summed=0,skipped=0,errs=0;const up=[];
   for(const c of cards){
     const gv=q=>(c.querySelector(q).value||'').trim();
     const brand=gv('.oi-brand'),style=gv('.oi-style'),color=gv('.oi-color'),cc=gv('.oi-cc').replace(/\D/g,''),size=gv('.oi-size'),cat=gv('.oi-cat'),gender=c.querySelector('.oi-gender').value,upc=gv('.oi-upc').replace(/\D/g,''),qty=+c.querySelector('.oi-qty').value||0;
@@ -2540,13 +2540,27 @@ $('#ocr-save').addEventListener('click',async()=>{
     const sku=cc?canonSku(brand,style,cc,size):('WT-'+(slug(brand).slice(0,4).toUpperCase()||'NA')+'-'+(slug(style).toUpperCase()||'NA')+'-'+(slug(color).slice(0,3).toUpperCase()||'NA')+'-'+(size.toUpperCase()||'NA'));
     const o={sku,upc,brand,style,color,cc,size,cat,gender,qty,cost:0,img:'',title:[brand,style,color,size].filter(Boolean).join(' ')};
     try{const ex=await DB.bySku(sku);
-      if(ex){await DB.adjust(sku,qty,'entrada');summed++;}
-      else{await DB.create(o);CATALOG.unshift(o);created++;}
+      if(ex){await DB.adjust(sku,qty,'entrada');summed++;up.push({sku,brand,style,color,size,qty,estado:'sumado'});}
+      else{await DB.create(o);CATALOG.unshift(o);created++;up.push({sku,brand,style,color,size,qty,estado:'creado'});}
     }catch(e){errs++;}
   }
   btn.disabled=false;btn.textContent=orig;
   toast('✓ '+created+' creados · '+summed+' sumados'+(errs?(' · '+errs+' errores'):'')+(skipped?(' · '+skipped+' vacíos'):''),errs?'err':'ok');
-  nav=['s-home'];go('s-home');
+  if(up.length){
+    // resumen EDITABLE: las tarjetas se limpian (no se puede subir doble) y cada producto abre su ficha
+    $('#ocr-list').innerHTML='<p class="muted" style="margin:8px 0">✓ Subido al inventario — toca cualquiera para EDITARLO (foto, tipo, costo…):</p>'
+      +up.map(function(u,i){
+        return '<div class="res" data-ui="'+i+'" style="cursor:pointer"><div class="t"><b>'+esc([u.brand,u.style].filter(Boolean).join(' ')||u.sku)+'</b><span>'+esc([u.color,u.size].filter(Boolean).join(' · '))+' · '+u.estado+' +'+u.qty+'u<br>'+esc(u.sku)+'</span></div><div class="q" style="font-size:18px">✏️</div></div>';
+      }).join('');
+    $('#ocr-list').querySelectorAll('[data-ui]').forEach(function(el){
+      el.addEventListener('click',async function(){
+        var u=up[+el.getAttribute('data-ui')];
+        var fresh=null;try{fresh=await DB.bySku(u.sku);}catch(e){}
+        if(fresh)openProduct(fresh);else toast('No encontré '+u.sku,'err');
+      });
+    });
+    window.scrollTo(0,0);
+  }else{nav=['s-home'];go('s-home');}
 });
 
 /* =================== CONTEO FÍSICO =================== */
@@ -3258,7 +3272,10 @@ $('#wiz-save').addEventListener('click',async()=>{
     const exists=await DB.bySku(sku);
     if(exists){if(!(await uiConfirm('Ya existe','Ya existe '+sku+'.\n¿Sumar '+o.qty+' a su cantidad?',{okText:'Sí, sumar'})))return;await DB.adjust(sku,o.qty,'entrada');toast('Sumado a '+sku,'ok');}
     else{await DB.create(o);CATALOG.unshift(o);toast('Creado '+sku,'ok');}
-    resetNew();nav=['s-home'];go('s-home');
+    let fresh=null;try{fresh=await DB.bySku(sku);}catch(e2){}
+    resetNew();
+    if(fresh){openProduct(fresh);toast('✓ Guardado — aquí puedes seguir editando','ok');}
+    else{nav=['s-home'];go('s-home');}
   }catch(e){toast('Error: '+String(e).slice(0,90),'err')}
 });
 
