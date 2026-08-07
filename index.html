@@ -435,6 +435,7 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
       <div style="height:8px"></div>
       <input class="in" id="count-q" placeholder="…o busca por nombre / estilo / SKU">
       <div id="count-results"></div>
+      <button class="btn ghost block" id="count-fromboxes" style="margin-top:8px">📦 Traer Contado desde las cajas</button>
     </div>
     <div class="card">
       <div id="count-prog" class="muted" style="font-size:14px">Avance…</div>
@@ -499,7 +500,7 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
     <div id="b-manifest" class="card" style="display:none;margin-top:8px"></div>
     <div class="row2" style="margin-top:8px"><button class="btn ghost" id="b-counted">✓ Marcar contada</button><button class="btn ghost" id="b-uncounted">↺ Reiniciar conteo</button></div>
     <button class="btn o block" id="b-save" style="margin-top:8px">💾 Guardar caja</button>
-    <button class="btn ghost block" id="b-stock" style="margin-top:8px">⬆ Pasar TODO el contenido al inventario (solo cajas viejas)</button>
+    <button class="btn ghost block" id="b-stock" style="margin-top:8px">🔁 Recalcular Contado desde las cajas</button>
     <button class="btn b block" id="b-print" style="margin-top:8px">🖨️ Imprimir etiqueta 4×6 (caja)</button>
     <button class="btn b block" id="b-print-items" style="margin-top:8px">🏷️ Imprimir etiquetas de prendas (90×30)</button>
     <button class="btn ghost block" id="b-del" style="margin-top:8px;color:#5f6d7c">🗑️ Borrar caja</button>
@@ -616,6 +617,7 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
       <button class="btn ghost" id="pml-tocat" style="flex:1;padding:9px 8px;font-size:12.5px">🛍️ Catálogo</button>
       <button class="btn ghost" id="pml-tocolors" style="flex:1;padding:9px 8px;font-size:12.5px">🎨 Colores</button>
       <button class="btn ghost" id="pml-todedup" style="flex:1;padding:9px 8px;font-size:12.5px">🔗 Unificar</button>
+      <button class="btn o" id="pml-export" style="flex:1;padding:9px 8px;font-size:12.5px">⬇ Exportar</button>
     </div>
     <div class="rkpis" id="pml-kpis"></div>
     <div class="rbar" style="margin-bottom:4px">
@@ -908,6 +910,16 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
 
 </div>
 <div id="toast"></div>
+<div class="ovl" id="expov"><div class="dlg" style="max-width:380px">
+  <h3 style="margin:0 0 6px">⬇ Exportar inventario</h3>
+  <p class="muted" style="margin:0 0 12px;font-size:12.5px">Los marketplaces salen con productos Cant. &gt; 0 y su precio del canal. Valida el conteo antes de exportar.</p>
+  <button class="btn n block" data-exp="excel">📊 Excel completo (todo)</button>
+  <button class="btn ghost block" data-exp="ebay" style="margin-top:8px">eBay · File Exchange</button>
+  <button class="btn ghost block" data-exp="amazon" style="margin-top:8px">Amazon · Inventory Loader</button>
+  <button class="btn ghost block" data-exp="walmart" style="margin-top:8px">Walmart · Bulk Items</button>
+  <button class="btn ghost block" data-exp="shopify" style="margin-top:8px">Shopify · Products CSV</button>
+  <button class="btn ghost block" id="expov-x" style="margin-top:12px">Cerrar</button>
+</div></div>
 <div class="ovl" id="colpick"><div class="dlg" style="max-width:440px;display:flex;flex-direction:column;max-height:80vh">
   <h3 style="margin:0 0 10px">🎨 Elegir color</h3>
   <input class="in" id="colpick-q" placeholder="Buscar por nombre o código…" autocomplete="off" style="margin-bottom:8px">
@@ -1409,7 +1421,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v78 · editar tras guardar';
+var APP_VER='v79 · conteo+exports';
 (function(){var el=document.querySelector('#s-home .brandmark .app');if(el)el.innerHTML+=' <span style="font-size:10px;color:#8fb3cc;font-weight:600">'+APP_VER+'</span>';})();
 var CMCACHE={};
 /* Gurupia (marca propia): codigos de PACK segun "Tabla de Colores G001 y G002" + template G006 */
@@ -1908,6 +1920,74 @@ function pmlHealImgs(){
       pmlRender();
     });
   }
+})();
+
+/* =================== EXPORTS (Excel + marketplaces) =================== */
+function dlFile(name,content){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob(["﻿"+content],{type:'text/csv;charset=utf-8'}));a.download=name;a.click();}
+function csvE(v){v=(v==null?'':''+v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
+function csvJoin(H,rows){return [H].concat(rows).map(function(r){return r.map(csvE).join(',');}).join('\r\n');}
+function expTitle(d){return d.listtitle||d.title||[d.brand,d.style,d.color,d.size].filter(Boolean).join(' ')||d.sku;}
+function expFecha(){return new Date().toISOString().slice(0,10);}
+async function expRows(all){
+  if(!RROWS){try{RROWS=await DB.list(3000);}catch(e){RROWS=[];}}
+  try{if(!Object.keys(LOCIDX).length)buildLocIdx(await DB.listBoxes());}catch(e){}
+  var rows=(RROWS||[]).slice().sort(function(a,b){
+    var ka=[a.brand,a.style,a.color].join(' ').toLowerCase(),kb=[b.brand,b.style,b.color].join(' ').toLowerCase();
+    return ka.localeCompare(kb,undefined,{numeric:true})||sizeRank(a.size)-sizeRank(b.size);
+  });
+  return all?rows:rows.filter(function(d){return (+d.qty||0)>0;});
+}
+var EXPORTS={
+  excel:async function(){
+    var rows=await expRows(true);
+    var H=['SKU','SKU canonico','Alias','UPC','ASIN','Marca','Estilo','Cod color','Color','Talla','Tipo','Genero','Cant','Contado','Costo','Precio','Retail','Precio eBay','Precio Amazon','Precio Walmart','Precio Shopify','Caja','Rack','Foto','Titulo listing'];
+    dlFile('inventario_WT_'+expFecha()+'.csv',csvJoin(H,rows.map(function(d){
+      return [d.sku,d.sku_canon||'',Array.isArray(d.aliases)?d.aliases.join(' | '):'',d.upc||'',d.asin||'',d.brand||'',d.style||'',d.cc||'',d.color||'',d.size||'',d.cat||'',d.gender||'',(+d.qty||0),(d.counted==null?'':d.counted),(d.cost==null?'':d.cost),(d.price==null?'':d.price),(d.retail==null?'':d.retail),rPrice(d,'ebay').toFixed(2),rPrice(d,'amazon').toFixed(2),rPrice(d,'walmart').toFixed(2),rPrice(d,'shopify').toFixed(2),boxCodeOf(d.sku),rackOf(d),d.img||'',expTitle(d)];
+    })));
+  },
+  ebay:async function(){
+    var rows=await expRows(false);
+    var H=['*Action(SiteID=US|Country=US|Currency=USD|Version=1193)','CustomLabel','*Category','*Title','*Description','*ConditionID','*Format','*Duration','*StartPrice','*Quantity','PicURL','*Location','C:Brand','C:Color','C:Size'];
+    dlFile('ebay_file_exchange_WT_'+expFecha()+'.csv',csvJoin(H,rows.map(function(d){
+      return ['Add',d.sku,'',expTitle(d).slice(0,80),(d.longdesc||expTitle(d)),'1000','FixedPrice','GTC',rPrice(d,'ebay').toFixed(2),(+d.qty||0),d.img||'','US',d.brand||'',d.color||'',d.size||''];
+    })));
+  },
+  amazon:async function(){
+    var rows=await expRows(false);
+    var H=['sku','product-id','product-id-type','price','item-condition','quantity','add-delete','item-note'];
+    dlFile('amazon_inventory_loader_WT_'+expFecha()+'.csv',csvJoin(H,rows.map(function(d){
+      var pid=d.asin||d.upc||'',typ=d.asin?'1':(d.upc?'3':'');
+      return [d.sku,pid,typ,rPrice(d,'amazon').toFixed(2),'11',(+d.qty||0),'a',expTitle(d)];
+    })));
+  },
+  walmart:async function(){
+    var rows=await expRows(false);
+    var H=['SKU','Product ID Type','Product ID','Product Name','Brand','Color','Clothing Size','Price','Quantity','Short Description','Main Image URL'];
+    dlFile('walmart_bulk_items_WT_'+expFecha()+'.csv',csvJoin(H,rows.map(function(d){
+      return [d.sku,(d.upc?'UPC':''),d.upc||'',expTitle(d),d.brand||'',d.color||'',d.size||'',rPrice(d,'walmart').toFixed(2),(+d.qty||0),(d.longdesc||expTitle(d)),d.img||''];
+    })));
+  },
+  shopify:async function(){
+    var rows=await expRows(false);
+    var H=['Handle','Title','Vendor','Type','Option1 Name','Option1 Value','Option2 Name','Option2 Value','Variant SKU','Variant Price','Variant Inventory Qty','Variant Barcode','Image Src','Status'];
+    dlFile('shopify_products_WT_'+expFecha()+'.csv',csvJoin(H,rows.map(function(d){
+      var handle=slug((d.brand||'')+'-'+(d.style||'')).toLowerCase()||slug(d.sku).toLowerCase();
+      return [handle,expTitle(d),d.brand||'',d.cat||'','Size',d.size||'','Color',d.color||'',d.sku,rPrice(d,'shopify').toFixed(2),(+d.qty||0),d.upc||'',d.img||'','active'];
+    })));
+  }
+};
+(function(){
+  var b=$('#pml-export');if(b)b.addEventListener('click',function(){$('#expov').classList.add('on');});
+  var x=$('#expov-x');if(x)x.addEventListener('click',function(){$('#expov').classList.remove('on');});
+  $$('#expov [data-exp]').forEach(function(btn){
+    btn.addEventListener('click',async function(){
+      var k=btn.getAttribute('data-exp');
+      btn.disabled=true;var t0=btn.textContent;btn.textContent='Generando…';
+      try{await EXPORTS[k]();toast('✓ Archivo descargado','ok');}catch(e){toast('Error: '+String(e).slice(0,70),'err');}
+      btn.disabled=false;btn.textContent=t0;
+      $('#expov').classList.remove('on');
+    });
+  });
 })();
 
 /* =================== REPRICER (matriz por canal) =================== */
@@ -2566,6 +2646,14 @@ $('#ocr-save').addEventListener('click',async()=>{
 /* =================== CONTEO FÍSICO =================== */
 function goCount(){if(nav[nav.length-1]!=='s-count')nav.push('s-count');show('s-count');$('#count-q').value='';$('#count-results').innerHTML='';renderCount();}
 $('#home-count').addEventListener('click',goCount);
+(function(){var b=$('#count-fromboxes');if(b)b.addEventListener('click',async function(){
+  if(!(await uiConfirm('📦 Traer Contado de cajas','Para CADA producto que esté en cajas: Contado = suma de sus unidades en todas las cajas.\n\nNo cambia Cant. del sistema — eso lo hace ✓ Validar. Se puede repetir sin duplicar.\n\n¿Continuar?',{okText:'Traer conteo'})))return;
+  b.disabled=true;b.textContent='Calculando…';
+  const n=await recountFromBoxes(null);
+  b.disabled=false;b.textContent='📦 Traer Contado desde las cajas';
+  toast('Contado actualizado en '+n+' SKUs','ok');
+  renderCount();
+});})();
 $('#count-scan').addEventListener('click',()=>goScan('count'));
 let cqTimer=null;
 $('#count-q').addEventListener('input',()=>{
@@ -2830,21 +2918,32 @@ $('#b-save').addEventListener('click',async()=>{
     if(orig&&orig!==newCode){try{await DB.removeBox(orig);}catch(e){}}
     curBox._orig=newCode;
     toast('Caja guardada: '+newCode,'ok');back();renderBoxList('');
-    // 2) sincronizar inventario por DIFERENCIA (idempotente: re-guardar no duplica)
-    const oldMap={};(oldItems||[]).forEach(function(it){if(it&&it.sku)oldMap[it.sku]=(oldMap[it.sku]||0)+(+it.qty||0);});
-    const newMap={};(curBox.items||[]).forEach(function(it){if(it&&it.sku)newMap[it.sku]=(newMap[it.sku]||0)+(+it.qty||0);});
-    const all={};Object.keys(oldMap).forEach(function(k){all[k]=1;});Object.keys(newMap).forEach(function(k){all[k]=1;});
-    let adj=0,units=0;
-    for(const sku of Object.keys(all)){
-      const delta=(newMap[sku]||0)-(oldMap[sku]||0);
-      const it=(curBox.items||[]).find(function(x){return x&&x.sku===sku;});
-      await ensureInv(it||{sku:sku});
-      if(delta!==0){try{await DB.adjust(sku,delta,'entrada');adj++;units+=delta;}catch(e){}}
-    }
-    if(adj)toast('📦→📊 Inventario actualizado: '+(units>0?'+':'')+units+' uds en '+adj+' SKUs','ok');
+    // 2) MODELO DE CONTEO: las cajas alimentan CONTADO (la realidad física).
+    //    Cant. del sistema NO se toca aquí — eso lo hace ✓ Validar en 🔢 Conteo.
+    const affected={};(oldItems||[]).forEach(function(it){if(it&&it.sku)affected[it.sku]=1;});(curBox.items||[]).forEach(function(it){if(it&&it.sku)affected[it.sku]=1;});
+    const na=await recountFromBoxes(Object.keys(affected));
+    if(na)toast('📦 Contado actualizado en '+na+' SKUs — cuando termines de contar, valida en 🔢 Conteo','ok');
   }
   catch(e){toast('Error: '+String(e).slice(0,90),'err');}
 });
+/* CONTADO determinístico: para cada SKU, Contado = suma de sus unidades en TODAS las cajas.
+   Re-ejecutable sin duplicar. Cant. solo cambia con ✓ Validar (kind 'conteo', auditado). */
+async function recountFromBoxes(skusFilter){
+  let boxes=[];try{boxes=await DB.listBoxes();}catch(e){return 0;}
+  const tot={},sample={};
+  boxes.forEach(function(b){(b.items||[]).forEach(function(it){if(it&&it.sku){tot[it.sku]=(tot[it.sku]||0)+(+it.qty||0);if(!sample[it.sku])sample[it.sku]=it;}});});
+  const skus=(skusFilter&&skusFilter.length)?skusFilter:Object.keys(tot);
+  let n=0;
+  for(const sku of skus){
+    const t=tot[sku]||0;
+    await ensureInv(sample[sku]||{sku:sku});
+    try{
+      if(t>0){await DB.setCount(sku,t);n++;}
+      else{await DB.clearCount(sku);}
+    }catch(e){}
+  }
+  return n;
+}
 async function boxItemsInDB(code){
   if(!code)return [];
   try{
@@ -2854,19 +2953,13 @@ async function boxItemsInDB(code){
   }catch(e){return [];}
 }
 $('#b-stock').addEventListener('click',async()=>{
-  const items=(curBox.items||[]).filter(function(it){return it&&it.sku&&(+it.qty||0)>0;});
-  if(!items.length){toast('La caja no tiene productos con cantidad','err');return;}
-  const tot=items.reduce(function(s,it){return s+(+it.qty||0);},0);
-  const ok=await uiConfirm('⬆ Pasar caja al inventario','Suma las '+tot+' unidades de esta caja al stock (kind: entrada).\n\n⚠️ SOLO para cajas guardadas ANTES de hoy (las nuevas ya se suman solas al Guardar). Usarlo dos veces duplica.\n\n¿Continuar?',{okText:'Sí, pasar al inventario'});
+  const ok=await uiConfirm('🔁 Recalcular Contado','Recalcula el CONTADO de los productos de esta caja: Contado = suma de sus unidades en TODAS las cajas.\n\nNo cambia Cant. del sistema — eso lo hace ✓ Validar en 🔢 Conteo. Se puede repetir sin duplicar.\n\n¿Continuar?',{okText:'Recalcular'});
   if(!ok)return;
-  const btn=$('#b-stock');btn.disabled=true;btn.textContent='Pasando…';
-  let n=0;
-  for(const it of items){
-    await ensureInv(it);
-    try{await DB.adjust(it.sku,(+it.qty||0),'entrada');n++;}catch(e){}
-  }
-  btn.disabled=false;btn.textContent='⬆ Pasar TODO el contenido al inventario (solo cajas viejas)';
-  toast('+'+tot+' unidades ('+n+' SKUs) sumadas al inventario','ok');
+  const btn=$('#b-stock');btn.disabled=true;btn.textContent='Recalculando…';
+  const skus=(curBox.items||[]).filter(function(it){return it&&it.sku;}).map(function(it){return it.sku;});
+  const n=await recountFromBoxes(skus);
+  btn.disabled=false;btn.textContent='🔁 Recalcular Contado desde las cajas';
+  toast('Contado recalculado en '+n+' SKUs','ok');
 });
 $('#b-del').addEventListener('click',async()=>{
   if(!(await uiConfirm('Borrar caja','¿Borrar '+curBox.code+'? Solo borra la caja, no las prendas.',{danger:true,okText:'Borrar'})))return;
