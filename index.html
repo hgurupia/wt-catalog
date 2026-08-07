@@ -1448,7 +1448,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v80 · tabla validación';
+var APP_VER='v81 · fotos packs';
 (function(){var el=document.querySelector('#s-home .brandmark .app');if(el)el.innerHTML+=' <span style="font-size:10px;color:#8fb3cc;font-weight:600">'+APP_VER+'</span>';})();
 var CMCACHE={};
 /* Gurupia (marca propia): codigos de PACK segun "Tabla de Colores G001 y G002" + template G006 */
@@ -2733,9 +2733,11 @@ $('#ocr-save').addEventListener('click',async()=>{
     const brand=gv('.oi-brand'),style=gv('.oi-style'),color=gv('.oi-color'),cc=gv('.oi-cc').replace(/\D/g,''),size=gv('.oi-size'),cat=gv('.oi-cat'),gender=c.querySelector('.oi-gender').value,upc=gv('.oi-upc').replace(/\D/g,''),qty=+c.querySelector('.oi-qty').value||0;
     if(!brand&&!style&&!color&&!size){skipped++;continue;}
     const sku=cc?canonSku(brand,style,cc,size):('WT-'+(slug(brand).slice(0,4).toUpperCase()||'NA')+'-'+(slug(style).toUpperCase()||'NA')+'-'+(slug(color).slice(0,3).toUpperCase()||'NA')+'-'+(size.toUpperCase()||'NA'));
-    const o={sku,upc,brand,style,color,cc,size,cat,gender,qty,cost:0,img:'',title:[brand,style,color,size].filter(Boolean).join(' ')};
+    let oimg='';try{oimg=await ssPhoto(brand,style,color);}catch(e){}
+    const o={sku,upc,brand,style,color,cc,size,cat,gender,qty,cost:0,img:oimg,title:[brand,style,color,size].filter(Boolean).join(' ')};
+    if(oimg)o.gallery=[oimg];
     try{const ex=await DB.bySku(sku);
-      if(ex){await DB.adjust(sku,qty,'entrada');summed++;up.push({sku,brand,style,color,size,qty,estado:'sumado'});}
+      if(ex){await DB.adjust(sku,qty,'entrada');summed++;up.push({sku,brand,style,color,size,qty,estado:'sumado'});if(oimg&&!ex.img){DB.update(sku,{img:oimg,gallery:[oimg]}).catch(function(){});}}
       else{await DB.create(o);CATALOG.unshift(o);created++;up.push({sku,brand,style,color,size,qty,estado:'creado'});}
     }catch(e){errs++;}
   }
@@ -3263,9 +3265,23 @@ $('#p-file2').addEventListener('change',e=>{prodImgFile(e.target.files[0]);e.tar
 function updDelta(){$('#p-qty').textContent=current?current.qty:0;$('#in-n').textContent=moveN>1?(' '+moveN):'';$('#out-n').textContent=moveN>1?(' '+moveN):'';$('#deltahint').textContent='Vas a mover '+moveN+' unidad'+(moveN>1?'es':'');}
 $('#q-plus').addEventListener('click',()=>{moveN++;updDelta()});
 $('#q-minus').addEventListener('click',()=>{if(moveN>1)moveN--;updDelta()});
+/* Color representativo de cada pack Gurupia (para la foto sobre la tela del proveedor) */
+var GURUPIA_PACK_REP={'01':'White','02':'Black Heather','03':'Black Heather','04':'Dark Grey Heather','05':'Deep Heather','06':'Heather Stone','07':'Black Heather','08':'Heather Navy','09':'Heather Navy','10':'Heather Navy'};
 /* Foto real S&S desde ss_products (brand+style, color con match difuso) */
 async function ssPhoto(brand,style,color){
-  const st=((style||'')+'').trim();if(!st)return '';
+  let st=((style||'')+'').trim();if(!st)return '';
+  /* Gurupia: estilo propio (o revuelto tipo G00203MPK4) → tela del proveedor + color representativo del pack */
+  const gm=st.toUpperCase().match(/^(G\d{3})/);
+  if(gm&&(norm(brand||'').indexOf('guru')>=0||GURUPIA_COLORS[gm[1]])){
+    const base=gm[1];
+    const donor=(base==='G006')?'5033':'3001CVC';
+    let col=((color||'')+'').trim();
+    const packHit=Object.keys(GURUPIA_COLORS[base]||{}).find(function(c){return cmNorm(GURUPIA_COLORS[base][c])===cmNorm(col);});
+    const ccU=st.toUpperCase().replace(base,'').match(/^(\d{2})/);
+    const code=packHit||(ccU?ccU[1]:'');
+    if(code&&GURUPIA_PACK_REP[code])col=GURUPIA_PACK_REP[code];
+    return ssPhoto(donor==='5033'?'Next Level':'Bella','' + donor,col);
+  }
   try{
     let q=SB_URL+'/rest/v1/ss_products?style=eq.'+encodeURIComponent(st)+'&select=brand,colors&limit=3';
     const r=await fetch(q,{headers:sbHeaders()});
