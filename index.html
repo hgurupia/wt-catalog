@@ -747,12 +747,15 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
           <th class="ths" data-k="k">Grupo <span class="sar" data-for="k"></span></th>
           <th class="ths" data-k="n">Productos <span class="sar" data-for="n"></span></th>
           <th class="ths" data-k="u">Unidades <span class="sar" data-for="u"></span></th>
+          <th class="ths" data-k="c">Contado <span class="sar" data-for="c"></span></th>
+          <th class="ths" data-k="dif">Var. <span class="sar" data-for="dif"></span></th>
         </tr></thead>
         <tbody id="isumbody"></tbody>
         <tfoot id="isumfoot"></tfoot>
       </table>
     </div>
-    <p class="qlabel" style="margin-top:8px">Toca una fila para ver y editar sus productos</p>
+    <button class="btn o block" id="isum-approve" style="margin-top:10px">✔ Aprobar conteo y actualizar inventario (con log)</button>
+    <p class="qlabel" style="margin-top:8px">Unidades = inventario viejo · Contado = lo físico (cajas+conteo) · Var. = variación. Aprobar valida TODO lo contado y descarga el log inicial vs final.</p>
   </div>
 </section>
 
@@ -1449,7 +1452,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v83 · viejo vs nuevo en Inventario';
+var APP_VER='v84 · aprobar conteo + log';
 (function(){var el=document.querySelector('#s-home .brandmark .app');if(el)el.innerHTML+=' <span style="font-size:10px;color:#8fb3cc;font-weight:600">'+APP_VER+'</span>';})();
 var CMCACHE={};
 /* Gurupia (marca propia): codigos de PACK segun "Tabla de Colores G001 y G002" + template G006 */
@@ -2376,17 +2379,55 @@ function fillIsum(rows){
 }
 function invGroups(mode){
   var f=isumFilters();var g={};
-  (INVROWS||[]).forEach(function(d){if(!isumMatch(d,f))return;var q=+d.qty||0;var key=(mode==='brand'?(((d.brand||'')+'').trim()||'—'):(prodKey(d)||'—'));var o=g[key]||(g[key]={n:0,u:0});o.n++;o.u+=q;});
-  return Object.keys(g).map(function(k){return{k:k,n:g[k].n,u:g[k].u};}).sort(function(a,b){var va=a[ISUMSORTK],vb=b[ISUMSORTK];if(ISUMSORTK==='k')return (''+va).localeCompare(''+vb,'es',{numeric:true})*ISUMSORTD;return (va-vb)*ISUMSORTD;});
+  (INVROWS||[]).forEach(function(d){if(!isumMatch(d,f))return;var q=+d.qty||0;var key=(mode==='brand'?(((d.brand||'')+'').trim()||'—'):(prodKey(d)||'—'));var o=g[key]||(g[key]={n:0,u:0,c:0,cn:0});o.n++;o.u+=q;if(d.counted!=null){o.c+=(+d.counted||0);o.cn++;o.cu=(o.cu||0)+q;}});
+  return Object.keys(g).map(function(k){var o=g[k];return{k:k,n:o.n,u:o.u,c:o.c,cn:o.cn,dif:o.cn?(o.c-(o.cu||0)):0};}).sort(function(a,b){var va=a[ISUMSORTK],vb=b[ISUMSORTK];if(ISUMSORTK==='k')return (''+va).localeCompare(''+vb,'es',{numeric:true})*ISUMSORTD;return (va-vb)*ISUMSORTD;});
 }
 function renderInvSum(){
   var rows=invGroups(INVSUMG);
-  var tn=rows.reduce(function(t,r){return t+r.n;},0),tu=rows.reduce(function(t,r){return t+r.u;},0);
-  $('#isumbody').innerHTML=rows.length?rows.map(function(r){return '<tr class="isr" data-k="'+esc(r.k)+'" style="cursor:pointer"><td class="gk">'+esc(r.k)+' ›</td><td>'+r.n+'</td><td>'+r.u+'</td></tr>';}).join(''):'<tr><td colspan="3" class="muted" style="text-align:center;padding:20px">Sin productos</td></tr>';
-  $('#isumfoot').innerHTML='<tr><td class="gk">TOTAL</td><td>'+tn+'</td><td>'+tu+'</td></tr>';
+  var tn=0,tu=0,tc=0,td=0,tcn=0;
+  rows.forEach(function(r){tn+=r.n;tu+=r.u;tc+=r.c;td+=r.dif;tcn+=r.cn;});
+  $('#isumbody').innerHTML=rows.length?rows.map(function(r){
+    var dcol=r.cn?(r.dif===0?'var(--slate)':(r.dif>0?'#1a7f4e':'#b3261e')):'var(--slate)';
+    return '<tr class="isr" data-k="'+esc(r.k)+'" style="cursor:pointer"><td class="gk">'+esc(r.k)+' ›</td><td>'+r.n+'</td><td>'+r.u+'</td>'
+      +'<td style="font-weight:800;color:var(--navy)">'+(r.cn?r.c:'—')+'</td>'
+      +'<td style="font-weight:800;color:'+dcol+'">'+(r.cn?((r.dif>0?'+':'')+r.dif):'—')+'</td></tr>';
+  }).join(''):'<tr><td colspan="5" class="muted" style="text-align:center;padding:20px">Sin productos</td></tr>';
+  $('#isumfoot').innerHTML='<tr><td class="gk">TOTAL</td><td>'+tn+'</td><td>'+tu+'</td><td>'+(tcn?tc:'—')+'</td><td>'+(tcn?((td>0?'+':'')+td):'—')+'</td></tr>';
   $$('#isumbody .isr').forEach(function(el){el.addEventListener('click',function(){drillInv(INVSUMG,el.getAttribute('data-k'));});});
   updISumSar();
 }
+/* ✔ APROBAR CONTEO: valida TODO lo contado, deja log CSV inicial vs final + registro en wt_config */
+(function(){
+  var b=$('#isum-approve');if(!b)return;
+  b.addEventListener('click',async function(){
+    var rows=(INVROWS||[]).filter(function(d){return d.counted!=null;});
+    if(!rows.length){toast('No hay nada contado por aprobar','err');return;}
+    var difs=rows.filter(function(d){return (+d.counted||0)!==(+d.qty||0);});
+    if(!(await uiConfirm('✔ Aprobar conteo','Se validan '+rows.length+' productos contados ('+difs.length+' con variación).\nCant. (viejo) pasa a ser lo Contado (nuevo) y se descarga el LOG inicial vs final.\n\n¿Aprobar y actualizar?',{okText:'Aprobar todo'})))return;
+    b.disabled=true;
+    var log=[],n=0;
+    for(var i=0;i<rows.length;i++){
+      var d=rows[i];
+      b.textContent='Aprobando '+(i+1)+'/'+rows.length+'…';
+      var viejo=(+d.qty||0),nuevo=(+d.counted||0),delta=nuevo-viejo;
+      try{
+        if(delta!==0)await DB.adjust(d.sku,delta,'conteo');
+        await DB.clearCount(d.sku);
+        log.push([d.sku,[d.brand,d.style].filter(Boolean).join(' '),canonColor(d.color),d.size||'',boxCodeOf(d.sku),viejo,nuevo,(delta>0?'+':'')+delta]);
+        d.qty=nuevo;d.counted=null;n++;
+      }catch(e){}
+    }
+    var ui=log.reduce(function(s,r){return s+(+r[5]||0);},0),uf=log.reduce(function(s,r){return s+(+r[6]||0);},0);
+    dlFile('LOG_conteo_'+expFecha()+'.csv',csvJoin(['SKU','Producto','Color','Talla','Cajas','Inventario inicial','Inventario final','Variacion'],log)
+      +'\r\n'+['TOTAL','','','','',ui,uf,((uf-ui)>0?'+':'')+(uf-ui)].map(csvE).join(','));
+    try{
+      fetch(SB_URL+'/rest/v1/wt_config?on_conflict=key',{method:'POST',headers:sbHeaders({Prefer:'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({key:'conteo_log_'+Date.now(),val:{fecha:new Date().toISOString(),skus:n,inicial:ui,final:uf,variacion:uf-ui,who:(typeof WHO!=='undefined'&&WHO)||''}})});
+    }catch(e){}
+    b.disabled=false;b.textContent='✔ Aprobar conteo y actualizar inventario (con log)';
+    toast('✔ Conteo aprobado: '+n+' productos · inicial '+ui+' → final '+uf,'ok');
+    renderInvSum();
+  });
+})();
 function drillInv(mode,key){
   INVMODE=false;INVSEL.clear();$('#bulkbar').style.display='none';
   go('s-inv');
