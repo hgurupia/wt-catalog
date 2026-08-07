@@ -500,6 +500,7 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
     <div id="b-manifest" class="card" style="display:none;margin-top:8px"></div>
     <div class="row2" style="margin-top:8px"><button class="btn ghost" id="b-counted">✓ Marcar contada</button><button class="btn ghost" id="b-uncounted">↺ Reiniciar conteo</button></div>
     <button class="btn o block" id="b-save" style="margin-top:8px">💾 Guardar caja</button>
+    <button class="btn n block" id="b-savenew" style="margin-top:8px">💾➡📦 Guardar y abrir caja NUEVA</button>
     <button class="btn ghost block" id="b-stock" style="margin-top:8px">🔁 Recalcular Contado desde las cajas</button>
     <button class="btn b block" id="b-print" style="margin-top:8px">🖨️ Imprimir etiqueta 4×6 (caja)</button>
     <button class="btn b block" id="b-print-items" style="margin-top:8px">🏷️ Imprimir etiquetas de prendas (90×30)</button>
@@ -1453,7 +1454,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v87 · tipos editables';
+var APP_VER='v88 · imprimir guarda primero';
 (function(){var el=document.querySelector('#s-home .brandmark .app');if(el)el.innerHTML+=' <span style="font-size:10px;color:#8fb3cc;font-weight:600">'+APP_VER+'</span>';})();
 var CMCACHE={};
 /* Gurupia (marca propia): codigos de PACK segun "Tabla de Colores G001 y G002" + template G006 */
@@ -3110,26 +3111,35 @@ $('#b-q').addEventListener('input',()=>{
     boxAddChoices(hits);
   },250);
 });
-$('#b-save').addEventListener('click',async()=>{
+/* GUARDA la caja actual (usada por Guardar, Imprimir y Guardar+Nueva). Devuelve true si guardó. */
+async function saveCurBox(){
   const newCode=$('#b-code').value.trim();
-  if(!newCode){toast('Ponle un código a la caja','err');return;}
+  if(!newCode){toast('Ponle un código a la caja','err');return false;}
   const orig=curBox._orig;
   curBox.code=newCode;curBox.kind=$('#b-kind').value;curBox.rack=$('#b-rack').value.trim();curBox.bin=$('#b-bin').value.trim();curBox.name=$('#b-name').value.trim();curBox.pieces=boxPieces();
   const payload={code:curBox.code,name:curBox.name,kind:curBox.kind,rack:curBox.rack,bin:curBox.bin,items:curBox.items,pieces:curBox.pieces};
   try{
-    // 1) leer lo que la caja tenía guardado ANTES (para ajustar solo la diferencia)
     const oldItems=await boxItemsInDB(orig||newCode);
     await DB.saveBox(payload);
     if(orig&&orig!==newCode){try{await DB.removeBox(orig);}catch(e){}}
     curBox._orig=newCode;
-    toast('Caja guardada: '+newCode,'ok');back();renderBoxList('');
-    // 2) MODELO DE CONTEO: las cajas alimentan CONTADO (la realidad física).
-    //    Cant. del sistema NO se toca aquí — eso lo hace ✓ Validar en 🔢 Conteo.
+    toast('💾 Caja guardada: '+newCode,'ok');
+    // las cajas alimentan CONTADO; Cant. solo cambia con ✓ Validar
     const affected={};(oldItems||[]).forEach(function(it){if(it&&it.sku)affected[it.sku]=1;});(curBox.items||[]).forEach(function(it){if(it&&it.sku)affected[it.sku]=1;});
-    const na=await recountFromBoxes(Object.keys(affected));
-    if(na)toast('📦 Contado actualizado en '+na+' SKUs — cuando termines de contar, valida en 🔢 Conteo','ok');
+    recountFromBoxes(Object.keys(affected)).then(function(na){if(na)toast('📦 Contado actualizado en '+na+' SKUs','ok');});
+    return true;
   }
-  catch(e){toast('Error: '+String(e).slice(0,90),'err');}
+  catch(e){toast('Error al guardar: '+String(e).slice(0,90),'err');return false;}
+}
+$('#b-save').addEventListener('click',async()=>{
+  if(await saveCurBox()){back();renderBoxList('');}
+});
+$('#b-savenew').addEventListener('click',async()=>{
+  if(!(await saveCurBox()))return;
+  let code='CAJA-0001';try{code=await DB.nextBoxCode();}catch(e){}
+  curBox={code:code,name:'',kind:'pool',rack:'',bin:'',items:[],pieces:0,_orig:null};
+  openBoxEditor(true);
+  toast('📦 Caja nueva: '+code+' — lista para llenar','ok');
 });
 /* CONTADO determinístico: para cada SKU, Contado = suma de sus unidades en TODAS las cajas.
    Re-ejecutable sin duplicar. Cant. solo cambia con ✓ Validar (kind 'conteo', auditado). */
@@ -3171,8 +3181,9 @@ $('#b-del').addEventListener('click',async()=>{
   try{await DB.removeBox(curBox.code);toast('Caja borrada','ok');back();renderBoxList('');}
   catch(e){toast('Error: '+String(e).slice(0,90),'err');}
 });
-$('#b-print').addEventListener('click',()=>{
-  curBox.kind=$('#b-kind').value;curBox.rack=$('#b-rack').value;curBox.bin=$('#b-bin').value.trim();curBox.name=$('#b-name').value.trim();curBox.pieces=boxPieces();
+$('#b-print').addEventListener('click',async()=>{
+  // imprimir SIEMPRE guarda primero — la etiqueta refleja lo que quedó en la base
+  if(!(await saveCurBox()))return;
   printBoxLabel(curBox);
 });
 function printBoxLabel(box){
