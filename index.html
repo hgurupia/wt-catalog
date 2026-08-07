@@ -908,6 +908,12 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
 
 </div>
 <div id="toast"></div>
+<div class="ovl" id="colpick"><div class="dlg" style="max-width:440px;display:flex;flex-direction:column;max-height:80vh">
+  <h3 style="margin:0 0 10px">🎨 Elegir color</h3>
+  <input class="in" id="colpick-q" placeholder="Buscar por nombre o código…" autocomplete="off" style="margin-bottom:8px">
+  <div id="colpick-list" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;border-top:1px solid var(--line)"></div>
+  <button class="btn ghost block" id="colpick-x" style="margin-top:10px">Cancelar</button>
+</div></div>
 <div class="ovl" id="dlg"><div class="dlg">
   <h3 id="dlg-title">—</h3>
   <p id="dlg-msg"></p>
@@ -1403,7 +1409,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v76 · catálogo completo';
+var APP_VER='v77 · buscador de colores';
 (function(){var el=document.querySelector('#s-home .brandmark .app');if(el)el.innerHTML+=' <span style="font-size:10px;color:#8fb3cc;font-weight:600">'+APP_VER+'</span>';})();
 var CMCACHE={};
 /* Gurupia (marca propia): codigos de PACK segun "Tabla de Colores G001 y G002" + template G006 */
@@ -2368,7 +2374,7 @@ function ocrCard(it){
   d.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b class="oi-n">Producto</b><button type="button" class="oi-del" style="border:none;background:#eef2f6;color:#5f6d7c;border-radius:8px;padding:4px 12px;font-weight:800;font-size:15px">✕</button></div>'
     +'<div class="row2"><div><label class="fld">Marca</label><input class="in oi-brand" list="dl-brand"></div><div><label class="fld">Estilo</label><input class="in oi-style"></div></div>'
     +'<div style="height:8px"></div>'
-    +'<div class="row2"><div><label class="fld">Color</label><select class="in oi-colorsel"><option value="">cargando…</option></select><input class="in oi-color" style="display:none"></div><div><label class="fld">Cód. color</label><input class="in oi-cc" inputmode="numeric"></div></div>'
+    +'<div class="row2"><div><label class="fld">Color</label><button type="button" class="in oi-colorbtn" style="text-align:left;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;background:#fff">— elegir color —</button><input class="in oi-color" style="display:none"></div><div><label class="fld">Cód. color</label><input class="in oi-cc" inputmode="numeric"></div></div>'
     +'<div style="height:8px"></div>'
     +'<div class="row2"><div><label class="fld">Talla</label><select class="in oi-size"></select></div><div><label class="fld">Cantidad</label><input class="in oi-qty" type="number" inputmode="numeric"></div></div>'
     +'<div style="height:8px"></div>'
@@ -2388,7 +2394,7 @@ function ocrCard(it){
   d.querySelector('.oi-del').addEventListener('click',()=>{d.remove();renumberOcr();});
   d.querySelector('.oi-scan').addEventListener('click',()=>{ocrUpcTarget=d.querySelector('.oi-upc');goScan('ocrupc');});
   (function(){
-    var brEl=d.querySelector('.oi-brand'),stEl=d.querySelector('.oi-style'),colInp=d.querySelector('.oi-color'),ccEl=d.querySelector('.oi-cc'),colSel=d.querySelector('.oi-colorsel'),szSel=d.querySelector('.oi-size'),catSel=d.querySelector('.oi-cat');
+    var brEl=d.querySelector('.oi-brand'),stEl=d.querySelector('.oi-style'),colInp=d.querySelector('.oi-color'),ccEl=d.querySelector('.oi-cc'),colBtn=d.querySelector('.oi-colorbtn'),szSel=d.querySelector('.oi-size'),catSel=d.querySelector('.oi-cat');
     /* Talla y Tipo: menús con las opciones estándar + lo leído */
     (function(){
       var cur=((it.size||'')+'').trim().toUpperCase();
@@ -2405,42 +2411,94 @@ function ocrCard(it){
       cats.forEach(function(x){oc+='<option'+(curc===x?' selected':'')+'>'+esc(x)+'</option>';});
       catSel.innerHTML=oc;
     })();
-    /* Color: menú POR MARCA (y estilo si hay) — Gurupia hereda su catálogo */
-    async function loadColors(){
-      var list=await cmForStyle(brEl.value,stEl.value);
+    /* Color: picker con BUSCADOR por marca (y estilo si hay) — Gurupia hereda su catálogo */
+    var clist=null;
+    async function refreshColor(){
+      clist=await cmForStyle(brEl.value,stEl.value);
       var cur=colInp.value.trim();
-      var o='<option value="">— elegir color —</option>';
-      if(cur&&!(list||[]).some(function(x){return cmNorm(x.name)===cmNorm(cur);}))o+='<option value="'+esc(cur)+'" selected>✏️ '+esc(cur)+' (leído)</option>';
-      (list||[]).slice().sort(function(a,b){return ((parseInt(a.code,10)||9999)-(parseInt(b.code,10)||9999))||((''+a.code)<(''+b.code)?-1:1);}).forEach(function(x){
-        var code=(x.code||'')+'';
-        o+='<option value="'+esc(x.name)+'" data-cc="'+esc(code)+'"'+(cmNorm(x.name)===cmNorm(cur)?' selected':'')+'>'+esc(code||'—')+' · '+esc(x.name)+(x.pack?' · PACK':'')+'</option>';
-      });
-      colSel.innerHTML=o;
-      var op=colSel.options[colSel.selectedIndex];
-      if(op&&op.getAttribute&&op.getAttribute('data-cc')){
-        colInp.value=op.value;
-        if(!ccEl.value.trim())ccEl.value=op.getAttribute('data-cc');
+      var hit=(clist||[]).find(function(x){return cmNorm(x.name)===cmNorm(cur);});
+      if(hit){
+        colInp.value=hit.name;
+        if(!ccEl.value.trim()&&hit.code)ccEl.value=hit.code;
+        colBtn.textContent=((hit.code||'—')+'')+' · '+hit.name+(hit.pack?' · PACK':'');
+        colBtn.style.color='';
+      }else if(cur){
+        colBtn.textContent='✏️ '+cur+' (leído) — toca para elegir';
+        colBtn.style.color='var(--brand-ink)';
+      }else{
+        colBtn.textContent=(clist&&clist.length)?'— elegir color —':'(pon marca o estilo)';
+        colBtn.style.color='';
       }
-      if(!list.length&&!cur)colSel.innerHTML='<option value="">(pon marca o estilo)</option>';
     }
-    loadColors();
-    brEl.addEventListener('change',loadColors);
-    stEl.addEventListener('change',loadColors);
-    colSel.addEventListener('change',function(){
-      colInp.value=colSel.value==='__x__'?'':colSel.value;
-      var op=colSel.options[colSel.selectedIndex];
-      var cc=(op&&op.getAttribute)?(op.getAttribute('data-cc')||''):'';
-      if(cc)ccEl.value=cc;
+    refreshColor();
+    brEl.addEventListener('change',function(){clist=null;refreshColor();});
+    stEl.addEventListener('change',function(){clist=null;refreshColor();});
+    colBtn.addEventListener('click',async function(){
+      var list=clist||await cmForStyle(brEl.value,stEl.value);
+      if(!list||!list.length){toast('Pon marca (o estilo) primero','err');return;}
+      openColorPicker(list,colInp.value,function(it){
+        colInp.value=it.name;
+        ccEl.value=(it.code||'')+'';
+        refreshColor();
+      });
     });
     ccEl.addEventListener('change',async function(){
       var v=ccEl.value.trim();if(!v)return;
       var nm=cmName(await cmForStyle(brEl.value,stEl.value),v);
-      if(nm){colInp.value=nm;loadColors();toast('Color: '+nm,'ok');}
+      if(nm){colInp.value=nm;refreshColor();toast('Color: '+nm,'ok');}
       else toast('Ese código no está en esta marca/estilo — usa el menú Color','err');
     });
   })();
   return d;
 }
+/* ===== Picker de color con buscador + sugeridos (global) ===== */
+var CPK={list:[],cb:null,cur:''};
+function cpkScore(qt,name){
+  var ct=cmTokens(name),hit=0;
+  qt.forEach(function(t){if(ct.some(function(c){return c===t||(t.length>=3&&c.indexOf(t)===0);}))hit++;});
+  return hit;
+}
+function openColorPicker(list,current,cb){
+  CPK.list=(list||[]).slice();CPK.cb=cb;CPK.cur=((current||'')+'').trim();
+  var q=$('#colpick-q');if(q)q.value='';
+  cpkRender('');
+  $('#colpick').classList.add('on');
+  setTimeout(function(){var qq=$('#colpick-q');if(qq)qq.focus();},150);
+}
+function cpkRowHTML(x,i){
+  return '<div data-ci="'+i+'" style="display:flex;gap:10px;padding:10px 6px;border-bottom:1px solid var(--line);cursor:pointer;align-items:center">'
+    +'<b style="min-width:36px;color:var(--brand-ink);text-align:right">'+esc((x.code||'—')+'')+'</b>'
+    +'<span style="flex:1;color:var(--ink)">'+esc(x.name)+(x.pack?' <small style="color:var(--slate);font-weight:800">PACK</small>':'')+'</span></div>';
+}
+function cpkRender(q){
+  q=norm(q||'');
+  var qt=CPK.cur?cmTokens(CPK.cur):[];
+  var items=CPK.list.map(function(x,i){return {x:x,i:i,s:qt.length?cpkScore(qt,x.name):0};});
+  if(q)items=items.filter(function(r){return norm(((r.x.code||'')+'')+' '+r.x.name).indexOf(q)>=0;});
+  var bycode=items.slice().sort(function(a,b){return ((parseInt(a.x.code,10)||9999)-(parseInt(b.x.code,10)||9999))||a.x.name.localeCompare(b.x.name,'es');});
+  var html='';
+  if(!q&&qt.length){
+    var sug=items.filter(function(r){return r.s>0;}).sort(function(a,b){return b.s-a.s;}).slice(0,6);
+    if(sug.length){
+      html+='<div style="font-size:11px;font-weight:800;color:var(--brand-ink);padding:8px 6px 2px">SUGERIDOS PARA "'+esc(CPK.cur.toUpperCase())+'"</div>'
+        +sug.map(function(r){return cpkRowHTML(r.x,r.i);}).join('')
+        +'<div style="font-size:11px;font-weight:800;color:var(--slate);padding:10px 6px 2px">TODOS</div>';
+    }
+  }
+  html+=bycode.map(function(r){return cpkRowHTML(r.x,r.i);}).join('')||'<p class="muted" style="text-align:center;padding:16px">Sin resultados</p>';
+  $('#colpick-list').innerHTML=html;
+  $$('#colpick-list [data-ci]').forEach(function(el){
+    el.addEventListener('click',function(){
+      var it=CPK.list[+el.getAttribute('data-ci')];
+      $('#colpick').classList.remove('on');
+      if(CPK.cb&&it)CPK.cb(it);
+    });
+  });
+}
+(function(){
+  var q=$('#colpick-q');if(q)q.addEventListener('input',function(){cpkRender(q.value);});
+  var x=$('#colpick-x');if(x)x.addEventListener('click',function(){$('#colpick').classList.remove('on');});
+})();
 function ocrAutoCC(){
   document.querySelectorAll('#ocr-list .ocr-item').forEach(function(c){
     var cc=c.querySelector('.oi-cc'),col=c.querySelector('.oi-color'),br=c.querySelector('.oi-brand'),st=c.querySelector('.oi-style');
