@@ -11,6 +11,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230d2f4b'/><text x='50' y='68' font-size='58' text-anchor='middle' fill='%234aa8d8' font-family='Arial' font-weight='bold'>W</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/hgurupia/wt-catalog@main/catalog.js"></script>
 <script>window.WT_CATALOG||document.write('<script src="catalog.js"><\/script>')</script>
 <style>
@@ -953,7 +954,8 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
 <div class="ovl" id="expov"><div class="dlg" style="max-width:380px">
   <h3 style="margin:0 0 6px">⬇ Exportar inventario</h3>
   <p class="muted" style="margin:0 0 12px;font-size:12.5px">Los marketplaces salen con productos Cant. &gt; 0 y su precio del canal. Valida el conteo antes de exportar.</p>
-  <button class="btn n block" data-exp="excel">📊 Excel completo (todo)</button>
+  <button class="btn n block" data-exp="reporte">📑 REPORTE completo (.xlsx, varias hojas)</button>
+  <button class="btn ghost block" data-exp="excel" style="margin-top:8px">📊 CSV plano (todo)</button>
   <button class="btn ghost block" data-exp="ebay" style="margin-top:8px">eBay · File Exchange</button>
   <button class="btn ghost block" data-exp="amazon" style="margin-top:8px">Amazon · Inventory Loader</button>
   <button class="btn ghost block" data-exp="walmart" style="margin-top:8px">Walmart · Bulk Items</button>
@@ -1462,7 +1464,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v96 · borrador anti-pérdida';
+var APP_VER='v97 · reporte Excel';
 try{document.querySelectorAll('.toplogo .vertag').forEach(function(e){e.textContent=APP_VER;});}catch(e){}
 (function(){var el=document.querySelector('#s-home .brandmark .app');if(el)el.innerHTML+=' <span style="font-size:10px;color:#8fb3cc;font-weight:600">'+APP_VER+'</span>';})();
 var CMCACHE={};
@@ -2076,7 +2078,107 @@ async function expRows(all){
   });
   return all?rows:rows.filter(function(d){return (+d.qty||0)>0;});
 }
+async function buildReporte(){
+  if(!window.XLSX){toast('El módulo de Excel no cargó — revisa internet y reintenta','err');return;}
+  const rows=await expRows(true);
+  let boxes=[];try{boxes=await DB.listBoxes();}catch(e){}
+  const wb=XLSX.utils.book_new();
+  const num=v=>(v==null||v==='')?null:(+v||0);
+  // ===== Hoja 1: Inventario completo =====
+  const H1=['SKU','SKU canónico','Alias','UPC','ASIN','Marca','Estilo','Cód color','Color','Talla','Tipo','Género','Condición','Comentarios','Cant','Contado','Var','Costo unit','Costo total','Precio','Retail','eBay','Amazon','Walmart','Shopify','Venta total (precio)','Caja(s)','Rack','Contado por','Foto','Título listing'];
+  const A1=[H1];
+  rows.forEach(function(d){
+    const q=+d.qty||0;
+    const bx=(LOCIDX[d.sku]||[]),agg={},order=[];
+    bx.forEach(function(e){if(!(e.code in agg)){agg[e.code]=0;order.push(e.code);}agg[e.code]+=(+e.qty||0);});
+    const cajas=order.map(function(c){return c+' ('+agg[c]+')';}).join(' + ');
+    const pv=(d.price!=null&&d.price!=='')?+d.price:((d.retail!=null&&d.retail!=='')?+d.retail:0);
+    A1.push([d.sku,d.sku_canon||'',Array.isArray(d.aliases)?d.aliases.join(' | '):'',d.upc||'',d.asin||'',d.brand||'',d.style||'',(''+(d.cc||'')),d.color||'',d.size||'',d.cat||'',d.gender||'',d.status||'',d.notes||'',q,(d.counted==null?null:+d.counted),(d.counted==null?null:(+d.counted-q)),num(d.cost),(num(d.cost)!=null?+(num(d.cost)*q).toFixed(2):null),num(d.price),num(d.retail),+rPrice(d,'ebay').toFixed(2),+rPrice(d,'amazon').toFixed(2),+rPrice(d,'walmart').toFixed(2),+rPrice(d,'shopify').toFixed(2),+(pv*q).toFixed(2),cajas,rackOf(d)||'',d.counted_by||'',d.img||'',expTitle(d)]);
+  });
+  const ws1=XLSX.utils.aoa_to_sheet(A1);ws1['!cols']=H1.map(function(h){return {wch:Math.max(10,Math.min(28,h.length+4))};});ws1['!autofilter']={ref:'A1:AE'+A1.length};
+  XLSX.utils.book_append_sheet(wb,ws1,'Inventario');
+  // ===== Resúmenes por marca y por tipo =====
+  function resumen(keyFn,label){
+    const g={};
+    rows.forEach(function(d){
+      const k=keyFn(d)||'—';const q=+d.qty||0;
+      const o=g[k]||(g[k]={n:0,u:0,c:0,cn:0,cu:0,cost:0,venta:0});g[k]=o;
+      o.n++;o.u+=q;
+      if(d.counted!=null){o.c+=+d.counted;o.cn++;o.cu+=q;}
+      if(d.cost!=null&&d.cost!=='')o.cost+=(+d.cost||0)*q;
+      const pv=(d.price!=null&&d.price!=='')?+d.price:((d.retail!=null&&d.retail!=='')?+d.retail:0);
+      o.venta+=pv*q;
+    });
+    const A=[[label,'Productos','Unidades','Contado','Variación','Costo total','Venta total (precio)']];
+    Object.keys(g).sort(function(a,b){return g[b].u-g[a].u;}).forEach(function(k){
+      const o=g[k];A.push([k,o.n,o.u,(o.cn?o.c:null),(o.cn?(o.c-o.cu):null),+o.cost.toFixed(2),+o.venta.toFixed(2)]);
+    });
+    const t=Object.values(g).reduce(function(acc,o){acc.n+=o.n;acc.u+=o.u;acc.c+=o.c;acc.cn+=o.cn;acc.cu+=o.cu;acc.cost+=o.cost;acc.venta+=o.venta;return acc;},{n:0,u:0,c:0,cn:0,cu:0,cost:0,venta:0});
+    A.push(['TOTAL',t.n,t.u,(t.cn?t.c:null),(t.cn?(t.c-t.cu):null),+t.cost.toFixed(2),+t.venta.toFixed(2)]);
+    const ws=XLSX.utils.aoa_to_sheet(A);ws['!cols']=[{wch:26},{wch:10},{wch:10},{wch:10},{wch:10},{wch:12},{wch:16}];
+    return ws;
+  }
+  XLSX.utils.book_append_sheet(wb,resumen(function(d){return ((d.brand||'')+'').trim();},'Marca'),'Por marca');
+  XLSX.utils.book_append_sheet(wb,resumen(function(d){return ((d.cat||'')+'').trim();},'Tipo'),'Por tipo');
+  // ===== Cajas (cabecera y detalle) =====
+  // costo unitario por SKU desde la base
+  const skuCost={};rows.forEach(function(d){if(d.cost!=null&&d.cost!=='')skuCost[d.sku]=+d.cost||0;});
+  // ---- Hoja Cajas: totales por caja (piezas + costo) ----
+  const AB=[['Caja','Rack','Comp','Tipo','Piezas','SKUs','Costo total','Actualizada']];
+  let gPzs=0,gCost=0;
+  boxes.forEach(function(b){
+    const items=b.items||[];
+    const cst=items.reduce(function(t,it){return t+((skuCost[it.sku]||0)*(+it.qty||0));},0);
+    gPzs+=(+b.pieces||0);gCost+=cst;
+    AB.push([b.code,b.rack||'',b.bin||'',b.kind||'',+b.pieces||0,items.length,+cst.toFixed(2),(b.updated_at||'').slice(0,16).replace('T',' ')]);
+  });
+  AB.push(['TOTAL','','','',gPzs,'',+gCost.toFixed(2),'']);
+  const wsB=XLSX.utils.aoa_to_sheet(AB);
+  wsB['!cols']=[{wch:12},{wch:8},{wch:8},{wch:8},{wch:8},{wch:8},{wch:12},{wch:18}];
+  wsB['!autofilter']={ref:'A1:H'+(AB.length-1)};
+  XLSX.utils.book_append_sheet(wb,wsB,'Cajas');
+  // ---- Hoja Cajas detalle: por caja → marca/producto/color/talla/cantidad + costo unit y total, FILTRABLE ----
+  const AD=[['Caja','Rack','Marca','Producto','Color','Cód','Talla','Cantidad','Costo unit','Costo total','SKU']];
+  let dQty=0,dCost=0;
+  boxes.slice().sort(function(a,b){return (a.code||'').localeCompare(b.code||'');}).forEach(function(b){
+    sortItems(b.items||[]).forEach(function(it){
+      const q=+it.qty||0,cu=skuCost[it.sku],ct=(cu!=null)?+(cu*q).toFixed(2):null;
+      dQty+=q;if(ct!=null)dCost+=ct;
+      AD.push([b.code,(b.rack?('R'+b.rack):'')+(b.bin?('·'+b.bin):''),it.brand||'',it.style||'',it.color||'',(''+(it.cc||'')),it.size||'',q,(cu!=null?cu:null),ct,it.sku||'']);
+    });
+  });
+  AD.push(['TOTAL','','','','','','',dQty,null,+dCost.toFixed(2),'']);
+  const wsD=XLSX.utils.aoa_to_sheet(AD);
+  wsD['!cols']=[{wch:12},{wch:8},{wch:16},{wch:12},{wch:22},{wch:6},{wch:6},{wch:9},{wch:9},{wch:10},{wch:24}];
+  wsD['!autofilter']={ref:'A1:K'+(AD.length-1)};
+  XLSX.utils.book_append_sheet(wb,wsD,'Cajas detalle');
+  // ===== Portada / Totales =====
+  const tot=rows.reduce(function(a,d){
+    const q=+d.qty||0;a.u+=q;
+    if(d.img)a.foto++;if((d.upc||'').trim())a.upc++;if(d.counted!=null)a.cont++;
+    if(d.cost!=null&&d.cost!=='')a.costo+=(+d.cost||0)*q;
+    const pv=(d.price!=null&&d.price!=='')?+d.price:((d.retail!=null&&d.retail!=='')?+d.retail:0);
+    a.venta+=pv*q;a.ebay+=rPrice(d,'ebay')*q;a.amazon+=rPrice(d,'amazon')*q;
+    return a;},{u:0,foto:0,upc:0,cont:0,costo:0,venta:0,ebay:0,amazon:0});
+  const AP=[
+    ['REPORTE DE INVENTARIO — PML App (Gurupia)'],[''],
+    ['Fecha',expFecha()],['Generado por',(typeof WHO!=='undefined'&&WHO)||''],[''],
+    ['Productos (SKUs)',rows.length],['Unidades totales',tot.u],
+    ['Con foto',tot.foto],['Con UPC',tot.upc],['Con conteo pendiente de validar',tot.cont],[''],
+    ['Costo total del inventario',+tot.costo.toFixed(2)],
+    ['Venta total (precio base)',+tot.venta.toFixed(2)],
+    ['Venta total a precio eBay',+tot.ebay.toFixed(2)],
+    ['Venta total a precio Amazon',+tot.amazon.toFixed(2)],[''],
+    ['Cajas registradas',boxes.length],['Piezas en cajas',boxes.reduce(function(t,b){return t+(+b.pieces||0);},0)],[''],
+    ['Hojas: Inventario · Por marca · Por tipo · Cajas · Cajas detalle']
+  ];
+  const wsP=XLSX.utils.aoa_to_sheet(AP);wsP['!cols']=[{wch:34},{wch:20}];
+  XLSX.utils.book_append_sheet(wb,wsP,'Portada');
+  wb.SheetNames.unshift(wb.SheetNames.pop()); // Portada de primera
+  XLSX.writeFile(wb,'REPORTE_inventario_WT_'+expFecha()+'.xlsx');
+}
 var EXPORTS={
+  reporte:buildReporte,
   excel:async function(){
     var rows=await expRows(true);
     var H=['SKU','SKU canonico','Alias','UPC','ASIN','Marca','Estilo','Cod color','Color','Talla','Tipo','Genero','Condicion','Comentarios','Cant','Contado','Costo','Precio','Retail','Precio eBay','Precio Amazon','Precio Walmart','Precio Shopify','Caja','Rack','Foto','Titulo listing'];
