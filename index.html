@@ -1462,7 +1462,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v95 · completar items';
+var APP_VER='v96 · borrador anti-pérdida';
 try{document.querySelectorAll('.toplogo .vertag').forEach(function(e){e.textContent=APP_VER;});}catch(e){}
 (function(){var el=document.querySelector('#s-home .brandmark .app');if(el)el.innerHTML+=' <span style="font-size:10px;color:#8fb3cc;font-weight:600">'+APP_VER+'</span>';})();
 var CMCACHE={};
@@ -2970,7 +2970,23 @@ $('#count-valall').addEventListener('click',async()=>{
 
 /* =================== CAJAS =================== */
 let curBox=null;
-function goBoxes(){if(nav[nav.length-1]!=='s-boxes')nav.push('s-boxes');show('s-boxes');$('#box-q').value='';renderBoxList('');}
+/* 🛟 BORRADOR AUTOMÁTICO: cada cambio de la caja se respalda en el navegador; si algo te saca, se recupera */
+function saveBoxDraft(){try{if(curBox&&curBox.code&&(curBox.items||[]).length)localStorage.setItem('wt_box_draft',JSON.stringify({ts:Date.now(),box:curBox}));}catch(e){}}
+function clearBoxDraft(){try{localStorage.removeItem('wt_box_draft');}catch(e){}}
+function checkBoxDraft(){
+  try{
+    var raw=localStorage.getItem('wt_box_draft');if(!raw)return;
+    var d=JSON.parse(raw);
+    if(!d||!d.box||!(d.box.items||[]).length||(Date.now()-d.ts)>48*3600*1000){clearBoxDraft();return;}
+    var pzs=(d.box.items||[]).reduce(function(t,it){return t+(+it.qty||0);},0);
+    var mins=Math.round((Date.now()-d.ts)/60000);
+    uiConfirm('🛟 Trabajo sin guardar','Encontré la '+d.box.code+' con cambios NO guardados: '+(d.box.items||[]).length+' renglones · '+pzs+' piezas (hace '+mins+' min).\n\n¿Recuperarla?',{okText:'Recuperar'}).then(function(ok){
+      if(ok){curBox=d.box;curBox._orig=curBox._orig||null;openBoxEditor(false);toast('🛟 Recuperada — revisa y dale 💾 Guardar','ok');}
+      else{clearBoxDraft();}
+    });
+  }catch(e){}
+}
+function goBoxes(){if(nav[nav.length-1]!=='s-boxes')nav.push('s-boxes');show('s-boxes');$('#box-q').value='';renderBoxList('');checkBoxDraft();}
 $('#home-boxes').addEventListener('click',goBoxes);
 $('#box-q').addEventListener('input',()=>renderBoxList($('#box-q').value.trim()));
 async function renderBoxList(q){
@@ -3009,7 +3025,7 @@ function openBoxEditor(isNew){
   renderBoxItems();
 }
 function boxPieces(){return (curBox.items||[]).reduce((s,i)=>s+(+i.qty||0),0);}
-function renderBoxItems(){
+function renderBoxItems(){saveBoxDraft();
   const L=$('#b-items'),items=curBox.items||[];
   $('#b-count').textContent=items.length;$('#b-pieces').textContent=boxPieces();
   if(!items.length){L.innerHTML='<p class="muted">Vacía. Escanea o busca para agregar prendas.</p>';return;}
@@ -3064,7 +3080,7 @@ function boxManifestPreviewHTML(box){
     +'<tbody>'+rows+totalRow+'</tbody></table></div>'
     +'<div class="muted" style="font-size:11px;margin-top:6px">Así saldrá la etiqueta 4×6. Revisa antes de Guardar.</div>';
 }
-function refreshManifest(){const mp=$('#b-manifest');if(mp&&mp.style.display!=='none'){curBox.rack=$('#b-rack').value.trim();curBox.bin=$('#b-bin').value.trim();curBox.kind=$('#b-kind').value;mp.innerHTML=boxManifestPreviewHTML(curBox);}}
+function refreshManifest(){saveBoxDraft();const mp=$('#b-manifest');if(mp&&mp.style.display!=='none'){curBox.rack=$('#b-rack').value.trim();curBox.bin=$('#b-bin').value.trim();curBox.kind=$('#b-kind').value;mp.innerHTML=boxManifestPreviewHTML(curBox);}}
 $('#b-manifest-btn').addEventListener('click',()=>{
   const mp=$('#b-manifest');
   if(mp.style.display!=='none'){mp.style.display='none';$('#b-manifest-btn').textContent='👁️ Ver manifiesto de la caja';return;}
@@ -3217,6 +3233,7 @@ async function saveCurBox(){
     await DB.saveBox(payload);
     if(orig&&orig!==newCode){try{await DB.removeBox(orig);}catch(e){}}
     curBox._orig=newCode;
+    clearBoxDraft();
     toast('💾 Caja guardada: '+newCode,'ok');
     // las cajas alimentan CONTADO; Cant. solo cambia con ✓ Validar
     const affected={};(oldItems||[]).forEach(function(it){if(it&&it.sku)affected[it.sku]=1;});(curBox.items||[]).forEach(function(it){if(it&&it.sku)affected[it.sku]=1;});
