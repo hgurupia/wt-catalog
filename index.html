@@ -503,6 +503,7 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
     <button class="btn o block" id="b-save" style="margin-top:8px">💾 Guardar caja</button>
     <button class="btn n block" id="b-savenew" style="margin-top:8px">💾➡📦 Guardar y abrir caja NUEVA</button>
     <button class="btn ghost block" id="b-dup" style="margin-top:8px">⧉ Duplicar contenido a caja NUEVA</button>
+    <button class="btn ghost block" id="b-complete" style="margin-top:8px">🧩 Completar datos de los items (UPC + códigos)</button>
     <button class="btn ghost block" id="b-stock" style="margin-top:8px">🔁 Recalcular Contado desde las cajas</button>
     <button class="btn b block" id="b-print" style="margin-top:8px">🖨️ Imprimir etiqueta 4×6 (caja)</button>
     <button class="btn b block" id="b-print-items" style="margin-top:8px">🏷️ Imprimir etiquetas de prendas (90×30)</button>
@@ -1461,7 +1462,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v94 · condición+comentarios';
+var APP_VER='v95 · completar items';
 try{document.querySelectorAll('.toplogo .vertag').forEach(function(e){e.textContent=APP_VER;});}catch(e){}
 (function(){var el=document.querySelector('#s-home .brandmark .app');if(el)el.innerHTML+=' <span style="font-size:10px;color:#8fb3cc;font-weight:600">'+APP_VER+'</span>';})();
 var CMCACHE={};
@@ -3099,6 +3100,27 @@ $('#bm-add').addEventListener('click',()=>{
 });
 /* AUTOCOMPLETADO INVERSO del formulario manual: escribe marca+estilo+color+talla
    y la app trae cc↔color (wt_colors), la lista de colores del estilo, y el UPC exacto de la matriz Harps. */
+/* Lookup compartido: estilo+talla+(cc o color) → fila exacta de la matriz (upc/cc/color) */
+async function refUpcLookup(brand,style,cc,color,size){
+  const st=((style||'')+'').trim(), sz=canonSize(((size||'')+'').trim());
+  cc=((cc||'')+'').trim(); color=((color||'')+'').trim();
+  if(!st||!sz||(!cc&&!color))return null;
+  try{
+    let q=SB_URL+'/rest/v1/wt_reference?style=eq.'+encodeURIComponent(st)+'&size=eq.'+encodeURIComponent(sz)+'&select=upc,color,color_code&limit=200';
+    if(brand)q+='&brand=ilike.'+encodeURIComponent('%'+((brand||'')+'').trim()+'%');
+    let r=await fetch(q,{headers:sbHeaders()});
+    let a=r.ok?await r.json():[];
+    if(!a.length&&brand){
+      r=await fetch(SB_URL+'/rest/v1/wt_reference?style=eq.'+encodeURIComponent(st)+'&size=eq.'+encodeURIComponent(sz)+'&select=upc,color,color_code&limit=200',{headers:sbHeaders()});
+      a=r.ok?await r.json():[];
+    }
+    let hit=null;
+    const ccn=cc.replace(/^0+/,'');
+    if(cc)hit=a.find(function(x){return ((x.color_code||'')+'').replace(/^0+/,'')===ccn;});
+    if(!hit&&color)hit=a.find(function(x){return cmNorm(x.color)===cmNorm(color);})||a.find(function(x){var n=cmNorm(x.color),q2=cmNorm(color);return q2&&(n.indexOf(q2)>=0||q2.indexOf(n)>=0);});
+    return hit||null;
+  }catch(e){return null;}
+}
 var bmT=null;
 async function bmAutofill(){
   const b=$('#bm-brand').value.trim(), st=$('#bm-style').value.trim();
@@ -3205,6 +3227,44 @@ async function saveCurBox(){
 }
 $('#b-save').addEventListener('click',async()=>{
   if(await saveCurBox()){back();renderBoxList('');}
+});
+$('#b-complete').addEventListener('click',async()=>{
+  const items=(curBox.items||[]).filter(function(it){return it&&it.sku;});
+  if(!items.length){toast('La caja está vacía','err');return;}
+  const btn=$('#b-complete');btn.disabled=true;
+  let nUpc=0,nCc=0;
+  for(let i=0;i<items.length;i++){
+    const it=items[i];
+    btn.textContent='Completando '+(i+1)+'/'+items.length+'…';
+    try{
+      const list=await cmForStyle(it.brand,it.style);
+      if(!((it.cc||'')+'').trim()&&it.color){const c=cmCode(list,it.color);if(c){it.cc=c;nCc++;}}
+      else if(((it.cc||'')+'').trim()&&!it.color){const nm=cmName(list,it.cc);if(nm)it.color=nm;}
+      if(!((it.upc||'')+'').trim()){
+        const hit=await refUpcLookup(it.brand,it.style,it.cc,it.color,it.size);
+        if(hit&&hit.upc){
+          it.upc=(''+hit.upc).replace(/\D/g,'');nUpc++;
+          if(!((it.cc||'')+'').trim()&&hit.color_code){it.cc=(''+hit.color_code);nCc++;}
+          if(!it.color&&hit.color)it.color=hit.color;
+        }
+      }
+      // complementar también la fila del inventario (solo campos vacíos, nunca pisa)
+      try{
+        const row=await DB.bySku(it.sku);
+        if(row){
+          const patch={};
+          if(!((row.upc||'')+'').trim()&&it.upc)patch.upc=it.upc;
+          if(!((row.cc||'')+'').trim()&&it.cc)patch.cc=it.cc;
+          if(!((row.color||'')+'').trim()&&it.color)patch.color=it.color;
+          if(Object.keys(patch).length)await DB.update(it.sku,patch);
+        }
+      }catch(e){}
+    }catch(e){}
+  }
+  btn.disabled=false;btn.textContent='🧩 Completar datos de los items (UPC + códigos)';
+  renderBoxItems();refreshManifest();
+  const ok=await saveCurBox();
+  toast('🧩 '+nUpc+' UPCs y '+nCc+' códigos completados'+(ok?' y guardados':''),'ok');
 });
 $('#b-dup').addEventListener('click',async()=>{
   const items=(curBox.items||[]).filter(function(it){return it&&it.sku;});
