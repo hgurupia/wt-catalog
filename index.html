@@ -1464,7 +1464,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v99 · reporte Excel';
+var APP_VER='v100 · reporte Excel';
 try{document.querySelectorAll('.toplogo .vertag').forEach(function(e){e.textContent=APP_VER;});}catch(e){}
 (function(){var el=document.querySelector('#s-home .brandmark .app');if(el)el.innerHTML+=' <span style="font-size:10px;color:#8fb3cc;font-weight:600">'+APP_VER+'</span>';})();
 var CMCACHE={};
@@ -2133,14 +2133,19 @@ async function buildReporte(){
   // ===== Cajas (cabecera y detalle) =====
   // Resolver caja→inventario por SKU CANÓNICO o ALIAS, para que el costo/precio
   // no se pierda cuando la caja guardó el ítem con un alias (duplicados sin unificar).
-  const rowBy={};
+  const rowBy={},bySku={};
   rows.forEach(function(d){
+    const s0=(d.sku==null?'':(''+d.sku)).trim();if(s0)bySku[s0]=d;
     [d.sku,d.sku_canon].concat(Array.isArray(d.aliases)?d.aliases:[]).forEach(function(k){
       k=(k==null?'':(''+k)).trim();if(k&&!(k in rowBy))rowBy[k]=d;
     });
   });
-  const costOf=function(d){return (d&&d.cost!=null&&d.cost!=='')?(+d.cost||0):null;};
-  const pvOf=function(d){return (d&&d.price!=null&&d.price!=='')?(+d.price||0):((d&&d.retail!=null&&d.retail!=='')?(+d.retail||0):null);};
+  // 0 o vacío = SIN dato (null). Muchos ítems de caja apuntan a una fila DUPLICADA con costo 0
+  // cuyo costo real vive en la fila canónica (sku_canon): si la directa no tiene, seguimos la canónica.
+  const cVal=function(v){return (v!=null&&v!==''&&+v>0)?+v:null;};
+  const canonRow=function(d){return (d&&d.sku_canon)?bySku[(''+d.sku_canon).trim()]:null;};
+  const costOf=function(d){if(!d)return null;var c=cVal(d.cost);if(c!=null)return c;var cn=canonRow(d);return cn?cVal(cn.cost):null;};
+  const pvOf=function(d){if(!d)return null;var p=cVal(d.price);if(p==null)p=cVal(d.retail);if(p!=null)return p;var cn=canonRow(d);if(cn){var q=cVal(cn.price);if(q==null)q=cVal(cn.retail);return q;}return null;};
   // ---- Hoja Cajas: totales por caja (piezas + costo + venta) ----
   const AB=[['Caja','Rack','Comp','Tipo','Piezas','SKUs','Costo total','Venta total','Actualizada']];
   let gPzs=0,gCost=0,gVenta=0;
