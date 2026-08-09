@@ -1464,7 +1464,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v97 · reporte Excel';
+var APP_VER='v98 · reporte Excel';
 try{document.querySelectorAll('.toplogo .vertag').forEach(function(e){e.textContent=APP_VER;});}catch(e){}
 (function(){var el=document.querySelector('#s-home .brandmark .app');if(el)el.innerHTML+=' <span style="font-size:10px;color:#8fb3cc;font-weight:600">'+APP_VER+'</span>';})();
 var CMCACHE={};
@@ -2084,6 +2084,16 @@ async function buildReporte(){
   let boxes=[];try{boxes=await DB.listBoxes();}catch(e){}
   const wb=XLSX.utils.book_new();
   const num=v=>(v==null||v==='')?null:(+v||0);
+  // Saneador de celdas: Excel prohíbe celdas de texto > 32,767 caracteres.
+  // Las fotos embebidas (data URI base64) o textos gigantes reventaban el export completo.
+  const CELLMAX=32000;
+  const cS=function(v){
+    if(typeof v!=='string')return v;
+    if(v.length>64&&v.slice(0,5).toLowerCase()==='data:')return '(imagen embebida)';
+    if(v.length>CELLMAX)return v.slice(0,CELLMAX-1)+'…';
+    return v;
+  };
+  const AOA=function(A){return XLSX.utils.aoa_to_sheet(A.map(function(r){return r.map(cS);}));};
   // ===== Hoja 1: Inventario completo =====
   const H1=['SKU','SKU canónico','Alias','UPC','ASIN','Marca','Estilo','Cód color','Color','Talla','Tipo','Género','Condición','Comentarios','Cant','Contado','Var','Costo unit','Costo total','Precio','Retail','eBay','Amazon','Walmart','Shopify','Venta total (precio)','Caja(s)','Rack','Contado por','Foto','Título listing'];
   const A1=[H1];
@@ -2095,7 +2105,7 @@ async function buildReporte(){
     const pv=(d.price!=null&&d.price!=='')?+d.price:((d.retail!=null&&d.retail!=='')?+d.retail:0);
     A1.push([d.sku,d.sku_canon||'',Array.isArray(d.aliases)?d.aliases.join(' | '):'',d.upc||'',d.asin||'',d.brand||'',d.style||'',(''+(d.cc||'')),d.color||'',d.size||'',d.cat||'',d.gender||'',d.status||'',d.notes||'',q,(d.counted==null?null:+d.counted),(d.counted==null?null:(+d.counted-q)),num(d.cost),(num(d.cost)!=null?+(num(d.cost)*q).toFixed(2):null),num(d.price),num(d.retail),+rPrice(d,'ebay').toFixed(2),+rPrice(d,'amazon').toFixed(2),+rPrice(d,'walmart').toFixed(2),+rPrice(d,'shopify').toFixed(2),+(pv*q).toFixed(2),cajas,rackOf(d)||'',d.counted_by||'',d.img||'',expTitle(d)]);
   });
-  const ws1=XLSX.utils.aoa_to_sheet(A1);ws1['!cols']=H1.map(function(h){return {wch:Math.max(10,Math.min(28,h.length+4))};});ws1['!autofilter']={ref:'A1:AE'+A1.length};
+  const ws1=AOA(A1);ws1['!cols']=H1.map(function(h){return {wch:Math.max(10,Math.min(28,h.length+4))};});ws1['!autofilter']={ref:'A1:AE'+A1.length};
   XLSX.utils.book_append_sheet(wb,ws1,'Inventario');
   // ===== Resúmenes por marca y por tipo =====
   function resumen(keyFn,label){
@@ -2115,7 +2125,7 @@ async function buildReporte(){
     });
     const t=Object.values(g).reduce(function(acc,o){acc.n+=o.n;acc.u+=o.u;acc.c+=o.c;acc.cn+=o.cn;acc.cu+=o.cu;acc.cost+=o.cost;acc.venta+=o.venta;return acc;},{n:0,u:0,c:0,cn:0,cu:0,cost:0,venta:0});
     A.push(['TOTAL',t.n,t.u,(t.cn?t.c:null),(t.cn?(t.c-t.cu):null),+t.cost.toFixed(2),+t.venta.toFixed(2)]);
-    const ws=XLSX.utils.aoa_to_sheet(A);ws['!cols']=[{wch:26},{wch:10},{wch:10},{wch:10},{wch:10},{wch:12},{wch:16}];
+    const ws=AOA(A);ws['!cols']=[{wch:26},{wch:10},{wch:10},{wch:10},{wch:10},{wch:12},{wch:16}];
     return ws;
   }
   XLSX.utils.book_append_sheet(wb,resumen(function(d){return ((d.brand||'')+'').trim();},'Marca'),'Por marca');
@@ -2133,7 +2143,7 @@ async function buildReporte(){
     AB.push([b.code,b.rack||'',b.bin||'',b.kind||'',+b.pieces||0,items.length,+cst.toFixed(2),(b.updated_at||'').slice(0,16).replace('T',' ')]);
   });
   AB.push(['TOTAL','','','',gPzs,'',+gCost.toFixed(2),'']);
-  const wsB=XLSX.utils.aoa_to_sheet(AB);
+  const wsB=AOA(AB);
   wsB['!cols']=[{wch:12},{wch:8},{wch:8},{wch:8},{wch:8},{wch:8},{wch:12},{wch:18}];
   wsB['!autofilter']={ref:'A1:H'+(AB.length-1)};
   XLSX.utils.book_append_sheet(wb,wsB,'Cajas');
@@ -2148,7 +2158,7 @@ async function buildReporte(){
     });
   });
   AD.push(['TOTAL','','','','','','',dQty,null,+dCost.toFixed(2),'']);
-  const wsD=XLSX.utils.aoa_to_sheet(AD);
+  const wsD=AOA(AD);
   wsD['!cols']=[{wch:12},{wch:8},{wch:16},{wch:12},{wch:22},{wch:6},{wch:6},{wch:9},{wch:9},{wch:10},{wch:24}];
   wsD['!autofilter']={ref:'A1:K'+(AD.length-1)};
   XLSX.utils.book_append_sheet(wb,wsD,'Cajas detalle');
@@ -2172,7 +2182,7 @@ async function buildReporte(){
     ['Cajas registradas',boxes.length],['Piezas en cajas',boxes.reduce(function(t,b){return t+(+b.pieces||0);},0)],[''],
     ['Hojas: Inventario · Por marca · Por tipo · Cajas · Cajas detalle']
   ];
-  const wsP=XLSX.utils.aoa_to_sheet(AP);wsP['!cols']=[{wch:34},{wch:20}];
+  const wsP=AOA(AP);wsP['!cols']=[{wch:34},{wch:20}];
   XLSX.utils.book_append_sheet(wb,wsP,'Portada');
   wb.SheetNames.unshift(wb.SheetNames.pop()); // Portada de primera
   XLSX.writeFile(wb,'REPORTE_inventario_WT_'+expFecha()+'.xlsx');
