@@ -1464,7 +1464,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v98 · reporte Excel';
+var APP_VER='v99 · reporte Excel';
 try{document.querySelectorAll('.toplogo .vertag').forEach(function(e){e.textContent=APP_VER;});}catch(e){}
 (function(){var el=document.querySelector('#s-home .brandmark .app');if(el)el.innerHTML+=' <span style="font-size:10px;color:#8fb3cc;font-weight:600">'+APP_VER+'</span>';})();
 var CMCACHE={};
@@ -2131,36 +2131,50 @@ async function buildReporte(){
   XLSX.utils.book_append_sheet(wb,resumen(function(d){return ((d.brand||'')+'').trim();},'Marca'),'Por marca');
   XLSX.utils.book_append_sheet(wb,resumen(function(d){return ((d.cat||'')+'').trim();},'Tipo'),'Por tipo');
   // ===== Cajas (cabecera y detalle) =====
-  // costo unitario por SKU desde la base
-  const skuCost={};rows.forEach(function(d){if(d.cost!=null&&d.cost!=='')skuCost[d.sku]=+d.cost||0;});
-  // ---- Hoja Cajas: totales por caja (piezas + costo) ----
-  const AB=[['Caja','Rack','Comp','Tipo','Piezas','SKUs','Costo total','Actualizada']];
-  let gPzs=0,gCost=0;
-  boxes.forEach(function(b){
-    const items=b.items||[];
-    const cst=items.reduce(function(t,it){return t+((skuCost[it.sku]||0)*(+it.qty||0));},0);
-    gPzs+=(+b.pieces||0);gCost+=cst;
-    AB.push([b.code,b.rack||'',b.bin||'',b.kind||'',+b.pieces||0,items.length,+cst.toFixed(2),(b.updated_at||'').slice(0,16).replace('T',' ')]);
-  });
-  AB.push(['TOTAL','','','',gPzs,'',+gCost.toFixed(2),'']);
-  const wsB=AOA(AB);
-  wsB['!cols']=[{wch:12},{wch:8},{wch:8},{wch:8},{wch:8},{wch:8},{wch:12},{wch:18}];
-  wsB['!autofilter']={ref:'A1:H'+(AB.length-1)};
-  XLSX.utils.book_append_sheet(wb,wsB,'Cajas');
-  // ---- Hoja Cajas detalle: por caja → marca/producto/color/talla/cantidad + costo unit y total, FILTRABLE ----
-  const AD=[['Caja','Rack','Marca','Producto','Color','Cód','Talla','Cantidad','Costo unit','Costo total','SKU']];
-  let dQty=0,dCost=0;
-  boxes.slice().sort(function(a,b){return (a.code||'').localeCompare(b.code||'');}).forEach(function(b){
-    sortItems(b.items||[]).forEach(function(it){
-      const q=+it.qty||0,cu=skuCost[it.sku],ct=(cu!=null)?+(cu*q).toFixed(2):null;
-      dQty+=q;if(ct!=null)dCost+=ct;
-      AD.push([b.code,(b.rack?('R'+b.rack):'')+(b.bin?('·'+b.bin):''),it.brand||'',it.style||'',it.color||'',(''+(it.cc||'')),it.size||'',q,(cu!=null?cu:null),ct,it.sku||'']);
+  // Resolver caja→inventario por SKU CANÓNICO o ALIAS, para que el costo/precio
+  // no se pierda cuando la caja guardó el ítem con un alias (duplicados sin unificar).
+  const rowBy={};
+  rows.forEach(function(d){
+    [d.sku,d.sku_canon].concat(Array.isArray(d.aliases)?d.aliases:[]).forEach(function(k){
+      k=(k==null?'':(''+k)).trim();if(k&&!(k in rowBy))rowBy[k]=d;
     });
   });
-  AD.push(['TOTAL','','','','','','',dQty,null,+dCost.toFixed(2),'']);
+  const costOf=function(d){return (d&&d.cost!=null&&d.cost!=='')?(+d.cost||0):null;};
+  const pvOf=function(d){return (d&&d.price!=null&&d.price!=='')?(+d.price||0):((d&&d.retail!=null&&d.retail!=='')?(+d.retail||0):null);};
+  // ---- Hoja Cajas: totales por caja (piezas + costo + venta) ----
+  const AB=[['Caja','Rack','Comp','Tipo','Piezas','SKUs','Costo total','Venta total','Actualizada']];
+  let gPzs=0,gCost=0,gVenta=0;
+  boxes.forEach(function(b){
+    const items=b.items||[];let cst=0,vnt=0;
+    items.forEach(function(it){
+      const d=rowBy[(it.sku||'').trim()],q=+it.qty||0;
+      const cu=costOf(d);if(cu!=null)cst+=cu*q;
+      const pu=pvOf(d);if(pu!=null)vnt+=pu*q;
+    });
+    gPzs+=(+b.pieces||0);gCost+=cst;gVenta+=vnt;
+    AB.push([b.code,b.rack||'',b.bin||'',b.kind||'',+b.pieces||0,items.length,+cst.toFixed(2),+vnt.toFixed(2),(b.updated_at||'').slice(0,16).replace('T',' ')]);
+  });
+  AB.push(['TOTAL','','','',gPzs,'',+gCost.toFixed(2),+gVenta.toFixed(2),'']);
+  const wsB=AOA(AB);
+  wsB['!cols']=[{wch:12},{wch:8},{wch:8},{wch:8},{wch:8},{wch:8},{wch:12},{wch:12},{wch:18}];
+  wsB['!autofilter']={ref:'A1:I'+(AB.length-1)};
+  XLSX.utils.book_append_sheet(wb,wsB,'Cajas');
+  // ---- Hoja Cajas detalle: por caja → producto/color/talla/cant + costo y venta unit/total, FILTRABLE ----
+  const AD=[['Caja','Rack','Marca','Producto','Color','Cód','Talla','Cantidad','Costo unit','Costo total','Precio unit','Venta total','SKU']];
+  let dQty=0,dCost=0,dVenta=0;
+  boxes.slice().sort(function(a,b){return (a.code||'').localeCompare(b.code||'');}).forEach(function(b){
+    sortItems(b.items||[]).forEach(function(it){
+      const d=rowBy[(it.sku||'').trim()],q=+it.qty||0;
+      const cu=costOf(d),ct=(cu!=null)?+(cu*q).toFixed(2):null;
+      const pu=pvOf(d),vt=(pu!=null)?+(pu*q).toFixed(2):null;
+      dQty+=q;if(ct!=null)dCost+=ct;if(vt!=null)dVenta+=vt;
+      AD.push([b.code,(b.rack?('R'+b.rack):'')+(b.bin?('·'+b.bin):''),it.brand||'',it.style||'',it.color||'',(''+(it.cc||'')),it.size||'',q,(cu!=null?cu:null),ct,(pu!=null?pu:null),vt,it.sku||'']);
+    });
+  });
+  AD.push(['TOTAL','','','','','','',dQty,null,+dCost.toFixed(2),null,+dVenta.toFixed(2),'']);
   const wsD=AOA(AD);
-  wsD['!cols']=[{wch:12},{wch:8},{wch:16},{wch:12},{wch:22},{wch:6},{wch:6},{wch:9},{wch:9},{wch:10},{wch:24}];
-  wsD['!autofilter']={ref:'A1:K'+(AD.length-1)};
+  wsD['!cols']=[{wch:12},{wch:8},{wch:16},{wch:12},{wch:22},{wch:6},{wch:6},{wch:9},{wch:9},{wch:10},{wch:9},{wch:11},{wch:24}];
+  wsD['!autofilter']={ref:'A1:M'+(AD.length-1)};
   XLSX.utils.book_append_sheet(wb,wsD,'Cajas detalle');
   // ===== Portada / Totales =====
   const tot=rows.reduce(function(a,d){
