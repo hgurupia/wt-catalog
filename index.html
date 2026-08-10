@@ -1469,7 +1469,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v104 · reporte Excel';
+var APP_VER='v105 · reporte Excel';
 // Condiciones de la prenda (default: New)
 var CONDS=['New','As new no hand tag','Good conditions','Liquidation'];
 function condOpts(val,withBlank){val=(val==null?'':(''+val));var o=withBlank?'<option value="">—</option>':'';var def=val||'New';return o+CONDS.map(function(c){return '<option'+(def===c?' selected':'')+'>'+c+'</option>';}).join('');}
@@ -3194,7 +3194,7 @@ function renderBoxItems(){saveBoxDraft();
     const name=[it.brand,it.style,it.color,it.size].filter(Boolean).join(' ')||it.sku;
     const el=document.createElement('div');el.style.cssText='border:1px solid #e5e7eb;border-radius:10px;padding:8px;margin-bottom:8px';
     const sub=[(it.cc?('cód '+esc(it.cc)):''),(it.upc?('UPC '+esc(it.upc)):'sin UPC')].filter(Boolean).join(' · ');
-    el.innerHTML='<div style="display:flex;align-items:center;gap:8px"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px">'+esc(name)+'</div><div class="muted" style="font-size:11px">'+sub+'</div></div>'
+    el.innerHTML='<div style="display:flex;align-items:center;gap:8px"><div style="flex:1;min-width:0"><div class="bi-name" style="font-weight:600;font-size:14px">'+esc(name)+'</div><div class="bi-sub muted" style="font-size:11px">'+sub+'</div></div>'
       +'<input class="in bi-qty" type="number" inputmode="numeric" style="width:66px;text-align:center" value="'+(+it.qty||0)+'"><button class="bi-print" style="border:none;background:#e9f1f8;color:#0d2f4b;border-radius:8px;padding:6px 9px;font-weight:800">🏷️</button><button class="bi-del" style="border:none;background:#eef2f6;color:#5f6d7c;border-radius:8px;padding:6px 9px;font-weight:800">✕</button></div>'
       +'<div class="row2" style="margin-top:6px"><input class="in bi-color" list="dl-color" placeholder="Color"><input class="in bi-cc" inputmode="numeric" placeholder="Cód. color"></div>'
       +'<div class="row2" style="margin-top:6px"><input class="in bi-size" placeholder="Talla"><input class="in bi-cat" list="dl-cat" placeholder="Tipo (Polo, Hoodie…)"></div>'
@@ -3203,12 +3203,13 @@ function renderBoxItems(){saveBoxDraft();
     el.querySelector('.bi-qty').addEventListener('input',e=>{curBox.items[idx].qty=Math.max(0,parseInt(e.target.value,10)||0);$('#b-pieces').textContent=boxPieces();refreshManifest();});
     el.querySelector('.bi-del').addEventListener('click',()=>{curBox.items.splice(idx,1);renderBoxItems();});
     el.querySelector('.bi-print').addEventListener('click',async()=>{const it2=curBox.items[idx];const n=await uiPrompt('Imprimir etiqueta 9×3',[it2.brand,it2.style,it2.color,it2.size].filter(Boolean).join(' ')+'\n¿Cuántas etiquetas de esta prenda?',(+it2.qty||1));if(n===null)return;const s=document.getElementById('boxpage');if(s)s.remove();printItems({brand:it2.brand,style:it2.style,color:it2.color,size:it2.size,gender:it2.gender||'',cat:it2.cat||'',upc:it2.upc||'',sku:it2.sku},Math.max(1,+n||1));});
-    const regen=()=>{const p=curBox.items[idx];if(!p.skuLocked){p.sku=genSku(p.brand,p.style,p.cc,p.size);const sk=el.querySelector('.bi-sku');if(sk)sk.value=p.sku;}};
+    const syncHead=()=>{const p=curBox.items[idx];const hn=el.querySelector('.bi-name');if(hn)hn.textContent=[p.brand,p.style,p.color,p.size].filter(Boolean).join(' ')||p.sku||'';const hs=el.querySelector('.bi-sub');if(hs)hs.textContent=[(p.cc?('cód '+p.cc):''),(p.upc?('UPC '+p.upc):'sin UPC')].filter(Boolean).join(' · ');};
+    const regen=()=>{const p=curBox.items[idx];if(!p.skuLocked){p.sku=genSku(p.brand,p.style,p.cc,p.size);const sk=el.querySelector('.bi-sku');if(sk)sk.value=p.sku;}syncHead();};
     const col=el.querySelector('.bi-color');col.value=it.color||'';col.addEventListener('input',e=>{curBox.items[idx].color=e.target.value.trim();regen();refreshManifest();});
     let colorMap={};const dlId='dlc'+idx;col.setAttribute('list',dlId);const dl=document.createElement('datalist');dl.id=dlId;el.appendChild(dl);
     if(it.brand&&it.style){DB.colorsForStyle(it.brand,it.style).then(list=>{dl.innerHTML=list.map(x=>'<option value="'+esc(x.color)+'">'+esc(x.color_code?('cód '+x.color_code):'')+'</option>').join('');list.forEach(x=>{colorMap[x.color.toLowerCase()]=x.color_code;});}).catch(()=>{});}
     col.addEventListener('change',()=>{const p=curBox.items[idx];const code=colorMap[(p.color||'').toLowerCase()];if(code){p.cc=code;const cel=el.querySelector('.bi-cc');if(cel)cel.value=code;regen();refreshManifest();}});
-    const ccx=el.querySelector('.bi-cc');ccx.value=it.cc||'';ccx.addEventListener('input',e=>{curBox.items[idx].cc=e.target.value.trim();refreshManifest();});
+    const ccx=el.querySelector('.bi-cc');ccx.value=it.cc||'';ccx.addEventListener('input',e=>{curBox.items[idx].cc=e.target.value.trim();regen();refreshManifest();});
     ccx.addEventListener('change',async()=>{const p=curBox.items[idx];if(p.cc&&!p.color&&p.brand){const nm=await DB.colorName(p.brand,p.cc);if(nm){p.color=nm;const c=el.querySelector('.bi-color');if(c)c.value=nm;regen();refreshManifest();toast('Color: '+nm,'ok');}else{const opts=Object.keys(colorMap).length;toast(opts?('Ese código no es de S&S — toca "Color" y elige ('+opts+' colores del estilo)'):'Ese código no está en S&S — escribe el color a mano','err');}}});
     const sz=el.querySelector('.bi-size');sz.value=it.size||'';sz.addEventListener('input',e=>{curBox.items[idx].size=e.target.value.trim();regen();refreshManifest();});
     const cat=el.querySelector('.bi-cat');cat.value=it.cat||'';cat.addEventListener('input',e=>{curBox.items[idx].cat=e.target.value.trim();refreshManifest();});
