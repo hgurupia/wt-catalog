@@ -1471,7 +1471,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v108 · reporte Excel';
+var APP_VER='v109 · reporte Excel';
 // Condiciones de la prenda (default: New)
 var CONDS=['New','As new no hand tag','Good conditions','Liquidation'];
 function condOpts(val,withBlank){val=(val==null?'':(''+val));var o=withBlank?'<option value="">—</option>':'';var def=val||'New';return o+CONDS.map(function(c){return '<option'+(def===c?' selected':'')+'>'+c+'</option>';}).join('');}
@@ -2175,21 +2175,22 @@ async function buildReporte(){
   wsB['!autofilter']={ref:'A1:I'+(AB.length-1)};
   XLSX.utils.book_append_sheet(wb,wsB,'Cajas');
   // ---- Hoja Cajas detalle: por caja → producto/color/talla/cant + costo y venta unit/total, FILTRABLE ----
-  const AD=[['Caja','Rack','Marca','Producto','Color','Cód','Talla','Condición','Cantidad','Costo unit','Costo total','Precio unit','Venta total','SKU']];
+  const AD=[['Caja','Rack','Marca','Producto','Color','Cód','Talla','Descripción','Condición','Cantidad','Costo unit','Costo total','Precio unit','Venta total','SKU']];
   let dQty=0,dCost=0,dVenta=0;
   boxes.slice().sort(function(a,b){return (a.code||'').localeCompare(b.code||'');}).forEach(function(b){
     sortItems(b.items||[]).forEach(function(it){
       const d=rowBy[(it.sku||'').trim()],q=+it.qty||0;
       const cu=costOf(d),ct=(cu!=null)?+(cu*q).toFixed(2):null;
       const pu=pvOf(d),vt=(pu!=null)?+(pu*q).toFixed(2):null;
+      const desc=[it.brand,it.style,it.cat,it.gender,it.color,it.size].filter(Boolean).join(' ');
       dQty+=q;if(ct!=null)dCost+=ct;if(vt!=null)dVenta+=vt;
-      AD.push([b.code,(b.rack?('R'+b.rack):'')+(b.bin?('·'+b.bin):''),it.brand||'',it.style||'',it.color||'',(''+(it.cc||'')),it.size||'',it.status||'',q,(cu!=null?cu:null),ct,(pu!=null?pu:null),vt,it.sku||'']);
+      AD.push([b.code,(b.rack?('R'+b.rack):'')+(b.bin?('·'+b.bin):''),it.brand||'',it.style||'',it.color||'',(''+(it.cc||'')),it.size||'',desc,it.status||'',q,(cu!=null?cu:null),ct,(pu!=null?pu:null),vt,it.sku||'']);
     });
   });
-  AD.push(['TOTAL','','','','','','','',dQty,null,+dCost.toFixed(2),null,+dVenta.toFixed(2),'']);
+  AD.push(['TOTAL','','','','','','','','',dQty,null,+dCost.toFixed(2),null,+dVenta.toFixed(2),'']);
   const wsD=AOA(AD);
-  wsD['!cols']=[{wch:12},{wch:8},{wch:16},{wch:12},{wch:22},{wch:6},{wch:6},{wch:16},{wch:9},{wch:9},{wch:10},{wch:9},{wch:11},{wch:24}];
-  wsD['!autofilter']={ref:'A1:N'+(AD.length-1)};
+  wsD['!cols']=[{wch:12},{wch:8},{wch:16},{wch:12},{wch:22},{wch:6},{wch:6},{wch:30},{wch:16},{wch:9},{wch:9},{wch:10},{wch:9},{wch:11},{wch:24}];
+  wsD['!autofilter']={ref:'A1:O'+(AD.length-1)};
   XLSX.utils.book_append_sheet(wb,wsD,'Cajas detalle');
   // ===== Portada / Totales =====
   const tot=rows.reduce(function(a,d){
