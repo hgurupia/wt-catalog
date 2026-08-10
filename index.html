@@ -1470,7 +1470,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v106 · reporte Excel';
+var APP_VER='v107 · reporte Excel';
 // Condiciones de la prenda (default: New)
 var CONDS=['New','As new no hand tag','Good conditions','Liquidation'];
 function condOpts(val,withBlank){val=(val==null?'':(''+val));var o=withBlank?'<option value="">—</option>':'';var def=val||'New';return o+CONDS.map(function(c){return '<option'+(def===c?' selected':'')+'>'+c+'</option>';}).join('');}
@@ -3190,6 +3190,28 @@ function renderBoxBrands(){
 (function(){var w=$('#b-brands');if(w)w.addEventListener('click',function(e){var x=e.target&&e.target.getAttribute&&e.target.getAttribute('data-x');if(x){removeBoxBrand(x);return;}var i=$('#b-brand-add');if(i)i.focus();});
   var s=$('#b-brand-sug');if(s)s.addEventListener('click',function(e){var a=e.target&&e.target.getAttribute&&e.target.getAttribute('data-add');if(a)addBoxBrand(a);});})();
 function boxPieces(){return (curBox.items||[]).reduce((s,i)=>s+(+i.qty||0),0);}
+// Imagen de un ítem de caja: la propia, o mapeada por SKU/UPC en inventario/catálogo
+function imgForItem(it){
+  if(it&&it.img)return it.img;
+  var s=(it&&it.sku||'').trim(), u=(it&&it.upc||'').trim();
+  var pools=[(typeof INVROWS!=='undefined'&&INVROWS)||[],(typeof CATALOG!=='undefined'&&CATALOG)||[]];
+  for(var p=0;p<pools.length;p++){var arr=pools[p];
+    if(s){var a=arr.find(function(x){return x.sku===s&&x.img;});if(a)return a.img;}
+    if(u){var b=arr.find(function(x){return (''+(x.upc||''))===u&&x.img;});if(b)return b.img;}
+  }
+  return '';
+}
+// Subir/tomar foto para un ítem y ASOCIARLA al SKU (inventario + caché + ítem)
+function boxItemImgFile(idx,f,el){
+  if(!f)return;const rd=new FileReader();
+  rd.onload=function(){const im=new Image();im.onload=async function(){
+    const sc=Math.min(1,900/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=im.width*sc;c.height=im.height*sc;c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+    const data=c.toDataURL('image/jpeg',.82);const it=curBox.items[idx];if(!it)return;it.img=data;
+    try{if(it.sku){await DB.setImg(it.sku,data);var iv=(typeof INVROWS!=='undefined'&&INVROWS||[]).find(function(x){return x.sku===it.sku;});if(iv)iv.img=data;var cc=(typeof CATALOG!=='undefined'&&CATALOG||[]).find(function(x){return x.sku===it.sku;});if(cc)cc.img=data;}}catch(e){}
+    var w=el&&el.querySelector('.bi-imgwrap');if(w)w.innerHTML='<img src="'+data+'" style="width:100%;height:100%;object-fit:cover">';
+    saveBoxDraft();refreshManifest();toast('Imagen guardada y asociada al SKU','ok');
+  };im.src=rd.result;};rd.readAsDataURL(f);
+}
 function renderBoxItems(){saveBoxDraft();
   const L=$('#b-items'),items=curBox.items||[];
   $('#b-count').textContent=items.length;$('#b-pieces').textContent=boxPieces();
@@ -3199,7 +3221,9 @@ function renderBoxItems(){saveBoxDraft();
     const name=[it.brand,it.style,it.color,it.size].filter(Boolean).join(' ')||it.sku;
     const el=document.createElement('div');el.style.cssText='border:1px solid #e5e7eb;border-radius:10px;padding:8px;margin-bottom:8px';
     const sub=[(it.cc?('cód '+esc(it.cc)):''),(it.upc?('UPC '+esc(it.upc)):'sin UPC')].filter(Boolean).join(' · ');
-    el.innerHTML='<div style="display:flex;align-items:center;gap:8px"><div style="flex:1;min-width:0"><div class="bi-name" style="font-weight:600;font-size:14px">'+esc(name)+'</div><div class="bi-sub muted" style="font-size:11px">'+sub+'</div></div>'
+    const img0=imgForItem(it);
+    const imgHTML='<div class="bi-imgwrap" title="Toca para tomar/subir foto" style="width:52px;height:52px;flex:none;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid #e5e7eb;background:'+(img0?'#fff':'#eef2f6')+';font-size:10px;color:#8aa0b3;text-align:center;line-height:1.15">'+(img0?('<img src="'+esc(img0)+'" style="width:100%;height:100%;object-fit:cover">'):'📷<br>+foto')+'</div><input type="file" class="bi-file" accept="image/*" style="display:none">';
+    el.innerHTML='<div style="display:flex;align-items:center;gap:8px">'+imgHTML+'<div style="flex:1;min-width:0"><div class="bi-name" style="font-weight:600;font-size:14px">'+esc(name)+'</div><div class="bi-sub muted" style="font-size:11px">'+sub+'</div></div>'
       +'<input class="in bi-qty" type="number" inputmode="numeric" style="width:66px;text-align:center" value="'+(+it.qty||0)+'"><button class="bi-print" style="border:none;background:#e9f1f8;color:#0d2f4b;border-radius:8px;padding:6px 9px;font-weight:800">🏷️</button><button class="bi-del" style="border:none;background:#eef2f6;color:#5f6d7c;border-radius:8px;padding:6px 9px;font-weight:800">✕</button></div>'
       +'<div class="row2" style="margin-top:6px"><input class="in bi-color" list="dl-color" placeholder="Color"><input class="in bi-cc" inputmode="numeric" placeholder="Cód. color"></div>'
       +'<div class="row2" style="margin-top:6px"><input class="in bi-size" placeholder="Talla"><input class="in bi-cat" list="dl-cat" placeholder="Tipo (Polo, Hoodie…)"></div>'
@@ -3221,6 +3245,8 @@ function renderBoxItems(){saveBoxDraft();
     const gen=el.querySelector('.bi-gender');gen.value=it.gender||'';gen.addEventListener('change',e=>{curBox.items[idx].gender=e.target.value;refreshManifest();});
     const sk=el.querySelector('.bi-sku');sk.value=it.sku||'';sk.addEventListener('input',e=>{curBox.items[idx].sku=e.target.value.trim();curBox.items[idx].skuLocked=true;refreshManifest();});
     const stt=el.querySelector('.bi-status');if(stt){if(!it.status)curBox.items[idx].status='New';stt.addEventListener('change',e=>{curBox.items[idx].status=e.target.value;refreshManifest();});}
+    const imgw=el.querySelector('.bi-imgwrap'),fileI=el.querySelector('.bi-file');
+    if(imgw&&fileI){imgw.addEventListener('click',()=>fileI.click());fileI.addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(f)boxItemImgFile(idx,f,el);e.target.value='';});}
     L.appendChild(el);
   });
   refreshManifest();
