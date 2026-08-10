@@ -485,6 +485,7 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
       <button class="btn ghost block" id="b-manual" style="margin-top:6px">➕ Cargar a mano (no está en la base)</button>
       <div id="b-manualform" style="display:none;margin-top:8px;padding:10px;border:1px dashed #cbd5e1;border-radius:12px">
         <div><label class="fld" style="color:var(--brand-ink)">1º UPC — escanéalo o escríbelo y TODO se llena solo</label><input class="in" id="bm-upc" inputmode="numeric" placeholder="Código de barras" style="font-size:17px;font-weight:800"></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:8px"><div id="bm-imgwrap" title="Toca para tomar/subir foto" style="width:56px;height:56px;flex:none;border-radius:10px;overflow:hidden;border:1px solid #e5e7eb;background:#eef2f6;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;color:#8aa0b3;text-align:center;line-height:1.15">📷<br>+foto</div><span class="muted" id="bm-imgnote" style="font-size:11.5px">La foto se trae de la matriz; o toca el recuadro para tomar/subir</span><input type="file" id="bm-file" accept="image/*" style="display:none"></div>
         <div style="height:6px"></div>
         <p class="muted" style="margin:0 0 6px;font-size:11.5px">¿Sin UPC? Llena marca y estilo — la app te trae colores, código, UPC y foto de la matriz.</p>
         <div class="row2"><div><label class="fld">Marca</label><input class="in" id="bm-brand" list="dl-brand"></div><div><label class="fld">Estilo</label><input class="in" id="bm-style"></div></div>
@@ -1470,7 +1471,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v107 · reporte Excel';
+var APP_VER='v108 · reporte Excel';
 // Condiciones de la prenda (default: New)
 var CONDS=['New','As new no hand tag','Good conditions','Liquidation'];
 function condOpts(val,withBlank){val=(val==null?'':(''+val));var o=withBlank?'<option value="">—</option>':'';var def=val||'New';return o+CONDS.map(function(c){return '<option'+(def===c?' selected':'')+'>'+c+'</option>';}).join('');}
@@ -3293,7 +3294,7 @@ async function boxAdd(row){
 }
 $('#b-manual').addEventListener('click',()=>{
   const f=$('#b-manualform');const openIt=(f.style.display==='none');f.style.display=openIt?'block':'none';
-  if(openIt){['bm-brand','bm-style','bm-color','bm-cc','bm-size','bm-upc','bm-cat','bm-gender','bm-sku'].forEach(id=>$('#'+id).value='');$('#bm-qty').value=1;var bst=$('#bm-status');if(bst)bst.value='New';const q=$('#b-q').value.trim();if(q)$('#bm-style').value=q;setTimeout(function(){var u=$('#bm-upc');if(u)u.focus();},150);}
+  if(openIt){['bm-brand','bm-style','bm-color','bm-cc','bm-size','bm-upc','bm-cat','bm-gender','bm-sku'].forEach(id=>$('#'+id).value='');$('#bm-qty').value=1;var bst=$('#bm-status');if(bst)bst.value='New';bmSetImg('');const q=$('#b-q').value.trim();if(q)$('#bm-style').value=q;setTimeout(function(){var u=$('#bm-upc');if(u)u.focus();},150);}
 });
 $('#bm-add').addEventListener('click',()=>{
   const brand=$('#bm-brand').value.trim(),style=$('#bm-style').value.trim(),color=$('#bm-color').value.trim(),cc=$('#bm-cc').value.trim().replace(/\D/g,''),size=$('#bm-size').value.trim(),cat=$('#bm-cat').value.trim(),gender=$('#bm-gender').value,upc=$('#bm-upc').value.trim().replace(/\D/g,''),qty=Math.max(1,+$('#bm-qty').value||1),status=($('#bm-status')&&$('#bm-status').value)||'New';
@@ -3302,10 +3303,11 @@ $('#bm-add').addEventListener('click',()=>{
   const sku=skuManual||genSku(brand,style,cc,size);
   const ex=curBox.items.find(i=>itemKey(i)===itemKey({brand,style,color,cc,size,upc}));
   const name=[brand,style,color,size].filter(Boolean).join(' ')||sku;
-  if(ex){ex.qty=(+ex.qty||0)+qty;if(status)ex.status=status;toast('Ya estaba — sumado: '+name+' = '+ex.qty,'ok');}
-  else{curBox.items.push({sku,upc,brand,style,color,cc,size,cat,gender,status,qty,skuLocked:!!skuManual});toast('Agregado: '+name,'ok');}
+  if(ex){ex.qty=(+ex.qty||0)+qty;if(status)ex.status=status;if(bmImg)ex.img=bmImg;toast('Ya estaba — sumado: '+name+' = '+ex.qty,'ok');}
+  else{curBox.items.push({sku,upc,brand,style,color,cc,size,cat,gender,status,qty,img:bmImg||'',skuLocked:!!skuManual});toast('Agregado: '+name,'ok');}
+  if(bmImg&&sku){DB.setImg(sku,bmImg).catch(function(){});var iv=(typeof INVROWS!=='undefined'&&INVROWS||[]).find(function(x){return x.sku===sku;});if(iv)iv.img=bmImg;var cc2=(typeof CATALOG!=='undefined'&&CATALOG||[]).find(function(x){return x.sku===sku;});if(cc2)cc2.img=bmImg;}
   ['bm-brand','bm-style','bm-color','bm-cc','bm-size','bm-upc','bm-cat','bm-sku'].forEach(function(id){var e=$('#'+id);if(e)e.value='';});
-  $('#bm-gender').value='';$('#bm-qty').value=1;var bst=$('#bm-status');if(bst)bst.value='New';
+  $('#bm-gender').value='';$('#bm-qty').value=1;var bst=$('#bm-status');if(bst)bst.value='New';bmSetImg('');
   $('#b-manualform').style.display='none';$('#b-q').value='';$('#b-results').innerHTML='';renderBoxItems();
 });
 /* AUTOCOMPLETADO INVERSO del formulario manual: escribe marca+estilo+color+talla
@@ -3373,6 +3375,9 @@ async function bmAutofill(){
   el.addEventListener('input',function(){clearTimeout(bmT);bmT=setTimeout(bmAutofill,700);});
 });
 var bmUpcT=null;
+var bmImg='';
+function bmSetImg(url){bmImg=url||'';var w=$('#bm-imgwrap');if(!w)return;w.innerHTML=url?('<img src="'+url+'" style="width:100%;height:100%;object-fit:cover">'):'📷<br>+foto';var n=$('#bm-imgnote');if(n)n.textContent=url?'Foto lista — se guardará con la prenda':'La foto se trae de la matriz; o toca el recuadro para tomar/subir';}
+(function(){var fi=$('#bm-file'),w=$('#bm-imgwrap');if(w&&fi){w.addEventListener('click',function(){fi.click();});fi.addEventListener('change',function(e){var f=e.target.files&&e.target.files[0];if(!f)return;var rd=new FileReader();rd.onload=function(){var im=new Image();im.onload=function(){var sc=Math.min(1,900/Math.max(im.width,im.height));var c=document.createElement('canvas');c.width=im.width*sc;c.height=im.height*sc;c.getContext('2d').drawImage(im,0,0,c.width,c.height);bmSetImg(c.toDataURL('image/jpeg',.82));};im.src=rd.result;};rd.readAsDataURL(f);e.target.value='';});}})();
 async function bmFromUPC(){
   const u=$('#bm-upc').value.trim().replace(/\D/g,'');if(u.length<8)return;
   let d=null,origen='';
@@ -3382,6 +3387,11 @@ async function bmFromUPC(){
   const set=(id,v)=>{const e=$('#'+id);if(e&&!e.value.trim()&&v)e.value=v;};
   set('bm-brand',d.brand);set('bm-style',d.style);set('bm-color',d.color);set('bm-cc',(''+(d.cc||'')));set('bm-size',d.size);set('bm-cat',d.cat);
   if(d.gender&&!$('#bm-gender').value)$('#bm-gender').value=d.gender;
+  // Género/Tipo no vienen de la matriz Harps: heredarlos de un hermano del mismo estilo
+  if(!$('#bm-cat').value.trim()||!$('#bm-gender').value){var sib=firstSibling(d.brand,d.style);if(sib){if(!$('#bm-cat').value.trim()&&sib.cat)$('#bm-cat').value=sib.cat;if(!$('#bm-gender').value&&sib.gender)$('#bm-gender').value=sib.gender;}}
+  // Imagen: de la matriz/inventario, o de una variante del estilo
+  var img=d.img||d.image||'';if(!img){var si=siblingImg(d.brand,d.style,d.color);if(si)img=si.img;}
+  if(img)bmSetImg(img);
   if(d.sku&&origen==='inventario'&&!$('#bm-sku').value.trim())$('#bm-sku').value=d.sku;
   toast('✓ Todo cargado desde '+origen+(origen==='inventario'?(' ('+(+d.qty||0)+' uds en stock)'):''),'ok');
 }
