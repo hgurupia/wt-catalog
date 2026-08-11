@@ -459,7 +459,16 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
   <div class="body">
     <button class="btn b block" id="box-new"><span class="npico">+</span>Nueva caja</button>
     <input class="in" id="box-q" placeholder="Buscar por código, ubicación o contenido" style="margin-top:8px">
-    <div style="display:flex;justify-content:flex-end;margin-top:8px"><button class="btn ghost" id="box-sort" style="padding:6px 12px;font-size:12.5px;font-weight:800">⬇ Nº descendente</button></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:8px">
+      <button class="btn ghost" id="boxp-sel" style="padding:6px 12px;font-size:12.5px;font-weight:800">☑︎ Seleccionar</button>
+      <button class="btn ghost" id="box-sort" style="padding:6px 12px;font-size:12.5px;font-weight:800">⬇ Nº descendente</button>
+    </div>
+    <div id="boxp-bulkbar" style="display:none;margin-top:8px;padding:8px 10px;border-radius:12px;background:var(--navy,#0b3454);color:#fff;align-items:center;gap:8px;flex-wrap:wrap">
+      <button class="btn" id="boxp-all" style="background:rgba(255,255,255,.16);color:#fff;padding:6px 10px;font-size:12.5px;font-weight:800">Todas</button>
+      <span style="font-size:12.5px;font-weight:800"><span id="boxp-n">0</span> cajas</span>
+      <span style="flex:1"></span>
+      <button class="btn" id="boxp-print" style="background:#f28c1e;color:#fff;padding:6px 12px;font-size:12.5px;font-weight:800">🏷️ Imprimir 4×6</button>
+    </div>
     <div id="box-list" style="margin-top:10px"></div>
   </div>
 </section>
@@ -1490,7 +1499,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v110 · reporte Excel';
+var APP_VER='v111 · reporte Excel';
 // Condiciones de la prenda (default: New)
 var CONDS=['New','As new no hand tag','Good conditions','Liquidation'];
 function condOpts(val,withBlank){val=(val==null?'':(''+val));var o=withBlank?'<option value="">—</option>':'';var def=val||'New';return o+CONDS.map(function(c){return '<option'+(def===c?' selected':'')+'>'+c+'</option>';}).join('');}
@@ -3147,7 +3156,7 @@ function checkBoxDraft(){
     });
   }catch(e){}
 }
-function goBoxes(){if(nav[nav.length-1]!=='s-boxes')nav.push('s-boxes');show('s-boxes');$('#box-q').value='';renderBoxList('');checkBoxDraft();}
+function goBoxes(){if(nav[nav.length-1]!=='s-boxes')nav.push('s-boxes');show('s-boxes');$('#box-q').value='';BOXPMODE=false;BOXPSEL.clear();var _bs=$('#boxp-sel');if(_bs)_bs.textContent='☑︎ Seleccionar';var _bb=$('#boxp-bulkbar');if(_bb)_bb.style.display='none';renderBoxList('');checkBoxDraft();}
 $('#home-boxes').addEventListener('click',goBoxes);
 $('#box-q').addEventListener('input',()=>renderBoxList($('#box-q').value.trim()));
 var BOXORDER='desc';
@@ -3159,6 +3168,7 @@ async function renderBoxList(q){
   boxes.sort(function(a,b){return (BOXORDER==='desc')?(boxNum(b.code)-boxNum(a.code)):(boxNum(a.code)-boxNum(b.code));});
   if(q){const t=norm(q).split(/\s+/).filter(Boolean);boxes=boxes.filter(b=>{const hay=norm([b.code,b.name,b.rack,b.bin,b.kind,(b.items||[]).map(i=>[i.brand,i.style,i.color,i.size,i.sku].join(' ')).join(' ')].join(' '));return t.every(tok=>hay.includes(tok));});}
   if(!boxes.length){L.innerHTML='<p class="muted">No hay cajas todavía. Toca "Nueva caja".</p>';return;}
+  BOXLIST=boxes;
   var cset=await countedSkus();
   L.innerHTML='';
   boxes.forEach(b=>{
@@ -3166,12 +3176,29 @@ async function renderBoxList(q){
     var items=b.items||[];
     var bc=items.length>0 && items.every(function(it){return it.sku && cset.has(it.sku);});
     var badge=items.length?('<span class="cbadge'+(bc?' on':'')+'" style="cursor:default;margin-top:6px">'+(bc?'✓ contada':'○ sin contar')+'</span>'):'';
-    const el=document.createElement('div');el.style.cssText='border:1px solid #e5e7eb;border-radius:12px;padding:10px;margin-bottom:8px;cursor:pointer';
-    el.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center"><b>'+esc(b.code)+'</b><span class="muted">'+(b.pieces||0)+' pzs</span></div><div class="muted" style="font-size:12px">'+esc(loc)+' · '+items.length+' SKUs'+(b.name?(' · '+esc(b.name)):'')+'</div>'+badge;
-    el.addEventListener('click',()=>editBox(b));
+    const el=document.createElement('div');el.style.cssText='border:1px solid #e5e7eb;border-radius:12px;padding:10px;margin-bottom:8px;cursor:pointer;display:flex;align-items:flex-start;gap:10px';
+    const ckHTML=BOXPMODE?('<div class="boxp-ck" style="font-size:20px;flex:none;cursor:pointer;user-select:none;padding-top:1px">'+(BOXPSEL.has(b.code)?'☑️':'⬜️')+'</div>'):'';
+    el.innerHTML=ckHTML+'<div style="flex:1;min-width:0"><div style="display:flex;justify-content:space-between;align-items:center"><b>'+esc(b.code)+'</b><span class="muted">'+(b.pieces||0)+' pzs</span></div><div class="muted" style="font-size:12px">'+esc(loc)+' · '+items.length+' SKUs'+(b.name?(' · '+esc(b.name)):'')+'</div>'+badge+'</div>';
+    if(BOXPMODE&&BOXPSEL.has(b.code))el.style.background='#eef5fb';
+    el.addEventListener('click',function(){
+      if(BOXPMODE){
+        if(BOXPSEL.has(b.code))BOXPSEL.delete(b.code);else BOXPSEL.add(b.code);
+        var ck=el.querySelector('.boxp-ck');if(ck)ck.textContent=BOXPSEL.has(b.code)?'☑️':'⬜️';
+        el.style.background=BOXPSEL.has(b.code)?'#eef5fb':'';refreshBoxpBulk();
+      }else{editBox(b);}
+    });
     L.appendChild(el);
   });
+  refreshBoxpBulk();
 }
+var BOXPMODE=false, BOXPSEL=new Set(), BOXLIST=[];
+function refreshBoxpBulk(){var n=$('#boxp-n');if(n)n.textContent=BOXPSEL.size;var bar=$('#boxp-bulkbar');if(bar)bar.style.display=BOXPMODE?'flex':'none';}
+function setBoxpMode(on){BOXPMODE=on;if(!on)BOXPSEL.clear();var b=$('#boxp-sel');if(b)b.textContent=on?'✕ Cancelar selección':'☑︎ Seleccionar';renderBoxList($('#box-q')?$('#box-q').value.trim():'');}
+(function(){
+  var s=$('#boxp-sel');if(s)s.addEventListener('click',function(){setBoxpMode(!BOXPMODE);});
+  var a=$('#boxp-all');if(a)a.addEventListener('click',function(){var all=BOXLIST.length&&BOXLIST.every(function(b){return BOXPSEL.has(b.code);});BOXLIST.forEach(function(b){if(all)BOXPSEL.delete(b.code);else BOXPSEL.add(b.code);});renderBoxList($('#box-q')?$('#box-q').value.trim():'');});
+  var p=$('#boxp-print');if(p)p.addEventListener('click',function(){var sel=BOXLIST.filter(function(b){return BOXPSEL.has(b.code);});if(!sel.length){toast('Selecciona cajas primero','err');return;}printBoxLabelsBulk(sel);toast('Imprimiendo '+sel.length+' etiqueta(s) 4×6','ok');});
+})();
 $('#box-new').addEventListener('click',async()=>{let code='CAJA-0001';try{code=await DB.nextBoxCode();}catch(e){}curBox={code,name:'',kind:'pool',rack:'',bin:'',items:[],pieces:0,_orig:null};openBoxEditor(true);});
 function editBox(b){curBox=JSON.parse(JSON.stringify(b));curBox.items=curBox.items||[];curBox._orig=b.code;openBoxEditor(false);}
 async function countedSkus(){try{const r=await fetch(SB_URL+'/rest/v1/wt_inventory?select=sku,counted&limit=3000',{headers:sbHeaders()});const a=r.ok?await r.json():[];var s=new Set();a.forEach(function(x){if(x.counted!=null&&x.sku)s.add(x.sku);});return s;}catch(e){return new Set();}}
@@ -3591,18 +3618,26 @@ $('#b-print').addEventListener('click',async()=>{
   if(!(await saveCurBox()))return;
   printBoxLabel(curBox);
 });
-function printBoxLabel(box){
-  const pa=$('#printArea');
+function boxLabelHTML(box){
   const rows=sortItems(box.items).map(i=>'<tr><td>'+esc(i.brand||'')+'</td><td>'+esc(i.style||'')+'</td><td>'+esc(i.color||'')+'</td><td class="q">'+esc(i.cc||'')+'</td><td class="q">'+esc(i.size||'')+'</td><td class="q">'+esc(i.status||'')+'</td><td class="q">'+(+i.qty||0)+'</td></tr>').join('')||'<tr><td colspan="7">(vacía)</td></tr>';
   const totalRow='<tr><td colspan="6" style="text-align:right;font-weight:800">TOTAL</td><td class="q" style="font-weight:800">'+(box.pieces||0)+'</td></tr>';
   const loc='Rack '+(box.rack||'—')+' · Comp '+(box.bin||'—');
   const fecha=new Date().toLocaleDateString('es',{day:'2-digit',month:'2-digit',year:'numeric'});
-  pa.innerHTML='<div class="boxman"><div class="hd"><div><div class="code">'+esc(box.code)+'</div><div class="meta">'+esc(loc)+'<br>'+(box.name?esc(box.name)+'<br>':'')+(box.kind?('Marca(s): '+esc(box.kind)+' · '):'')+fecha+'</div><div class="tot">'+box.pieces+' piezas · '+((box.items||[]).length)+' SKUs</div></div><svg class="bc" data-code="'+esc(box.code)+'"></svg></div><table><thead><tr><th>Marca</th><th>Estilo</th><th>Color</th><th class="q">Cód</th><th class="q">Talla</th><th class="q">Cond.</th><th class="q">Cant</th></tr></thead><tbody>'+rows+totalRow+'</tbody></table></div>';
-  const svg=pa.querySelector('svg.bc');
-  if(svg&&window.JsBarcode){try{JsBarcode(svg,box.code,{format:'CODE128',displayValue:true,fontSize:14,textMargin:1,margin:0,height:44,width:1.6});const w=parseFloat(svg.getAttribute('width')),h=parseFloat(svg.getAttribute('height'));if(w&&h){svg.setAttribute('viewBox','0 0 '+w+' '+h);svg.removeAttribute('width');svg.removeAttribute('height');svg.setAttribute('preserveAspectRatio','xMidYMid meet');}}catch(e){svg.remove();}}
-  const st=document.createElement('style');st.id='boxpage';st.textContent='@media print{@page{size:4in 6in;margin:0}}';document.head.appendChild(st);
-  setTimeout(()=>{window.print();setTimeout(()=>{const s=document.getElementById('boxpage');if(s)s.remove();pa.innerHTML='';},700);},200);
+  return '<div class="boxman"><div class="hd"><div><div class="code">'+esc(box.code)+'</div><div class="meta">'+esc(loc)+'<br>'+(box.name?esc(box.name)+'<br>':'')+(box.kind?('Marca(s): '+esc(box.kind)+' · '):'')+fecha+'</div><div class="tot">'+(box.pieces||0)+' piezas · '+((box.items||[]).length)+' SKUs</div></div><svg class="bc" data-code="'+esc(box.code)+'"></svg></div><table><thead><tr><th>Marca</th><th>Estilo</th><th>Color</th><th class="q">Cód</th><th class="q">Talla</th><th class="q">Cond.</th><th class="q">Cant</th></tr></thead><tbody>'+rows+totalRow+'</tbody></table></div>';
 }
+function renderBoxLabelBarcodes(pa){
+  (pa||$('#printArea')).querySelectorAll('svg.bc').forEach(function(svg){
+    if(!window.JsBarcode)return;
+    try{JsBarcode(svg,svg.getAttribute('data-code'),{format:'CODE128',displayValue:true,fontSize:14,textMargin:1,margin:0,height:44,width:1.6});const w=parseFloat(svg.getAttribute('width')),h=parseFloat(svg.getAttribute('height'));if(w&&h){svg.setAttribute('viewBox','0 0 '+w+' '+h);svg.removeAttribute('width');svg.removeAttribute('height');svg.setAttribute('preserveAspectRatio','xMidYMid meet');}}catch(e){svg.remove();}
+  });
+}
+function doPrintBoxLabels(html){
+  const pa=$('#printArea');pa.innerHTML=html;renderBoxLabelBarcodes(pa);
+  const st=document.createElement('style');st.id='boxpage';st.textContent='@media print{@page{size:4in 6in;margin:0}.boxman{page-break-after:always;page-break-inside:avoid}.boxman:last-child{page-break-after:auto}}';document.head.appendChild(st);
+  setTimeout(function(){window.print();setTimeout(function(){const s=document.getElementById('boxpage');if(s)s.remove();pa.innerHTML='';},700);},200);
+}
+function printBoxLabel(box){doPrintBoxLabels(boxLabelHTML(box));}
+function printBoxLabelsBulk(boxes){doPrintBoxLabels((boxes||[]).map(boxLabelHTML).join(''));}
 function printBoxItems(box){
   const items=(box.items||[]).filter(i=>(+i.qty||0)>0);
   if(!items.length){toast('La caja no tiene prendas','err');return;}
