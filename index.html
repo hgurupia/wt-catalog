@@ -1499,7 +1499,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v111 · reporte Excel';
+var APP_VER='v112 · reporte Excel';
 // Condiciones de la prenda (default: New)
 var CONDS=['New','As new no hand tag','Good conditions','Liquidation'];
 function condOpts(val,withBlank){val=(val==null?'':(''+val));var o=withBlank?'<option value="">—</option>':'';var def=val||'New';return o+CONDS.map(function(c){return '<option'+(def===c?' selected':'')+'>'+c+'</option>';}).join('');}
@@ -2817,22 +2817,45 @@ $('#ocr-photo').addEventListener('click',()=>$('#ocr-file').click());
 $('#ocr-upload').addEventListener('click',()=>$('#ocr-file2').click());
 $('#ocr-file').addEventListener('change',e=>{ocrHandle(e.target.files[0]);e.target.value='';});
 $('#ocr-file2').addEventListener('change',e=>{ocrHandle(e.target.files[0]);e.target.value='';});
-function ocrHandle(f){if(!f)return;const rd=new FileReader();rd.onload=()=>{const img=new Image();img.onload=async()=>{
-  const sc=Math.min(1,1400/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=img.width*sc;c.height=img.height*sc;c.getContext('2d').drawImage(img,0,0,c.width,c.height);const data=c.toDataURL('image/jpeg',.85);
-  const im=$('#ocr-img');im.classList.remove('ph');im.textContent='';im.style.backgroundImage='url('+data+')';im.style.backgroundSize='cover';im.style.backgroundPosition='center';
-  $('#ocr-status').textContent='Leyendo la etiqueta con IA…';$('#ocr-form').style.display='none';
+async function ocrSend(data){
+  const st=$('#ocr-status');
+  st.textContent='Leyendo la etiqueta con IA…';$('#ocr-form').style.display='none';
   try{
     const r=await fetch(OCR_URL,{method:'POST',headers:{'content-type':'application/json','apikey':SB_KEY,'authorization':'Bearer '+SB_KEY,'x-gate':SB_KEY},body:JSON.stringify({image:data,media_type:'image/jpeg'})});
     const j=await r.json().catch(()=>({error:'respuesta inválida'}));
-    if(!r.ok||j.error){$('#ocr-status').textContent='No se pudo leer: '+(j.error||('HTTP '+r.status))+'. (¿Ya desplegaste la función y su llave?)';return;}
+    if(!r.ok||j.error){st.textContent='No se pudo leer: '+(j.error||('HTTP '+r.status))+'.';return;}
     let items=Array.isArray(j.items)&&j.items.length?j.items:(j.fields?[j.fields]:[]);
-    if(!items.length){$('#ocr-status').textContent='No se leyó ningún producto. Prueba con más luz o acércate a la etiqueta.';return;}
+    if(!items.length){st.textContent='📷 La imagen se leyó pero no se detectó ningún producto. Endereza la etiqueta, más luz y acércate; o carga a mano con ✚.';return;}
     renderOcrItems(items);
     const raw=j.raw_text||(j.fields&&j.fields.raw_text)||'';
     if(raw){$('#ocr-note').textContent='📝 Leído: '+(''+raw).slice(0,180);$('#ocr-note').style.display='block';}else $('#ocr-note').style.display='none';
-    $('#ocr-status').textContent=items.length>1?('✓ '+items.length+' productos leídos — revisa, corrige o borra filas y sube:'):'✓ Listo — revisa y corrige antes de subir:';$('#ocr-form').style.display='block';
-  }catch(e){const net=(e&&e.name==='TypeError');$('#ocr-status').textContent=net?'⚠️ El lector de etiquetas todavía no está activo (la función OCR no está desplegada en el servidor) o no hay internet. Puedes cargar el producto a mano con el asistente ✚.':('Error de conexión con el lector: '+String(e).slice(0,80));}
-};img.src=rd.result;};rd.readAsDataURL(f);}
+    st.textContent=items.length>1?('✓ '+items.length+' productos leídos — revisa, corrige o borra filas y sube:'):'✓ Listo — revisa y corrige antes de subir:';$('#ocr-form').style.display='block';
+  }catch(e){const net=(e&&e.name==='TypeError');st.textContent=net?'⚠️ Sin conexión con el lector o la función OCR no responde. Puedes cargar a mano con ✚.':('Error de conexión con el lector: '+String(e).slice(0,80));}
+}
+function ocrHandle(f){
+  if(!f)return;
+  const st=$('#ocr-status');
+  const nm=(f.name||'').toLowerCase(), ty=(f.type||'').toLowerCase();
+  if(/hei[cf]/.test(ty)||/\.hei[cf]$/.test(nm)){st.textContent='⚠️ Esa foto es HEIC (formato del iPhone) y el navegador no la puede leer. Toma la foto con el botón 📷 de la app, o en el iPhone: Ajustes → Cámara → Formatos → "Más compatible". También puedes reenviártela por WhatsApp (llega como JPG).';return;}
+  const rd=new FileReader();
+  rd.onerror=function(){st.textContent='No se pudo abrir el archivo. Intenta con otra foto (JPG/PNG).';};
+  rd.onload=()=>{
+    const img=new Image();
+    img.onerror=function(){st.textContent='⚠️ El navegador no pudo decodificar esa imagen (probablemente HEIC del iPhone). Toma la foto con el botón 📷 de la app o usa una JPG/PNG.';};
+    img.onload=()=>{
+      if(!img.width||!img.height){st.textContent='La imagen llegó vacía. Toma la foto de nuevo.';return;}
+      const sc=Math.min(1,1400/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*sc));c.height=Math.max(1,Math.round(img.height*sc));const ctx=c.getContext('2d');ctx.drawImage(img,0,0,c.width,c.height);
+      // guarda contra canvas en blanco (decodificado fallido): revisa unos píxeles
+      let blank=true;try{const px=ctx.getImageData(0,0,Math.min(c.width,60),Math.min(c.height,60)).data;const a=px[0],b=px[1],g=px[2];for(let i=0;i<px.length;i+=40){if(Math.abs(px[i]-a)>8||Math.abs(px[i+1]-b)>8||Math.abs(px[i+2]-g)>8){blank=false;break;}}}catch(_){blank=false;}
+      if(blank){st.textContent='⚠️ La imagen salió en blanco al procesarla (¿HEIC o formato no soportado?). Toma la foto con el botón 📷 de la app o usa una JPG/PNG.';return;}
+      const data=c.toDataURL('image/jpeg',.85);
+      const im=$('#ocr-img');if(im){im.classList.remove('ph');im.textContent='';im.style.backgroundImage='url('+data+')';im.style.backgroundSize='cover';im.style.backgroundPosition='center';}
+      ocrSend(data);
+    };
+    img.src=rd.result;
+  };
+  rd.readAsDataURL(f);
+}
 function ocrCard(it){
   const d=document.createElement('div');d.className='card ocr-item';d.style.marginTop='10px';
   d.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b class="oi-n">Producto</b><button type="button" class="oi-del" style="border:none;background:#eef2f6;color:#5f6d7c;border-radius:8px;padding:4px 12px;font-weight:800;font-size:15px">✕</button></div>'
