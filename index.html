@@ -677,18 +677,18 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
   <div class="top"><button class="bk" data-back>‹</button><h1 style="flex:1">Tabla PML</h1><span id="pml-save" style="font-size:11px;color:#8fb3cc;font-weight:700"></span></div>
   <div class="body">
     <div class="rbar" style="margin-bottom:8px">
+      <button class="btn o" id="pml-export" style="flex:2;padding:9px 8px;font-size:12.5px">⬇ Exportar reporte</button>
       <button class="btn ghost" id="pml-torepr" style="flex:1;padding:9px 8px;font-size:12.5px">💰 Pricing</button>
-      <button class="btn ghost" id="pml-tosum" style="flex:1;padding:9px 8px;font-size:12.5px">📊 Resumen</button>
       <button class="btn ghost" id="pml-tocat" style="flex:1;padding:9px 8px;font-size:12.5px">🛍️ Catálogo</button>
-      <button class="btn ghost" id="pml-tocolors" style="flex:1;padding:9px 8px;font-size:12.5px">🎨 Colores</button>
       <button class="btn ghost" id="pml-todedup" style="flex:1;padding:9px 8px;font-size:12.5px">🔗 Unificar</button>
-      <button class="btn o" id="pml-export" style="flex:1;padding:9px 8px;font-size:12.5px">⬇ Exportar</button>
     </div>
     <div class="rkpis" id="pml-kpis"></div>
-    <div class="rbar" style="margin-bottom:4px">
+    <div class="rbar" style="margin-bottom:4px;flex-wrap:wrap">
       <input class="in" id="pml-q" placeholder="Buscar marca, estilo, color, SKU, UPC…" autocomplete="off" style="flex:2;min-width:130px;margin:0">
       <select class="ff" id="pml-brand" style="flex:1;margin:0"><option value="">Marca</option></select>
-      <select class="ff" id="pml-stock" style="flex:1;margin:0"><option value="1">Con stock</option><option value="">Todos</option><option value="nofoto">Sin foto</option></select>
+      <select class="ff" id="pml-cond" style="flex:1;margin:0"><option value="">Condición</option></select>
+      <select class="ff" id="pml-box" style="flex:1;margin:0"><option value="">Caja</option></select>
+      <select class="ff" id="pml-stock" style="flex:1;margin:0"><option value="cajas">En cajas</option><option value="1">Con stock</option><option value="">Todos</option><option value="nofoto">Sin foto</option></select>
     </div>
     <div class="rprwrap">
       <table class="rprtbl" id="pmltbl">
@@ -697,6 +697,7 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
           <th data-k="upc">UPC</th>
           <th data-k="qty">Qty <span class="sar" data-for="qty"></span></th>
           <th data-k="loc">Ubicación</th>
+          <th>Condición</th>
           <th data-k="cost">Costo <span class="sar" data-for="cost"></span></th>
           <th data-k="ebay">eBay <span class="sar" data-for="ebay"></span></th>
           <th data-k="amazon">Amazon <span class="sar" data-for="amazon"></span></th>
@@ -707,7 +708,7 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
         <tbody id="pmlbody"></tbody>
       </table>
     </div>
-    <p class="qlabel" style="margin-top:8px">Toca la foto o el nombre para abrir la ficha completa (galería, textos, bullets). Precios editables por canal; naranja = fijado a mano. Cantidades y ubicación se manejan en Inventario.</p>
+    <p class="qlabel" style="margin-top:8px"><b>Qty = lo contado en cajas.</b> Filtra por marca · condición · caja. Toca la foto o el nombre para la ficha completa. Precios editables por canal (naranja = fijado a mano). <b>⬇ Exportar</b> baja el reporte con imagen, ubicación, costo y precios.</p>
   </div>
 </section>
 
@@ -1499,7 +1500,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v112 · reporte Excel';
+var APP_VER='v114 · reporte Excel';
 // Condiciones de la prenda (default: New)
 var CONDS=['New','As new no hand tag','Good conditions','Liquidation'];
 function condOpts(val,withBlank){val=(val==null?'':(''+val));var o=withBlank?'<option value="">—</option>':'';var def=val||'New';return o+CONDS.map(function(c){return '<option'+(def===c?' selected':'')+'>'+c+'</option>';}).join('');}
@@ -1846,12 +1847,19 @@ function pmlThumb(d){
   return u?'<img src="'+esc(u)+'" loading="lazy" alt="">':'<span class="nopic">👕</span>';
 }
 function pmlLoc(d){return ((d.location||'')+'').trim()||locText(d.sku)||'';}
+// Qty box-based: suma lo contado en TODAS las cajas para ese SKU (LOCIDX)
+function boxQty(sku){var a=LOCIDX[sku];if(!a||!a.length)return 0;return a.reduce(function(s,e){return s+(+e.qty||0);},0);}
+function pmlQty(d){var bq=boxQty(d.sku);return bq>0?bq:(+d.qty||0);}
 function pmlFilt(){
   var q=norm($('#pml-q').value||''), b=$('#pml-brand').value, st=$('#pml-stock').value;
+  var cond=$('#pml-cond')?$('#pml-cond').value:'', box=$('#pml-box')?$('#pml-box').value:'';
   return (RROWS||[]).filter(function(d){
+    if(st==='cajas'&&!(boxQty(d.sku)>0))return false;
     if(st==='1'&&!(+d.qty>0))return false;
     if(st==='nofoto'&&(d.img||(Array.isArray(d.gallery)&&d.gallery.length)))return false;
     if(b&&(((d.brand||'')+'').trim())!==b)return false;
+    if(cond&&(((d.status||'')+'').trim())!==cond)return false;
+    if(box){var a=LOCIDX[d.sku]||[];if(!a.some(function(e){return e.code===box;}))return false;}
     if(q){var hay=norm((d.sku||'')+' '+(d.sku_canon||'')+' '+(Array.isArray(d.aliases)?d.aliases.join(' '):'')+' '+(d.upc||'')+' '+(d.brand||'')+' '+(d.style||'')+' '+(d.color||'')+' '+(d.size||'')+' '+(d.title||'')+' '+(d.listtitle||''));if(hay.indexOf(q)<0)return false;}
     return true;
   });
@@ -1865,7 +1873,7 @@ function pmlSortRows(rows){
       return (''+sa).localeCompare(''+sb,'es',{numeric:true})*dir;
     }
     function num(d){
-      if(k==='qty')return +d.qty||0;
+      if(k==='qty')return pmlQty(d);
       if(k==='cost')return +d.cost||0;
       return rPrice(d,k);
     }
@@ -1884,8 +1892,9 @@ function pmlRowHTML(d){
   return '<tr data-sku="'+esc(d.sku)+'">'+
     '<td class="pmlp"><span class="pth">'+pmlThumb(d)+'</span><span class="ptx"><b>'+esc(name)+'</b><small>'+esc(sub||d.sku)+'</small></span></td>'+
     '<td class="dim" style="font-size:11px">'+esc(d.upc||'—')+'</td>'+
-    '<td class="dim">'+(+d.qty||0)+'</td>'+
+    '<td class="dim"><b>'+pmlQty(d)+'</b></td>'+
     '<td class="dim" style="font-size:11px;max-width:110px;overflow:hidden;text-overflow:ellipsis">'+esc(loc||'—')+'</td>'+
+    '<td class="dim" style="font-size:11px">'+esc(d.status||'—')+'</td>'+
     '<td><input class="rin" type="number" inputmode="decimal" step="0.01" min="0" data-pf="cost" value="'+((+d.cost||0)?(+d.cost).toFixed(2):'')+'"></td>'+
     cells+
     '<td><button class="pfich" data-fich="'+esc(d.sku)+'">✎</button></td>'+
@@ -1893,7 +1902,7 @@ function pmlRowHTML(d){
 }
 function pmlKpis(rows){
   var u=0,val=0,foto=0;
-  rows.forEach(function(d){var q=+d.qty||0;u+=q;var v=parseFloat(d.price!=null?d.price:d.retail)||0;val+=v*q;if(d.img||(Array.isArray(d.gallery)&&d.gallery.length))foto++;});
+  rows.forEach(function(d){var q=pmlQty(d);u+=q;var v=parseFloat(d.price!=null?d.price:d.retail)||0;val+=v*q;if(d.img||(Array.isArray(d.gallery)&&d.gallery.length))foto++;});
   $('#pml-kpis').innerHTML='<div><b>'+rows.length.toLocaleString('en-US')+'</b><span>productos</span></div>'+
     '<div><b>'+u.toLocaleString('en-US')+'</b><span>unidades</span></div>'+
     '<div><b class="hi">'+fmtMoney(val)+'</b><span>valor venta</span></div>'+
@@ -1905,7 +1914,7 @@ function pmlUpdSar(){
 function pmlRender(){
   var rows=pmlSortRows(pmlFilt());
   if(rows.length){$('#pmlbody').innerHTML=rows.map(pmlRowHTML).join('');}
-  else{$('#pmlbody').innerHTML='<tr><td colspan="10" class="dim" style="text-align:center;padding:18px">Sin resultados en tu inventario</td></tr>';invRefSuggest($('#pml-q').value,$('#pmlbody'),10);}
+  else{$('#pmlbody').innerHTML='<tr><td colspan="11" class="dim" style="text-align:center;padding:18px">Sin resultados</td></tr>';invRefSuggest($('#pml-q').value,$('#pmlbody'),10);}
   pmlKpis(rows);pmlUpdSar();
 }
 function pmlFillBrands(){
@@ -1915,17 +1924,27 @@ function pmlFillBrands(){
   s.innerHTML='<option value="">Marca</option>'+vals.map(function(v){return '<option value="'+esc(v)+'">'+esc(v)+'</option>';}).join('');
   s.value=cur;
 }
+function pmlFillFilters(){
+  // Condición (de los status del inventario)
+  var cs=[];(RROWS||[]).forEach(function(d){var s=((d.status||'')+'').trim();if(s&&cs.indexOf(s)<0)cs.push(s);});
+  cs.sort();var sc=$('#pml-cond');if(sc){var cur=sc.value;sc.innerHTML='<option value="">Condición</option>'+cs.map(function(v){return '<option value="'+esc(v)+'">'+esc(v)+'</option>';}).join('');sc.value=cur;}
+  // Caja (de LOCIDX), orden numérico descendente
+  var bx=Object.keys(LOCIDX||{}).reduce(function(acc,sku){(LOCIDX[sku]||[]).forEach(function(e){if(e.code&&acc.indexOf(e.code)<0)acc.push(e.code);});return acc;},[]);
+  bx.sort(function(a,b){return (boxNum(b)-boxNum(a))||(''+a).localeCompare(''+b);});
+  var sb=$('#pml-box');if(sb){var cb=sb.value;sb.innerHTML='<option value="">Caja</option>'+bx.map(function(v){return '<option value="'+esc(v)+'">'+esc(v)+'</option>';}).join('');sb.value=cb;}
+}
 async function openPML(){
   if(!(await unlockMoney()))return;
   go('s-pml');
   if(!RROWS){
-    $('#pmlbody').innerHTML='<tr><td colspan="10" class="dim" style="text-align:center;padding:18px">Cargando…</td></tr>';
+    $('#pmlbody').innerHTML='<tr><td colspan="11" class="dim" style="text-align:center;padding:18px">Cargando…</td></tr>';
     await rCfgLoad();
     var ap=$('#rpr-autop');if(ap)ap.checked=!!RCFG.autop;
     try{RROWS=await DB.list(3000);}catch(e){RROWS=[];toast('No se pudo cargar','err');}
     rFillBrands();pmlFillBrands();
   }else{pmlFillBrands();}
-  if(!Object.keys(LOCIDX).length){try{buildLocIdx(await DB.listBoxes());}catch(e){}}
+  try{buildLocIdx(await DB.listBoxes());}catch(e){}
+  pmlFillFilters();
   pmlRender();
   pmlHealImgs();
 }
@@ -1967,6 +1986,8 @@ function pmlHealImgs(){
   if(q)q.addEventListener('input',function(){clearTimeout(qT);qT=setTimeout(pmlRender,180);});
   var pb=$('#pml-brand');if(pb)pb.addEventListener('change',pmlRender);
   var ps=$('#pml-stock');if(ps)ps.addEventListener('change',pmlRender);
+  var pcn=$('#pml-cond');if(pcn)pcn.addEventListener('change',pmlRender);
+  var pbx=$('#pml-box');if(pbx)pbx.addEventListener('change',pmlRender);
   $$('#pmltbl thead th').forEach(function(th){th.addEventListener('click',function(){
     var k=th.getAttribute('data-k');if(!k)return;
     if(PMLSORTK===k)PMLSORTD=-PMLSORTD;else{PMLSORTK=k;PMLSORTD=(k==='prod'||k==='upc'||k==='loc')?1:-1;}
@@ -2817,44 +2838,53 @@ $('#ocr-photo').addEventListener('click',()=>$('#ocr-file').click());
 $('#ocr-upload').addEventListener('click',()=>$('#ocr-file2').click());
 $('#ocr-file').addEventListener('change',e=>{ocrHandle(e.target.files[0]);e.target.value='';});
 $('#ocr-file2').addEventListener('change',e=>{ocrHandle(e.target.files[0]);e.target.value='';});
-async function ocrSend(data){
-  const st=$('#ocr-status');
-  st.textContent='Leyendo la etiqueta con IA…';$('#ocr-form').style.display='none';
-  try{
-    const r=await fetch(OCR_URL,{method:'POST',headers:{'content-type':'application/json','apikey':SB_KEY,'authorization':'Bearer '+SB_KEY,'x-gate':SB_KEY},body:JSON.stringify({image:data,media_type:'image/jpeg'})});
-    const j=await r.json().catch(()=>({error:'respuesta inválida'}));
-    if(!r.ok||j.error){st.textContent='No se pudo leer: '+(j.error||('HTTP '+r.status))+'.';return;}
-    let items=Array.isArray(j.items)&&j.items.length?j.items:(j.fields?[j.fields]:[]);
-    if(!items.length){st.textContent='📷 La imagen se leyó pero no se detectó ningún producto. Endereza la etiqueta, más luz y acércate; o carga a mano con ✚.';return;}
-    renderOcrItems(items);
-    const raw=j.raw_text||(j.fields&&j.fields.raw_text)||'';
-    if(raw){$('#ocr-note').textContent='📝 Leído: '+(''+raw).slice(0,180);$('#ocr-note').style.display='block';}else $('#ocr-note').style.display='none';
-    st.textContent=items.length>1?('✓ '+items.length+' productos leídos — revisa, corrige o borra filas y sube:'):'✓ Listo — revisa y corrige antes de subir:';$('#ocr-form').style.display='block';
-  }catch(e){const net=(e&&e.name==='TypeError');st.textContent=net?'⚠️ Sin conexión con el lector o la función OCR no responde. Puedes cargar a mano con ✚.':('Error de conexión con el lector: '+String(e).slice(0,80));}
+// Dibuja la imagen rotada `deg` grados y reescalada a maxDim → dataURL jpeg
+function ocrDraw(src,sw,sh,deg,maxDim){
+  const rw=(deg%180===0)?sw:sh, rh=(deg%180===0)?sh:sw;
+  const sc=Math.min(1,(maxDim||1400)/Math.max(rw,rh));
+  const c=document.createElement('canvas');c.width=Math.max(1,Math.round(rw*sc));c.height=Math.max(1,Math.round(rh*sc));
+  const ctx=c.getContext('2d');ctx.translate(c.width/2,c.height/2);ctx.rotate(deg*Math.PI/180);ctx.scale(sc,sc);ctx.drawImage(src,-sw/2,-sh/2);
+  return c.toDataURL('image/jpeg',.85);
 }
-function ocrHandle(f){
+async function ocrTry(data){
+  const r=await fetch(OCR_URL,{method:'POST',headers:{'content-type':'application/json','apikey':SB_KEY,'authorization':'Bearer '+SB_KEY,'x-gate':SB_KEY},body:JSON.stringify({image:data,media_type:'image/jpeg'})});
+  const j=await r.json().catch(()=>({error:'respuesta inválida'}));
+  if(!r.ok||j.error)throw new Error(j.error||('HTTP '+r.status));
+  const items=Array.isArray(j.items)&&j.items.length?j.items:(j.fields?[j.fields]:[]);
+  return {items:items||[], raw:j.raw_text||(j.fields&&j.fields.raw_text)||''};
+}
+function ocrShow(items,raw){
+  renderOcrItems(items);
+  if(raw){$('#ocr-note').textContent='📝 Leído: '+(''+raw).slice(0,180);$('#ocr-note').style.display='block';}else $('#ocr-note').style.display='none';
+  $('#ocr-status').textContent=items.length>1?('✓ '+items.length+' productos leídos — revisa, corrige o borra filas y sube:'):'✓ Listo — revisa y corrige antes de subir:';$('#ocr-form').style.display='block';
+}
+async function ocrHandle(f){
   if(!f)return;
-  const st=$('#ocr-status');
+  const st=$('#ocr-status'), im=$('#ocr-img');
   const nm=(f.name||'').toLowerCase(), ty=(f.type||'').toLowerCase();
-  if(/hei[cf]/.test(ty)||/\.hei[cf]$/.test(nm)){st.textContent='⚠️ Esa foto es HEIC (formato del iPhone) y el navegador no la puede leer. Toma la foto con el botón 📷 de la app, o en el iPhone: Ajustes → Cámara → Formatos → "Más compatible". También puedes reenviártela por WhatsApp (llega como JPG).';return;}
-  const rd=new FileReader();
-  rd.onerror=function(){st.textContent='No se pudo abrir el archivo. Intenta con otra foto (JPG/PNG).';};
-  rd.onload=()=>{
-    const img=new Image();
-    img.onerror=function(){st.textContent='⚠️ El navegador no pudo decodificar esa imagen (probablemente HEIC del iPhone). Toma la foto con el botón 📷 de la app o usa una JPG/PNG.';};
-    img.onload=()=>{
-      if(!img.width||!img.height){st.textContent='La imagen llegó vacía. Toma la foto de nuevo.';return;}
-      const sc=Math.min(1,1400/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*sc));c.height=Math.max(1,Math.round(img.height*sc));const ctx=c.getContext('2d');ctx.drawImage(img,0,0,c.width,c.height);
-      // guarda contra canvas en blanco (decodificado fallido): revisa unos píxeles
-      let blank=true;try{const px=ctx.getImageData(0,0,Math.min(c.width,60),Math.min(c.height,60)).data;const a=px[0],b=px[1],g=px[2];for(let i=0;i<px.length;i+=40){if(Math.abs(px[i]-a)>8||Math.abs(px[i+1]-b)>8||Math.abs(px[i+2]-g)>8){blank=false;break;}}}catch(_){blank=false;}
-      if(blank){st.textContent='⚠️ La imagen salió en blanco al procesarla (¿HEIC o formato no soportado?). Toma la foto con el botón 📷 de la app o usa una JPG/PNG.';return;}
-      const data=c.toDataURL('image/jpeg',.85);
-      const im=$('#ocr-img');if(im){im.classList.remove('ph');im.textContent='';im.style.backgroundImage='url('+data+')';im.style.backgroundSize='cover';im.style.backgroundPosition='center';}
-      ocrSend(data);
-    };
-    img.src=rd.result;
-  };
-  rd.readAsDataURL(f);
+  if(/hei[cf]/.test(ty)||/\.hei[cf]$/.test(nm)){st.textContent='⚠️ Esa foto es HEIC (formato del iPhone) y el navegador no la puede leer. Toma la foto con el botón 📷 de la app, o iPhone: Ajustes → Cámara → Formatos → "Más compatible". También sirve reenviártela por WhatsApp (llega como JPG).';return;}
+  st.textContent='Preparando la imagen…';$('#ocr-form').style.display='none';
+  // Decodificar respetando orientación EXIF (endereza fotos del iPhone)
+  let src=null,sw=0,sh=0;
+  try{src=await createImageBitmap(f,{imageOrientation:'from-image'});sw=src.width;sh=src.height;}catch(e){
+    src=await new Promise(function(res){const rd=new FileReader();rd.onerror=function(){res(null);};rd.onload=function(){const i=new Image();i.onerror=function(){res(null);};i.onload=function(){res(i);};i.src=rd.result;};rd.readAsDataURL(f);});
+    if(src){sw=src.naturalWidth||src.width;sh=src.naturalHeight||src.height;}
+  }
+  if(!src||!sw||!sh){st.textContent='⚠️ El navegador no pudo decodificar esa imagen (¿HEIC?). Toma la foto con 📷 o usa una JPG/PNG.';return;}
+  const base=ocrDraw(src,sw,sh,0,1400);
+  if(im){im.classList.remove('ph');im.textContent='';im.style.backgroundImage='url('+base+')';im.style.backgroundSize='cover';im.style.backgroundPosition='center';}
+  st.textContent='Leyendo la etiqueta con IA…';
+  // Probar orientaciones hasta detectar productos (arregla fotos rotadas/de lado)
+  const oris=[0,90,270,180];
+  try{
+    for(let i=0;i<oris.length;i++){
+      if(i>0)st.textContent='La foto está de lado — enderezándola y releyendo… ('+i+'/3)';
+      const data=(i===0)?base:ocrDraw(src,sw,sh,oris[i],1400);
+      const res=await ocrTry(data);
+      if(res.items.length){if(im){im.style.backgroundImage='url('+data+')';}ocrShow(res.items,res.raw);return;}
+    }
+    st.textContent='📷 Se leyó la imagen pero no se detectó ningún producto (probé 4 orientaciones). Endereza y acércate con buena luz; o carga a mano con ✚.';
+  }catch(e){const net=(e&&e.name==='TypeError');st.textContent=net?'⚠️ Sin conexión con el lector o la función OCR no responde. Puedes cargar a mano con ✚.':('No se pudo leer: '+String(e.message||e).slice(0,80));}
 }
 function ocrCard(it){
   const d=document.createElement('div');d.className='card ocr-item';d.style.marginTop='10px';
