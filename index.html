@@ -499,6 +499,25 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
         <div class="row2"><div><label class="fld">Condición</label><select class="in" id="bm-status"><option selected>New</option><option>As new no hand tag</option><option>Good conditions</option><option>Liquidation</option></select></div><div><label class="fld">SKU (opcional — vacío = se genera)</label><input class="in" id="bm-sku"></div></div>
         <button class="btn o block" id="bm-add" style="margin-top:8px">Agregar a la caja</button>
       </div>
+      <div id="b-bulkbar" style="display:none;margin-top:10px;padding:8px 10px;border-radius:12px;background:var(--navy,#0b3454);color:#fff;align-items:center;gap:8px;flex-wrap:wrap">
+        <button class="btn" id="b-selall" style="background:rgba(255,255,255,.16);color:#fff;padding:6px 10px;font-size:12.5px;font-weight:800">☑︎ Todos</button>
+        <span style="font-size:12.5px;font-weight:800"><span id="b-seln">0</span> sel.</span>
+        <span style="flex:1"></span>
+        <button class="btn" id="b-bulk-edit" style="background:rgba(255,255,255,.16);color:#fff;padding:6px 10px;font-size:12.5px;font-weight:800">✏️ Editar</button>
+        <button class="btn" id="b-bulk-print" style="background:rgba(255,255,255,.16);color:#fff;padding:6px 10px;font-size:12.5px;font-weight:800">🏷️ Etiquetas</button>
+        <button class="btn" id="b-bulk-del" style="background:rgba(220,90,90,.35);color:#fff;padding:6px 10px;font-size:12.5px;font-weight:800">✕ Quitar</button>
+      </div>
+      <div id="b-bulkedit" style="display:none;margin-top:8px;padding:10px;border:1px dashed #cbd5e1;border-radius:12px">
+        <p class="muted" style="margin:0 0 8px;font-size:12px">Solo se aplican los campos que llenes. Aplica a <b id="b-be-n">0</b> ítems seleccionados.</p>
+        <div class="row2"><div><label class="fld">Marca</label><input class="in" id="be-brand" list="dl-brand"></div><div><label class="fld">Estilo (producto)</label><input class="in" id="be-style"></div></div>
+        <div style="height:6px"></div>
+        <div class="row2"><div><label class="fld">Categoría / Tipo</label><input class="in" id="be-cat" list="dl-cat" placeholder="Polo, Hoodie…"></div><div><label class="fld">Color</label><input class="in" id="be-color" list="dl-color"></div></div>
+        <div style="height:6px"></div>
+        <div class="row2"><div><label class="fld">Cód. color</label><input class="in" id="be-cc" inputmode="numeric"></div><div><label class="fld">Talla</label><input class="in" id="be-size"></div></div>
+        <div style="height:6px"></div>
+        <div class="row2"><div><label class="fld">Género</label><select class="in" id="be-gender"><option value="">— (no cambiar)</option><option>Men</option><option>Ladies</option><option>Youth</option><option>Kid</option><option>Baby</option><option>Unisex</option></select></div><div><label class="fld">Condición</label><select class="in" id="be-status"><option value="">— (no cambiar)</option><option>New</option><option>As new no hand tag</option><option>Good conditions</option><option>Liquidation</option></select></div></div>
+        <div class="row2" style="margin-top:8px"><button class="btn o" id="be-apply" style="flex:1">Aplicar a seleccionados</button><button class="btn ghost" id="be-cancel" style="flex:1">Cancelar</button></div>
+      </div>
       <div id="b-items" style="margin-top:10px"></div>
     </div>
     <button class="btn ghost block" id="b-manifest-btn">👁️ Ver manifiesto de la caja</button>
@@ -1471,7 +1490,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v109 · reporte Excel';
+var APP_VER='v110 · reporte Excel';
 // Condiciones de la prenda (default: New)
 var CONDS=['New','As new no hand tag','Good conditions','Liquidation'];
 function condOpts(val,withBlank){val=(val==null?'':(''+val));var o=withBlank?'<option value="">—</option>':'';var def=val||'New';return o+CONDS.map(function(c){return '<option'+(def===c?' selected':'')+'>'+c+'</option>';}).join('');}
@@ -3167,6 +3186,7 @@ function openBoxEditor(isNew){
   if(nav[nav.length-1]!=='s-box')nav.push('s-box');show('s-box');
   $('#box-title').textContent=isNew?'Nueva caja':('Caja '+curBox.code);
   $('#b-code').value=curBox.code;$('#b-rack').value=curBox.rack||'';$('#b-bin').value=curBox.bin||'';$('#b-name').value=curBox.name||'';
+  (curBox.items||[]).forEach(function(it){delete it._sel;});var _be=$('#b-bulkedit');if(_be)_be.style.display='none';
   renderBoxBrands();
   $('#b-q').value='';$('#b-results').innerHTML='';$('#b-del').style.display=isNew?'none':'block';
   renderBoxItems();
@@ -3225,7 +3245,7 @@ function renderBoxItems(){saveBoxDraft();
     const sub=[(it.cc?('cód '+esc(it.cc)):''),(it.upc?('UPC '+esc(it.upc)):'sin UPC')].filter(Boolean).join(' · ');
     const img0=imgForItem(it);
     const imgHTML='<div class="bi-imgwrap" title="Toca para tomar/subir foto" style="width:52px;height:52px;flex:none;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid #e5e7eb;background:'+(img0?'#fff':'#eef2f6')+';font-size:10px;color:#8aa0b3;text-align:center;line-height:1.15">'+(img0?('<img src="'+esc(img0)+'" style="width:100%;height:100%;object-fit:cover">'):'📷<br>+foto')+'</div><input type="file" class="bi-file" accept="image/*" style="display:none">';
-    el.innerHTML='<div style="display:flex;align-items:center;gap:8px">'+imgHTML+'<div style="flex:1;min-width:0"><div class="bi-name" style="font-weight:600;font-size:14px">'+esc(name)+'</div><div class="bi-sub muted" style="font-size:11px">'+sub+'</div></div>'
+    el.innerHTML='<div style="display:flex;align-items:center;gap:8px"><div class="bi-ck" style="font-size:20px;cursor:pointer;flex:none;user-select:none">'+(it._sel?'☑️':'⬜️')+'</div>'+imgHTML+'<div style="flex:1;min-width:0"><div class="bi-name" style="font-weight:600;font-size:14px">'+esc(name)+'</div><div class="bi-sub muted" style="font-size:11px">'+sub+'</div></div>'
       +'<input class="in bi-qty" type="number" inputmode="numeric" style="width:66px;text-align:center" value="'+(+it.qty||0)+'"><button class="bi-print" style="border:none;background:#e9f1f8;color:#0d2f4b;border-radius:8px;padding:6px 9px;font-weight:800">🏷️</button><button class="bi-del" style="border:none;background:#eef2f6;color:#5f6d7c;border-radius:8px;padding:6px 9px;font-weight:800">✕</button></div>'
       +'<div class="row2" style="margin-top:6px"><input class="in bi-color" list="dl-color" placeholder="Color"><input class="in bi-cc" inputmode="numeric" placeholder="Cód. color"></div>'
       +'<div class="row2" style="margin-top:6px"><input class="in bi-size" placeholder="Talla"><input class="in bi-cat" list="dl-cat" placeholder="Tipo (Polo, Hoodie…)"></div>'
@@ -3249,10 +3269,30 @@ function renderBoxItems(){saveBoxDraft();
     const stt=el.querySelector('.bi-status');if(stt){if(!it.status)curBox.items[idx].status='New';stt.addEventListener('change',e=>{curBox.items[idx].status=e.target.value;refreshManifest();});}
     const imgw=el.querySelector('.bi-imgwrap'),fileI=el.querySelector('.bi-file');
     if(imgw&&fileI){imgw.addEventListener('click',()=>fileI.click());fileI.addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(f)boxItemImgFile(idx,f,el);e.target.value='';});}
+    const ck=el.querySelector('.bi-ck');if(ck)ck.addEventListener('click',e=>{e.stopPropagation();curBox.items[idx]._sel=!curBox.items[idx]._sel;ck.textContent=curBox.items[idx]._sel?'☑️':'⬜️';el.style.background=curBox.items[idx]._sel?'#eef5fb':'';refreshBoxBulk();});
+    if(it._sel)el.style.background='#eef5fb';
     L.appendChild(el);
   });
-  refreshManifest();
+  refreshManifest();refreshBoxBulk();
 }
+function bxSelItems(){return (curBox&&curBox.items||[]).filter(function(it){return it&&it._sel;});}
+function refreshBoxBulk(){var n=bxSelItems().length;var bar=$('#b-bulkbar');if(bar)bar.style.display=n?'flex':'none';var sn=$('#b-seln');if(sn)sn.textContent=n;var be=$('#b-be-n');if(be)be.textContent=n;}
+(function(){
+  var sa=$('#b-selall');if(sa)sa.addEventListener('click',function(){var items=curBox.items||[];var all=items.length&&items.every(function(it){return it._sel;});items.forEach(function(it){it._sel=!all;});renderBoxItems();});
+  var be=$('#b-bulk-edit');if(be)be.addEventListener('click',function(){if(!bxSelItems().length){toast('Selecciona ítems primero','err');return;}['be-brand','be-style','be-cat','be-color','be-cc','be-size'].forEach(function(id){var e=$('#'+id);if(e)e.value='';});$('#be-gender').value='';$('#be-status').value='';refreshBoxBulk();$('#b-bulkedit').style.display='block';});
+  var bc=$('#be-cancel');if(bc)bc.addEventListener('click',function(){$('#b-bulkedit').style.display='none';});
+  var ba=$('#be-apply');if(ba)ba.addEventListener('click',function(){
+    var set={};var g=function(id,f){var e=$('#'+id),v=e?e.value.trim():'';if(v)set[f]=v;};
+    g('be-brand','brand');g('be-style','style');g('be-cat','cat');g('be-color','color');g('be-cc','cc');g('be-size','size');
+    var gen=$('#be-gender').value;if(gen)set.gender=gen;var st=$('#be-status').value;if(st)set.status=st;
+    var sel=bxSelItems();if(!sel.length){toast('Nada seleccionado','err');return;}
+    if(!Object.keys(set).length){toast('Llena al menos un campo','err');return;}
+    sel.forEach(function(it){Object.assign(it,set);if(!it.skuLocked)it.sku=genSku(it.brand,it.style,it.cc,it.size);});
+    $('#b-bulkedit').style.display='none';renderBoxItems();refreshManifest();toast('Aplicado a '+sel.length+' ítems','ok');
+  });
+  var bp=$('#b-bulk-print');if(bp)bp.addEventListener('click',function(){var sel=bxSelItems();if(!sel.length){toast('Selecciona ítems','err');return;}var s=document.getElementById('boxpage');if(s)s.remove();var pa=$('#printArea');pa.innerHTML='';sel.forEach(function(it){var n=Math.max(1,+it.qty||1);for(var i=0;i<n;i++)pa.appendChild(itemLabel({brand:it.brand,style:it.style,color:it.color,size:it.size,gender:it.gender||'',cat:it.cat||'',upc:it.upc||'',sku:it.sku}));});renderBarcodes();setTimeout(function(){window.print();},180);toast('Imprimiendo '+sel.length+' prendas','ok');});
+  var bd=$('#b-bulk-del');if(bd)bd.addEventListener('click',async function(){var sel=bxSelItems();if(!sel.length)return;if(!(await uiConfirm('Quitar','¿Quitar '+sel.length+' ítems de la caja?',{danger:true,okText:'Quitar'})))return;curBox.items=(curBox.items||[]).filter(function(it){return !it._sel;});renderBoxItems();refreshManifest();toast('Quitados '+sel.length,'ok');});
+})();
 /* REGLA GLOBAL: las tallas NUNCA se ordenan alfanumérico — siempre XS,S,M,L,XL,2XL,3XL,4XL,5XL,6XL */
 var SIZE_ORDER=['XS','S','M','L','XL','2XL','3XL','4XL','5XL','6XL'];
 function sizeRank(s){s=canonSize(s);var i=SIZE_ORDER.indexOf(s);return i<0?99:i;}
@@ -3432,7 +3472,7 @@ async function saveCurBox(){
   }catch(e){}
   const orig=curBox._orig;
   curBox.code=newCode;curBox.kind=boxBrandList().join(', ');curBox.rack=$('#b-rack').value.trim();curBox.bin=$('#b-bin').value.trim();curBox.name=$('#b-name').value.trim();curBox.pieces=boxPieces();
-  const payload={code:curBox.code,name:curBox.name,kind:curBox.kind,rack:curBox.rack,bin:curBox.bin,items:curBox.items,pieces:curBox.pieces};
+  const payload={code:curBox.code,name:curBox.name,kind:curBox.kind,rack:curBox.rack,bin:curBox.bin,items:(curBox.items||[]).map(function(it){var o=Object.assign({},it);delete o._sel;return o;}),pieces:curBox.pieces};
   try{
     const oldItems=await boxItemsInDB(orig||newCode);
     await DB.saveBox(payload);
