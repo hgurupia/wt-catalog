@@ -1037,6 +1037,11 @@ function saveLocal(rows){localStorage.setItem('wt_local',JSON.stringify(rows))}
 function seedLocalIfEmpty(){if(!localDB())saveLocal(CATALOG.map(c=>Object.assign({},c)))}
 function logLocalMove(sku,delta,kind){try{const m=JSON.parse(localStorage.getItem('wt_moves')||'[]');m.push({sku:sku,delta:delta,kind:kind,who:WHO,ts:new Date().toISOString()});localStorage.setItem('wt_moves',JSON.stringify(m.slice(-1000)));}catch(e){}}
 
+/* ⚠️ img y gallery guardan base64 pesado (fotos subidas) → cualquier select que los incluya
+   TIMEOUTEA en Postgres (statement timeout). Las listas usan solo columnas ligeras; las imágenes
+   se cargan aparte por keyset (loadImgs) o por-SKU en la ficha. Ver memoria wt-images-3views-pipeline. */
+const LIGHTCOLS='sku,upc,brand,style,color,cc,size,cat,gender,qty,cost,title,updated_at,counted,counted_by,counted_at,asin,ss_sku,ean,weight,pack,status,location,our,retail,price,margin,prices,listtitle,longdesc,bullets,colors,keywords,created_at,updated_by,sku_canon,aliases';
+
 const DB={
   async ping(){
     try{const r=await fetch(SB_URL+'/rest/v1/wt_inventory?select=sku&limit=1',{headers:sbHeaders()});
@@ -1090,8 +1095,26 @@ const DB={
   },
   async list(limit){
     limit=limit||1000;
-    if(MODE==='online'){const r=await fetch(SB_URL+'/rest/v1/wt_inventory?select=*&order=updated_at.desc.nullslast&limit='+limit,{headers:sbHeaders()});return r.ok?await r.json():[];}
+    if(MODE==='online'){const r=await fetch(SB_URL+'/rest/v1/wt_inventory?select='+LIGHTCOLS+'&order=updated_at.desc.nullslast&limit='+limit,{headers:sbHeaders()});return r.ok?await r.json():[];}
     return (localDB()||[]).slice(0,limit);
+  },
+  /* Carga img+gallery por keyset (page 40) — evita el timeout de OFFSET/select=*.
+     onChunk(map) se llama por página con {sku:{img,gallery}} para rellenar progresivamente. */
+  async loadImgs(onChunk){
+    if(MODE!=='online'){return {};}
+    const out={};let last='';
+    for(let i=0;i<60;i++){
+      const url=SB_URL+'/rest/v1/wt_inventory?select=sku,img,gallery&order=sku.asc&limit=40'+(last?'&sku=gt.'+encodeURIComponent(last):'');
+      let a=null;
+      try{const r=await fetch(url,{headers:sbHeaders()});if(r.ok)a=await r.json();}catch(e){}
+      if(!a||!a.length)break;
+      const chunk={};
+      for(const x of a){if(x.img||x.gallery){out[x.sku]={img:x.img,gallery:x.gallery};chunk[x.sku]={img:x.img,gallery:x.gallery};}}
+      if(onChunk){try{onChunk(chunk);}catch(e){}}
+      last=a[a.length-1].sku;
+      if(a.length<40)break;
+    }
+    return out;
   },
   async update(sku,obj){
     if(MODE==='online'){const r=await fetch(SB_URL+'/rest/v1/wt_inventory?sku=eq.'+encodeURIComponent(sku),{method:'PATCH',headers:sbHeaders({Prefer:'return=minimal'}),body:JSON.stringify(obj)});if(!r.ok)throw new Error(await r.text());return;}
@@ -1104,7 +1127,7 @@ const DB={
   },
   async clearCount(sku){return this.update(sku,{counted:null,counted_by:null,counted_at:null});},
   async listCounted(){
-    if(MODE==='online'){const r=await fetch(SB_URL+'/rest/v1/wt_inventory?counted=not.is.null&select=*&order=counted_at.desc.nullslast',{headers:sbHeaders()});return r.ok?await r.json():[];}
+    if(MODE==='online'){const r=await fetch(SB_URL+'/rest/v1/wt_inventory?counted=not.is.null&select='+LIGHTCOLS+'&order=counted_at.desc.nullslast',{headers:sbHeaders()});return r.ok?await r.json():[];}
     return (localDB()||[]).filter(d=>d.counted!=null);
   },
   async total(){
@@ -1500,7 +1523,7 @@ async function openSummary(){if(!INVROWS||!INVROWS.length){toast('Abre primero e
 $$('#s-sum .sumtbl th.ths').forEach(function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-k');if(SUMSORTK===k)SUMSORTD=-SUMSORTD;else{SUMSORTK=k;SUMSORTD=(k==='k')?1:-1;}renderSum();});});})();
 
 /* =================== COLORES S&S (mapa bidireccional) =================== */
-var APP_VER='v114 · reporte Excel';
+var APP_VER='v115 · costos + imágenes ágiles';
 // Condiciones de la prenda (default: New)
 var CONDS=['New','As new no hand tag','Good conditions','Liquidation'];
 function condOpts(val,withBlank){val=(val==null?'':(''+val));var o=withBlank?'<option value="">—</option>':'';var def=val||'New';return o+CONDS.map(function(c){return '<option'+(def===c?' selected':'')+'>'+c+'</option>';}).join('');}
@@ -1946,10 +1969,12 @@ async function openPML(){
   try{buildLocIdx(await DB.listBoxes());}catch(e){}
   pmlFillFilters();
   pmlRender();
+  bgLoadImgs();
   pmlHealImgs();
 }
 var PMLHEALED=false;
 function pmlHealImgs(){
+  if(!IMGSLOADED)return;   // esperar imágenes reales (base64) — no pisarlas con wt_reference
   if(PMLHEALED)return;PMLHEALED=true;
   var miss=(RROWS||[]).filter(function(d){return !((d.img||'')+'').trim()&&!(Array.isArray(d.gallery)&&d.gallery.length)&&((d.upc||'')+'').trim();}).slice(0,150);
   if(!miss.length)return;
@@ -2656,7 +2681,7 @@ async function openInv(){
   $('#invbody').innerHTML='<tr><td colspan="3" class="muted" style="text-align:center;padding:24px">Cargando…</td></tr>';
   try{
     const [rows,boxes]=await Promise.all([DB.list(3000),DB.listBoxes().catch(()=>[])]);
-    INVROWS=rows;buildLocIdx(boxes);fillFilters(rows);applyInv();
+    INVROWS=rows;buildLocIdx(boxes);fillFilters(rows);applyInv();bgLoadImgs();
   }catch(e){$('#invbody').innerHTML='<tr><td colspan="3" class="muted" style="text-align:center;padding:24px">No se pudo cargar.</td></tr>';}
 }
 ['invq','f-brand','f-style','f-color','f-size','f-loc','f-counted'].forEach(id=>{const e=$('#'+id);if(e)e.addEventListener(id==='invq'?'input':'change',applyInv);});
@@ -2670,6 +2695,37 @@ async function openInv(){
   var sa=$('#inv-selall');if(sa)sa.addEventListener('click',function(e){e.stopPropagation();toggleSelAll();});
 })();
 function invTitle(d){return [d.brand,d.style,d.color,d.size].filter(Boolean).join(' ')||d.sku;}
+/* ---- Carga DIFERIDA de imágenes ----
+   Las listas usan LIGHTCOLS (sin img/gallery, que son base64 pesado y timeoutean).
+   Aquí traemos img+gallery por keyset y rellenamos las miniaturas en sitio. */
+var IMGCACHE=null, IMGLOADING=false, IMGSLOADED=false, IMGREPT=null;
+function applyImgMap(map){
+  if(!map)return;
+  [typeof INVROWS!=='undefined'&&INVROWS, typeof RROWS!=='undefined'&&RROWS, typeof CATALOG!=='undefined'&&CATALOG].forEach(function(arr){
+    if(!arr||!arr.length)return;
+    arr.forEach(function(d){var m=map[d.sku];if(m){if(m.img!=null)d.img=m.img;if(m.gallery!=null)d.gallery=m.gallery;}});
+  });
+}
+function repaintThumbs(){
+  var ib=document.getElementById('invbody');
+  if(ib&&typeof INVSHOWN!=='undefined'&&INVSHOWN){
+    ib.querySelectorAll('tr.ivr').forEach(function(tr){var d=INVSHOWN[+tr.getAttribute('data-i')];if(!d||!d.img)return;var im=tr.querySelector('.pcw img');if(im&&im.getAttribute('src')!==d.img){im.setAttribute('src',d.img);im.style.visibility='';}});
+  }
+  var pb=document.getElementById('pmlbody');
+  if(pb&&typeof RROWS!=='undefined'&&RROWS){
+    pb.querySelectorAll('tr[data-sku]').forEach(function(tr){var sku=tr.getAttribute('data-sku');var d=RROWS.find(function(x){return x.sku===sku;});if(!d)return;var th=tr.querySelector('.pth');if(th)th.innerHTML=pmlThumb(d);});
+  }
+}
+function schedRepaint(){if(IMGREPT)return;IMGREPT=setTimeout(function(){IMGREPT=null;try{repaintThumbs();}catch(e){}},400);}
+function bgLoadImgs(){
+  if(MODE!=='online')return;
+  if(IMGCACHE){applyImgMap(IMGCACHE);repaintThumbs();return;}
+  if(IMGLOADING)return; IMGLOADING=true;
+  DB.loadImgs(function(chunk){applyImgMap(chunk);schedRepaint();}).then(function(all){
+    IMGCACHE=all;IMGSLOADED=true;IMGLOADING=false;applyImgMap(all);repaintThumbs();
+    try{if(typeof pmlHealImgs==='function')pmlHealImgs();}catch(e){}
+  }).catch(function(){IMGLOADING=false;});
+}
 function applyInv(){
   let rows=INVROWS.slice();
   const t=norm($('#invq').value).trim();
