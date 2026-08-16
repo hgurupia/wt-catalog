@@ -346,6 +346,8 @@ textarea.in{width:100%;font-family:inherit;resize:vertical}
     <div class="card">
       <label class="fld">Tu nombre (para saber quién carga)</label>
       <input class="in" id="who" placeholder="Ej: Harold" autocomplete="name">
+      <label class="fld" style="margin-top:8px">PIN de precios (opcional — para ver costo/precio)</label>
+      <input class="in" id="pin" type="password" inputmode="numeric" placeholder="••••" autocomplete="off">
     </div>
     <button class="btn n block" id="enter">Entrar</button>
     <p class="muted" style="text-align:center" id="lockmode">Conectando a la base…</p>
@@ -1312,6 +1314,8 @@ if(WHO)$('#who').value=WHO;
 function doEnter(){
   const w=$('#who').value.trim();
   if(!w){toast('Escribe tu nombre','err');return;}
+  var pin=(($('#pin')||{}).value||'').trim();
+  if(pin){ if(pin===MONEY_PIN){try{sessionStorage.setItem('wt_money','1');}catch(e){}} else {toast('PIN incorrecto — entras sin precios','err');} }
   WHO=w;localStorage.setItem('wt_who',w);
   nav=['s-home'];go('s-home');
 }
@@ -1873,6 +1877,9 @@ function pmlLoc(d){return ((d.location||'')+'').trim()||locText(d.sku)||'';}
 // Qty box-based: suma lo contado en TODAS las cajas para ese SKU (LOCIDX)
 function boxQty(sku){var a=LOCIDX[sku];if(!a||!a.length)return 0;return a.reduce(function(s,e){return s+(+e.qty||0);},0);}
 function pmlQty(d){var bq=boxQty(d.sku);return bq>0?bq:(+d.qty||0);}
+/* Cantidad SEGÚN la vista: si hay caja filtrada, solo lo de ESA caja; si no, total en cajas */
+function pmlBoxSel(){var e=document.getElementById('pml-box');return e?(e.value||''):'';}
+function pmlQtyView(d){var bx=pmlBoxSel();if(bx){var a=LOCIDX[d.sku]||[];return a.reduce(function(s,e){return s+(e.code===bx?(+e.qty||0):0);},0);}return pmlQty(d);}
 function pmlFilt(){
   var q=norm($('#pml-q').value||''), b=$('#pml-brand').value, st=$('#pml-stock').value;
   var cond=$('#pml-cond')?$('#pml-cond').value:'', box=$('#pml-box')?$('#pml-box').value:'';
@@ -1896,7 +1903,7 @@ function pmlSortRows(rows){
       return (''+sa).localeCompare(''+sb,'es',{numeric:true})*dir;
     }
     function num(d){
-      if(k==='qty')return pmlQty(d);
+      if(k==='qty')return pmlQtyView(d);
       if(k==='cost')return +d.cost||0;
       return rPrice(d,k);
     }
@@ -1915,7 +1922,7 @@ function pmlRowHTML(d){
   return '<tr data-sku="'+esc(d.sku)+'">'+
     '<td class="pmlp"><span class="pth">'+pmlThumb(d)+'</span><span class="ptx"><b>'+esc(name)+'</b><small>'+esc(sub||d.sku)+'</small></span></td>'+
     '<td class="dim" style="font-size:11px">'+esc(d.upc||'—')+'</td>'+
-    '<td class="dim"><b>'+pmlQty(d)+'</b></td>'+
+    '<td class="dim"><b>'+pmlQtyView(d)+'</b></td>'+
     '<td class="dim" style="font-size:11px;max-width:110px;overflow:hidden;text-overflow:ellipsis">'+esc(loc||'—')+'</td>'+
     '<td class="dim" style="font-size:11px">'+esc(d.status||'—')+'</td>'+
     '<td><input class="rin" type="number" inputmode="decimal" step="0.01" min="0" data-pf="cost" value="'+((+d.cost||0)?(+d.cost).toFixed(2):'')+'"></td>'+
@@ -1924,12 +1931,13 @@ function pmlRowHTML(d){
   '</tr>';
 }
 function pmlKpis(rows){
-  var u=0,val=0,foto=0;
-  rows.forEach(function(d){var q=pmlQty(d);u+=q;var v=parseFloat(d.price!=null?d.price:d.retail)||0;val+=v*q;if(d.img||(Array.isArray(d.gallery)&&d.gallery.length))foto++;});
-  $('#pml-kpis').innerHTML='<div><b>'+rows.length.toLocaleString('en-US')+'</b><span>productos</span></div>'+
-    '<div><b>'+u.toLocaleString('en-US')+'</b><span>unidades</span></div>'+
-    '<div><b class="hi">'+fmtMoney(val)+'</b><span>valor venta</span></div>'+
-    '<div><b>'+foto+'/'+rows.length+'</b><span>con foto</span></div>';
+  var u=0,cost=0,sale=0;
+  rows.forEach(function(d){var q=pmlQtyView(d);u+=q;cost+=(+d.cost||0)*q;sale+=rPrice(d)*q;});
+  var marg=sale>0?Math.round((sale-cost)/sale*100):0;
+  $('#pml-kpis').innerHTML='<div><b>'+u.toLocaleString('en-US')+'</b><span>uds · '+rows.length+' prod</span></div>'+
+    '<div><b>'+fmtMoney(cost)+'</b><span>costo total</span></div>'+
+    '<div><b class="hi">'+fmtMoney(sale)+'</b><span>venta total</span></div>'+
+    '<div><b>'+marg+'%</b><span>margen</span></div>';
 }
 function pmlUpdSar(){
   $$('#pmltbl thead .sar').forEach(function(s){var k=s.getAttribute('data-for');if(k===PMLSORTK){s.textContent=PMLSORTD>0?'▲':'▼';s.classList.add('on');}else{s.textContent='↕';s.classList.remove('on');}});
