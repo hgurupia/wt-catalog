@@ -8,13 +8,14 @@ Resumen financiero, Unificar duplicados, Colores S&S, Leer etiqueta (OCR), Histo
 **Base analizada:** `index.html` (4.340 líneas), `catalog.js`, `ocr-label.edge.ts`,
 `wt_supabase_setup.sql` en la rama `main`.
 
-> **Nota sobre el acceso al demo.** `https://demo.parishmart.com/` está bloqueado por la política
-> de salida de red del entorno donde se ejecutó esta auditoría (el proxy devuelve 403 en el CONNECT),
-> así que no pude hacer clic por la interfaz en vivo. La auditoría se hizo sobre el código fuente de
-> la app en este repositorio, que es más exhaustivo que una revisión manual: cubre el 100 % de las
-> ramas de cada flujo, incluidas las que sólo se disparan con error de red o con varios usuarios a la
-> vez. Si el demo corriera una versión distinta de este `index.html`, hay que revalidar los puntos
-> marcados con ⚠︎.
+> **Qué se auditó y qué no.** Esta auditoría es **exclusivamente sobre la PML App de este
+> repositorio** (`wt-catalog`, desplegada en `pml.gurupia.com`). No tiene ninguna relación con
+> `demo.parishmart.com`, que es un desarrollo distinto, en Laravel, a cargo de Adverweb.
+>
+> La revisión se hizo sobre el código fuente, no navegando la interfaz: eso cubre todas las ramas de
+> cada flujo, incluidas las que sólo se disparan al fallar la red o con varios usuarios trabajando a
+> la vez, pero no cubre lo que sólo se ve en pantalla (tiempos reales de carga, comportamiento de la
+> cámara en dispositivos concretos, calidad de impresión de las etiquetas).
 
 ---
 
