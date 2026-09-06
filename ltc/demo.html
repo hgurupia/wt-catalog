@@ -2,8 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0d2137">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LTC SOC">
 <title>LTC Start of Care Demo</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230d2137'/><text x='50' y='70' font-size='56' text-anchor='middle' fill='%231a8fd1' font-family='Arial' font-weight='bold'>+</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,324 +27,389 @@
   --amber:#f2851c;
   --red:#c0392b;
   --radius:14px;
+  --safe-t:env(safe-area-inset-top,0px);
+  --safe-b:env(safe-area-inset-bottom,0px);
+  --bar:64px;
 }
-*{box-sizing:border-box}
-html,body{margin:0;padding:0}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;height:100%}
 body{
   font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
   background:var(--page);color:var(--ink);font-size:15px;line-height:1.55;
-  -webkit-font-smoothing:antialiased;
+  -webkit-font-smoothing:antialiased;overscroll-behavior-y:none;
 }
-h1,h2,h3,h4{color:var(--navy);font-weight:800;letter-spacing:-.01em;margin:0}
-a{color:var(--teal);text-decoration:none}
-button{font-family:inherit}
+h1,h2,h3,h4{color:var(--navy);font-weight:800;letter-spacing:-.01em;margin:0;text-wrap:balance}
+button{font-family:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 
-/* ---------- nav ---------- */
-.nav{background:var(--navy);color:#fff;position:sticky;top:0;z-index:40}
-.nav-in{max-width:1180px;margin:0 auto;padding:14px 22px;display:flex;align-items:center;gap:16px}
-.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:16px;color:#fff;letter-spacing:-.01em}
-.brand .mark{width:30px;height:30px;border-radius:9px;background:var(--teal);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800}
-.brand small{display:block;font-size:11px;font-weight:500;opacity:.7;letter-spacing:.02em}
-.nav-sp{flex:1}
-.nav-btn{background:transparent;border:1px solid rgba(255,255,255,.22);color:#fff;font-size:13px;font-weight:600;padding:8px 14px;border-radius:999px;cursor:pointer}
-.nav-btn:hover{background:rgba(255,255,255,.09)}
-.nav-btn.primary{background:var(--teal);border-color:var(--teal)}
-.nav-btn.primary:hover{background:#1780bd}
-.nav-pt{font-size:12.5px;opacity:.8;font-weight:500;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ---------- app shell: a phone column, centered on bigger screens ---------- */
+.app{
+  max-width:640px;margin:0 auto;min-height:100%;min-height:100dvh;
+  display:flex;flex-direction:column;background:var(--page);
+  box-shadow:0 0 0 1px var(--line);
+}
+@media (max-width:660px){.app{box-shadow:none}}
 
-/* ---------- layout ---------- */
-.wrap{max-width:1180px;margin:0 auto;padding:26px 22px 60px}
+/* ---------- top bar ---------- */
+.topbar{position:sticky;top:0;z-index:30;background:var(--navy);color:#fff;
+  padding-top:var(--safe-t)}
+.tb{display:none;align-items:center;gap:10px;padding:11px 14px;min-height:56px}
+.tb.on{display:flex}
+.tb h1{color:#fff;font-size:16px;line-height:1.25;flex:1;min-width:0}
+.tb .sub{display:block;font-size:11.5px;font-weight:500;opacity:.72;letter-spacing:.01em}
+.icon-btn{width:40px;height:40px;flex:none;border:none;border-radius:12px;
+  background:rgba(255,255,255,.13);color:#fff;font-size:19px;display:flex;
+  align-items:center;justify-content:center}
+.icon-btn:active{background:rgba(255,255,255,.24)}
+.pill-btn{border:none;border-radius:999px;background:var(--teal);color:#fff;
+  font-size:13.5px;font-weight:700;padding:9px 16px;flex:none;min-height:40px}
+.pill-btn.quiet{background:rgba(255,255,255,.13)}
+.brand{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.brand .mark{width:34px;height:34px;flex:none;border-radius:10px;background:var(--teal);
+  display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:800}
+.brand b{display:block;font-size:15.5px;font-weight:800;letter-spacing:-.01em}
+
+/* section picker sits in the assessment top bar */
+.picker{flex:1;min-width:0;background:rgba(255,255,255,.11);border:none;color:#fff;
+  border-radius:12px;padding:7px 12px;text-align:left;min-height:44px;
+  display:flex;align-items:center;gap:10px}
+.picker .txt{flex:1;min-width:0}
+.picker .step{font-size:11px;font-weight:700;opacity:.7;letter-spacing:.06em;text-transform:uppercase}
+.picker .name{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.picker .chev{opacity:.7;font-size:13px}
+.progress{height:3px;background:rgba(255,255,255,.16)}
+.progress i{display:block;height:100%;background:var(--teal);width:0;transition:width .25s}
+
+/* ---------- content ---------- */
+.content{flex:1;padding:14px 14px 22px}
 .screen{display:none}
 .screen.on{display:block}
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px}
-.card+.card{margin-top:16px}
+.stack{display:flex;flex-direction:column;gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
 .muted{color:var(--muted)}
 .small{font-size:13px}
 .xsmall{font-size:12px}
 
-/* ---------- home ---------- */
-.hero{padding:34px 30px;margin-bottom:20px}
-.hero h1{font-size:30px;line-height:1.2}
-.hero p{color:var(--muted);max-width:620px;margin:10px 0 0}
-.hero-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
-.btn{border:none;border-radius:10px;padding:11px 20px;font-size:14px;font-weight:700;cursor:pointer}
+/* ---------- bottom action bar ---------- */
+.bottombar{position:sticky;bottom:0;z-index:25;background:rgba(255,255,255,.94);
+  backdrop-filter:blur(8px);border-top:1px solid var(--line);
+  padding:10px 14px calc(10px + var(--safe-b))}
+.bb{display:none;gap:10px}
+.bb.on{display:flex}
+.btn{border:none;border-radius:12px;padding:0 18px;min-height:48px;font-size:15px;
+  font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:8px}
 .btn.primary{background:var(--teal);color:#fff}
-.btn.primary:hover{background:#1780bd}
-.btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--line)}
-.btn.ghost:hover{border-color:var(--teal);color:var(--teal)}
+.btn.primary:active{background:#1780bd}
 .btn.navy{background:var(--navy);color:#fff}
-.btn.small{padding:7px 13px;font-size:13px}
-.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--line)}
+.btn.ghost:active{border-color:var(--teal);color:var(--teal)}
+.btn.grow{flex:1}
+.btn.sm{min-height:40px;font-size:13.5px;padding:0 14px;border-radius:10px}
+.btn:disabled{opacity:.4}
 
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:6px}
-.step{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
-.step .n{width:32px;height:32px;border-radius:10px;background:var(--teal);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:15px;margin-bottom:12px}
-.step h3{font-size:15px;margin-bottom:6px}
-.step p{margin:0;color:var(--muted);font-size:13.5px}
+/* ---------- home ---------- */
+.hero{padding:22px 18px}
+.hero h2{font-size:23px;line-height:1.2}
+.hero p{color:var(--muted);margin:8px 0 0;font-size:14px}
+.hero .btn{margin-top:16px;width:100%}
+.steps{display:flex;flex-direction:column;gap:10px}
+.step-row{display:flex;gap:13px;align-items:flex-start;background:var(--card);
+  border:1px solid var(--line);border-radius:var(--radius);padding:15px}
+.step-row .n{width:30px;height:30px;flex:none;border-radius:10px;background:var(--teal);
+  color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center}
+.step-row h3{font-size:14.5px;margin-bottom:3px}
+.step-row p{margin:0;font-size:13px;color:var(--muted)}
 
-.pt-row{display:flex;align-items:center;gap:14px;padding:14px 4px;border-bottom:1px solid var(--line)}
-.pt-row:last-child{border-bottom:none}
-.pt-av{width:40px;height:40px;border-radius:10px;background:var(--teal-soft);color:var(--teal);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex:none}
-.pt-main{flex:1;min-width:0}
-.pt-main b{display:block;font-size:14.5px;color:var(--navy)}
-.pt-main span{font-size:12.5px;color:var(--muted)}
-.pt-acts{display:flex;gap:8px;flex:none}
-.empty{text-align:center;padding:38px 10px;color:var(--muted)}
+.sec-label{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--muted);font-weight:700;padding:4px 2px}
+.pt-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  overflow:hidden}
+.pt-open{width:100%;background:none;border:none;text-align:left;display:flex;
+  align-items:center;gap:12px;padding:14px 15px}
+.pt-open:active{background:var(--page)}
+.pt-av{width:42px;height:42px;flex:none;border-radius:12px;background:var(--teal-soft);
+  color:var(--teal);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px}
+.pt-info{flex:1;min-width:0}
+.pt-info b{display:block;font-size:15px;color:var(--navy)}
+.pt-info span{display:block;font-size:12.5px;color:var(--muted);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.pt-meter{height:4px;background:var(--line);border-radius:999px;margin-top:7px;overflow:hidden}
+.pt-meter i{display:block;height:100%;background:var(--teal)}
+.pt-acts{display:flex;gap:8px;padding:0 15px 13px}
+.pt-acts .btn{flex:1}
+.empty{text-align:center;padding:30px 14px;color:var(--muted);font-size:14px}
 
-/* ---------- assessment ---------- */
-.assess{display:grid;grid-template-columns:262px 1fr;gap:20px;align-items:start}
-.rail{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px;position:sticky;top:78px}
-.rail h4{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;padding:6px 10px 10px}
-.rail-item{display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;text-align:left;padding:8px 10px;border-radius:10px;cursor:pointer;color:var(--navy);font-size:13.5px;font-weight:600}
-.rail-item:hover{background:var(--page)}
-.rail-item.on{background:var(--teal-soft);color:var(--teal)}
-.rail-item .n{width:24px;height:24px;border-radius:8px;background:var(--page);color:var(--muted);font-size:11.5px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none}
-.rail-item.on .n{background:var(--teal);color:#fff}
-.rail-item.done .n{background:var(--navy);color:#fff}
-.rail-item .lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-
-.progress{height:6px;background:var(--line);border-radius:999px;overflow:hidden;margin:10px 10px 14px}
-.progress i{display:block;height:100%;background:var(--teal);width:0;transition:width .25s}
-
-.sec-head{display:flex;align-items:center;gap:12px;margin-bottom:18px}
-.sec-head .n{width:34px;height:34px;border-radius:10px;background:var(--teal);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:14px;flex:none}
-.sec-head h2{font-size:20px}
-
+/* ---------- fields ---------- */
+.sec-intro{display:flex;align-items:center;gap:11px;margin-bottom:4px}
+.sec-intro .n{width:32px;height:32px;flex:none;border-radius:10px;background:var(--teal);
+  color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center}
+.sec-intro h2{font-size:18px;line-height:1.25}
 .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
-.f{display:flex;flex-direction:column;gap:5px}
-.f label{font-size:12.5px;font-weight:600;color:var(--navy)}
+.f{grid-column:span 12;display:flex;flex-direction:column;gap:6px}
+.f label{font-size:13px;font-weight:600;color:var(--navy)}
 .f label .req{color:var(--red);margin-left:3px}
 .f input[type=text],.f input[type=number],.f input[type=date],.f select,.f textarea{
-  width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:14px;
-  font-family:inherit;color:var(--ink);background:#fff;outline:none
-}
-.f input:focus,.f select:focus,.f textarea:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(26,143,209,.12)}
-.f textarea{min-height:80px;resize:vertical;line-height:1.5}
-.opts{display:flex;flex-wrap:wrap;gap:7px}
-.opt{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;padding:6px 13px;font-size:13px;cursor:pointer;background:#fff;color:var(--muted);font-weight:500}
-.opt input{accent-color:var(--teal);margin:0}
+  width:100%;border:1px solid var(--line);border-radius:12px;padding:12px 13px;
+  font-size:16px;font-family:inherit;color:var(--ink);background:#fff;outline:none;min-height:48px}
+.f select{appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235b6b7c' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+.f textarea{min-height:96px;resize:vertical;line-height:1.5}
+.f input:focus,.f select:focus,.f textarea:focus{border-color:var(--teal);
+  box-shadow:0 0 0 3px rgba(26,143,209,.13)}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);
+  border-radius:999px;padding:0 15px;min-height:44px;font-size:14px;background:#fff;
+  color:var(--muted);font-weight:500}
+.opt input{accent-color:var(--teal);margin:0;width:18px;height:18px}
 .opt.on{border-color:var(--teal);background:var(--teal-soft);color:var(--teal);font-weight:600}
-.note{grid-column:span 12;background:var(--teal-soft);border-left:3px solid var(--teal);border-radius:0 10px 10px 0;padding:10px 14px;font-size:13px;color:var(--navy)}
-.computed{background:var(--page);border:1px dashed var(--line);border-radius:10px;padding:10px 12px;font-weight:700;font-size:14px;color:var(--navy)}
-.computed .tag{display:inline-block;margin-left:8px;font-size:11px;font-weight:800;padding:2px 9px;border-radius:999px;vertical-align:middle}
+.note{grid-column:span 12;background:var(--teal-soft);border-left:3px solid var(--teal);
+  border-radius:0 10px 10px 0;padding:11px 14px;font-size:13.5px;color:var(--navy)}
+.computed{background:var(--page);border:1px dashed var(--line);border-radius:12px;
+  padding:13px;font-weight:700;font-size:15px;color:var(--navy);
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tag{font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px;
+  text-transform:uppercase;letter-spacing:.05em}
 .tag.low{background:var(--teal-soft);color:var(--teal)}
 .tag.moderate{background:#fdf0e2;color:var(--amber)}
 .tag.high{background:#fbeae8;color:var(--red)}
 
-.sec-nav{display:flex;justify-content:space-between;gap:10px;margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
+/* two-up fields once there is room for them */
+@media (min-width:560px){
+  .f[data-col="3"]{grid-column:span 6}
+  .f[data-col="4"]{grid-column:span 6}
+  .f[data-col="6"]{grid-column:span 6}
+  .f[data-col="8"]{grid-column:span 12}
+}
+
+/* ---------- section sheet ---------- */
+.backdrop{position:fixed;inset:0;background:rgba(13,33,55,.5);opacity:0;pointer-events:none;
+  transition:opacity .2s;z-index:40}
+.backdrop.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;background:var(--card);
+  border-radius:20px 20px 0 0;max-height:82dvh;display:flex;flex-direction:column;
+  transform:translateY(101%);transition:transform .24s cubic-bezier(.32,.72,0,1);
+  max-width:640px;margin:0 auto;padding-bottom:var(--safe-b)}
+.sheet.on{transform:translateY(0)}
+.sheet-h{padding:14px 18px 10px;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:12px}
+.sheet-h h3{font-size:16px;flex:1}
+.grip{width:38px;height:4px;border-radius:999px;background:var(--line);margin:8px auto 0}
+.sheet-list{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px 10px 14px}
+.sheet-item{display:flex;align-items:center;gap:12px;width:100%;background:none;border:none;
+  text-align:left;padding:12px;border-radius:12px;color:var(--navy);font-size:14.5px;font-weight:600;min-height:52px}
+.sheet-item:active{background:var(--page)}
+.sheet-item.on{background:var(--teal-soft);color:var(--teal)}
+.sheet-item .n{width:28px;height:28px;flex:none;border-radius:9px;background:var(--page);
+  color:var(--muted);font-size:12.5px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.sheet-item.on .n{background:var(--teal);color:#fff}
+.sheet-item.done .n{background:var(--navy);color:#fff}
+.sheet-item .lbl{flex:1;min-width:0}
 
 /* ---------- plan of care ---------- */
-.poc-head{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;justify-content:space-between;margin-bottom:16px}
-.chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{border:1px solid var(--line);border-radius:999px;padding:5px 13px;font-size:12.5px;font-weight:600;background:#fff;color:var(--navy)}
+.segmented{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;
+  padding-bottom:2px;margin-bottom:2px;scrollbar-width:none}
+.segmented::-webkit-scrollbar{display:none}
+.seg{flex:none;border:1px solid var(--line);background:#fff;color:var(--navy);
+  border-radius:999px;padding:0 16px;min-height:40px;font-size:13.5px;font-weight:600}
+.seg.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.poc-title{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.poc-title h2{font-size:19px}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:12.5px;
+  font-weight:600;background:#fff;color:var(--navy)}
 .chip.teal{background:var(--teal-soft);border-color:transparent;color:var(--teal)}
 .chip.warn{background:#fbeae8;border-color:transparent;color:var(--red)}
-.kv{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-.kv div{background:var(--page);border:1px solid var(--line);border-radius:10px;padding:11px 13px}
-.kv b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
-.kv span{font-size:14px;font-weight:600;color:var(--navy)}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
+.kv div{background:var(--page);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0}
+.kv b{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--muted);font-weight:700}
+.kv span{font-size:13.5px;font-weight:600;color:var(--navy);overflow-wrap:anywhere}
+.group-label{font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);
+  font-weight:700;margin:18px 0 8px}
 
-.prob{border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-top:14px;background:#fff}
-.prob-h{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px}
-.prob-h .n{width:28px;height:28px;border-radius:10px;background:var(--teal);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex:none}
-.prob-h h3{font-size:15.5px;line-height:1.35;flex:1}
-.prob h5{font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700;margin:14px 0 6px}
-.prob ul{margin:0;padding-left:20px}
-.prob li{font-size:14px;margin-bottom:5px;color:#22384d}
-.alert{background:#fbeae8;border:1px solid #f0cfca;border-radius:var(--radius);padding:14px 18px;margin-bottom:16px}
-.alert b{color:var(--red);display:block;font-size:13px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
-.alert ul{margin:0;padding-left:20px;font-size:14px}
-
-.cta{background:var(--navy-2);color:#fff;border-radius:var(--radius);padding:26px 28px;margin-top:20px;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between}
-.cta h3{color:#fff;font-size:18px}
-.cta p{margin:6px 0 0;font-size:13.5px;opacity:.78;max-width:560px}
-.cta .btn{background:#fff;color:var(--navy-2)}
-.cta .btn:hover{background:#eef4f9}
-
-pre.narrative{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:20px;white-space:pre-wrap;font-family:'Inter',sans-serif;font-size:13.5px;line-height:1.6;color:#22384d;margin:0}
-
-.tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
-.tab{border:1px solid var(--line);background:#fff;color:var(--navy);border-radius:999px;padding:8px 17px;font-size:13.5px;font-weight:600;cursor:pointer}
-.tab.on{background:var(--navy);color:#fff;border-color:var(--navy)}
-
-.sig{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:26px;padding-top:20px;border-top:1px solid var(--line)}
+details.prob{border:1px solid var(--line);border-radius:var(--radius);background:#fff;
+  overflow:hidden;margin-top:10px}
+details.prob>summary{list-style:none;display:flex;align-items:flex-start;gap:11px;
+  padding:14px 15px;min-height:56px}
+details.prob>summary::-webkit-details-marker{display:none}
+details.prob>summary .n{width:26px;height:26px;flex:none;border-radius:9px;background:var(--teal);
+  color:#fff;font-weight:800;font-size:12.5px;display:flex;align-items:center;justify-content:center}
+details.prob>summary h3{flex:1;font-size:14.5px;line-height:1.35}
+details.prob>summary .caret{color:var(--muted);font-size:12px;transition:transform .2s;margin-top:4px}
+details.prob[open]>summary .caret{transform:rotate(180deg)}
+.prob-body{padding:0 15px 15px}
+.prob-body h5{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);
+  font-weight:700;margin:12px 0 6px}
+.prob-body ul{margin:0;padding-left:19px}
+.prob-body li{font-size:14px;margin-bottom:6px;color:#22384d}
+.alert{background:#fbeae8;border:1px solid #f0cfca;border-radius:var(--radius);padding:14px 16px}
+.alert b{color:var(--red);display:block;font-size:12px;text-transform:uppercase;
+  letter-spacing:.06em;margin-bottom:6px}
+.alert ul{margin:0;padding-left:19px;font-size:14px}
+pre.narrative{background:#fff;border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px;white-space:pre-wrap;font-family:'Inter',sans-serif;font-size:13.5px;
+  line-height:1.62;color:#22384d;margin:0;overflow-x:auto}
+.sig{display:grid;gap:22px;margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
 .sig div{font-size:12.5px;color:var(--muted)}
 .sig .line{border-bottom:1px solid var(--navy);height:34px;margin-bottom:6px}
+.disclaimer{background:var(--navy-2);color:#fff;border-radius:var(--radius);padding:16px 18px}
+.disclaimer p{margin:6px 0 0;font-size:13px;opacity:.8}
+.disclaimer h3{color:#fff;font-size:15px}
 
-/* ---------- footer ---------- */
-.foot{background:var(--navy);color:#fff;margin-top:50px}
-.foot-in{max-width:1180px;margin:0 auto;padding:38px 22px 26px;display:grid;grid-template-columns:repeat(4,1fr);gap:26px}
-.foot h4{color:#fff;font-size:12.5px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
-.foot p,.foot li{font-size:13px;opacity:.72;margin:0 0 6px}
-.foot ul{list-style:none;padding:0;margin:0}
-.foot-bar{border-top:1px solid rgba(255,255,255,.12);padding:14px 22px;font-size:12px;opacity:.6;text-align:center}
-
-.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;padding:11px 20px;border-radius:999px;font-size:13.5px;font-weight:600;opacity:0;transition:.22s;pointer-events:none;z-index:80}
+.toast{position:fixed;left:50%;bottom:calc(var(--bar) + 18px + var(--safe-b));
+  transform:translateX(-50%) translateY(14px);background:var(--navy);color:#fff;
+  padding:11px 20px;border-radius:999px;font-size:13.5px;font-weight:600;opacity:0;
+  transition:.22s;pointer-events:none;z-index:60;max-width:88vw;text-align:center}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
-@media (max-width:900px){
-  .assess{grid-template-columns:1fr}
-  .rail{position:static}
-  .steps{grid-template-columns:1fr}
-  .kv{grid-template-columns:repeat(2,1fr)}
-  .foot-in{grid-template-columns:repeat(2,1fr)}
-}
-@media (max-width:620px){
-  .wrap{padding:18px 14px 40px}
-  .hero{padding:24px 20px}
-  .hero h1{font-size:24px}
-  .card{padding:18px}
-  .kv{grid-template-columns:1fr}
-  .sig{grid-template-columns:1fr}
-  .nav-pt{display:none}
-}
+@media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
 
 /* ---------- demo strip ---------- */
-.demo-strip{background:var(--teal-soft);border-bottom:1px solid #cfe4f4}
-.demo-strip-in{max-width:1180px;margin:0 auto;padding:10px 22px;display:flex;align-items:center;
-  gap:12px;flex-wrap:wrap;color:var(--navy);font-size:13px}
-.demo-chip{background:var(--teal);color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.09em;
+.demo-strip{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  background:var(--teal-soft);border:1px solid #cfe4f4;border-radius:var(--radius);
+  padding:11px 13px;margin-bottom:14px;color:var(--navy);font-size:13px}
+.demo-chip{background:var(--teal);color:#fff;font-size:10px;font-weight:800;letter-spacing:.09em;
   text-transform:uppercase;padding:3px 9px;border-radius:999px;flex:none}
-.demo-text{flex:1;min-width:220px}
+.demo-text{flex:1;min-width:180px;line-height:1.4}
 .demo-reset{background:#fff;border:1px solid var(--line);color:var(--navy);font-size:12.5px;
-  font-weight:600;padding:6px 13px;border-radius:999px;cursor:pointer;flex:none}
-.demo-reset:hover{border-color:var(--teal);color:var(--teal)}
-.demo-reset:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+  font-weight:600;padding:0 14px;min-height:36px;border-radius:999px;flex:none}
+.demo-reset:active{border-color:var(--teal);color:var(--teal)}
 @media print{.demo-strip{display:none}}
 
 /* ---------- print ---------- */
 @media print{
-  .nav,.foot,.foot-bar,.tabs,.cta,.sec-nav,.rail,.toast,.no-print{display:none !important}
-  body{background:#fff;font-size:11.5pt}
-  .wrap{max-width:none;padding:0}
-  .card,.prob{border:1px solid #c9d6e2;break-inside:avoid;page-break-inside:avoid}
-  .prob{margin-top:10px}
-  a{color:#000}
+  .topbar,.bottombar,.segmented,.sheet,.backdrop,.toast,.no-print{display:none !important}
+  body,.app{background:#fff;box-shadow:none;max-width:none}
+  .content{padding:0}
   .screen{display:none !important}
-  .screen.print-me{display:block !important}
+  .screen.on{display:block !important}
+  details.prob{break-inside:avoid;page-break-inside:avoid;border-color:#c9d6e2}
+  details.prob>summary .caret{display:none}
+  .kv{grid-template-columns:repeat(3,1fr)}
 }
 </style>
 </head>
 <body>
 
-<nav class="nav">
-  <div class="nav-in">
-    <div class="brand">
-      <span class="mark">+</span>
-      <span>LTC Nurse Assessment<small>Start of Care &amp; Plan of Care</small></span>
-    </div>
-    <span class="nav-sp"></span>
-    <span class="nav-pt" id="navPt"></span>
-    <button class="nav-btn" id="navHome">Patients</button>
-    <button class="nav-btn primary" id="navNew">New assessment</button>
-  </div>
-</nav>
+<div class="app">
 
-<div class="demo-strip">
-  <div class="demo-strip-in">
-    <span class="demo-chip">Demo</span>
-    <span class="demo-text">Three fictional patients are preloaded so you can see the program working. No real people, no real records &mdash; nothing leaves this browser.</span>
-    <button class="demo-reset" id="btnResetDemo">Reset demo data</button>
-  </div>
-</div>
-
-<div class="wrap">
-
-  <!-- ============ HOME ============ -->
-  <section class="screen on" id="screen-home">
-    <div class="card hero">
-      <h1>Long term care nurse assessment</h1>
-      <p>Complete the comprehensive start of care assessment at the bedside, and the program builds the personalized
-         plan of care from what you documented - problem list, measurable goals, interventions, disciplines,
-         visit frequency and the start of care narrative note.</p>
-      <div class="hero-actions">
-        <button class="btn primary" id="btnNew">Start a new assessment</button>
-        <button class="btn ghost" id="btnImport">Import record (JSON)</button>
-        <input type="file" id="fileImport" accept="application/json" style="display:none">
+  <!-- ============ TOP BAR ============ -->
+  <header class="topbar">
+    <div class="tb on" id="tbHome">
+      <div class="brand">
+        <span class="mark">+</span>
+        <span><b>LTC Assessment</b><span class="sub">Start of care &amp; plan of care</span></span>
       </div>
+      <button class="pill-btn" id="btnNewTop">New</button>
     </div>
 
-    <div class="steps">
-      <div class="step"><div class="n">1</div><h3>Assess</h3><p>Fifteen sections covering referral and homebound status, vitals, home safety, skin and wounds, cognition, function, falls, medications and psychosocial needs.</p></div>
-      <div class="step"><div class="n">2</div><h3>Score</h3><p>Morse Fall Scale, Braden Scale, PHQ-2 and BMI calculate as you document, with risk levels shown inline.</p></div>
-      <div class="step"><div class="n">3</div><h3>Generate</h3><p>The plan of care assembles automatically from the findings, ready for clinician review, physician signature and printing.</p></div>
+    <div class="tb" id="tbAssess">
+      <button class="icon-btn" id="btnAssessBack" aria-label="Back to patients">&#8249;</button>
+      <button class="picker" id="btnPicker" aria-haspopup="dialog">
+        <span class="txt">
+          <span class="step" id="pickerStep">Section 1 of 15</span>
+          <span class="name" id="pickerName">Patient &amp; visit information</span>
+        </span>
+        <span class="chev">&#9662;</span>
+      </button>
     </div>
 
-    <div class="card" style="margin-top:20px">
-      <h2 style="font-size:18px;margin-bottom:4px">Patient records</h2>
-      <p class="muted small" style="margin:0 0 10px">Stored in this browser only. Export a record to move it into the clinical record.</p>
-      <div id="ptList"></div>
+    <div class="tb" id="tbPoc">
+      <button class="icon-btn" id="btnPocBack" aria-label="Back to assessment">&#8249;</button>
+      <h1 id="pocPatient">Plan of care<span class="sub" id="pocSub">&nbsp;</span></h1>
+      <button class="pill-btn quiet" id="btnPrintTop">PDF</button>
     </div>
-  </section>
 
-  <!-- ============ ASSESSMENT ============ -->
-  <section class="screen" id="screen-assess">
-    <div class="assess">
-      <aside class="rail">
-        <h4>Assessment sections</h4>
-        <div class="progress"><i id="progBar"></i></div>
-        <div id="railList"></div>
-        <div style="padding:12px 10px 4px;border-top:1px solid var(--line);margin-top:10px">
-          <button class="btn primary small" id="btnGenerate" style="width:100%">Generate plan of care</button>
+    <div class="progress" id="progWrap"><i id="progBar"></i></div>
+  </header>
+
+  <!-- ============ CONTENT ============ -->
+  <main class="content">
+
+    <!-- ---- home ---- -->
+    <section class="screen on" id="screen-home">
+
+      <div class="demo-strip">
+        <span class="demo-chip">Demo</span>
+        <span class="demo-text">Three fictional patients are preloaded. No real people, no real records &mdash; nothing leaves this browser.</span>
+        <button class="demo-reset" id="btnResetDemo">Reset</button>
+      </div>
+      <div class="stack">
+        <div class="card hero">
+          <h2>Long term care nurse assessment</h2>
+          <p>Document the start of care at the bedside. The plan of care builds itself from
+             what you assess - problems, goals, interventions, disciplines and visit frequency.</p>
+          <button class="btn primary" id="btnNew">Start a new assessment</button>
         </div>
-      </aside>
-      <div>
-        <div class="card" id="secCard"></div>
-      </div>
-    </div>
-  </section>
 
-  <!-- ============ PLAN OF CARE ============ -->
-  <section class="screen" id="screen-poc">
-    <div class="tabs no-print">
-      <button class="tab on" data-view="poc">Plan of care</button>
-      <button class="tab" data-view="narrative">Start of care note</button>
-      <button class="tab" data-view="summary">Assessment summary</button>
-      <span style="flex:1"></span>
-      <button class="btn ghost small" id="btnBackAssess">Back to assessment</button>
-      <button class="btn ghost small" id="btnExport">Export JSON</button>
-      <button class="btn navy small" id="btnPrint">Print / PDF</button>
+        <div class="sec-label">Patient records</div>
+        <div class="stack" id="ptList"></div>
+
+        <button class="btn ghost" id="btnImport">Import a record (JSON)</button>
+        <input type="file" id="fileImport" accept="application/json" style="display:none">
+
+        <div class="sec-label">How it works</div>
+        <div class="steps">
+          <div class="step-row"><div class="n">1</div><div><h3>Assess</h3>
+            <p>Fifteen sections: referral and homebound status, vitals, home safety, skin and wounds,
+               cognition, function, falls, medications and psychosocial needs.</p></div></div>
+          <div class="step-row"><div class="n">2</div><div><h3>Score</h3>
+            <p>Morse Fall Scale, Braden Scale, PHQ-2 and BMI calculate as you document,
+               with the risk level shown next to each.</p></div></div>
+          <div class="step-row"><div class="n">3</div><div><h3>Generate</h3>
+            <p>The plan of care assembles from the findings, ready for clinician review,
+               physician signature and printing.</p></div></div>
+        </div>
+
+        <p class="xsmall muted" style="padding:0 2px">Records stay in this browser. Export a record
+           to move it into the clinical record. Generated content is decision support only and needs
+           clinician review and physician signature.</p>
+      </div>
+    </section>
+
+    <!-- ---- assessment ---- -->
+    <section class="screen" id="screen-assess">
+      <div class="card" id="secCard"></div>
+    </section>
+
+    <!-- ---- plan of care ---- -->
+    <section class="screen" id="screen-poc">
+      <div class="segmented no-print">
+        <button class="seg on" data-view="poc">Plan of care</button>
+        <button class="seg" data-view="narrative">Start of care note</button>
+        <button class="seg" data-view="summary">Assessment summary</button>
+      </div>
+      <div id="pocBody"></div>
+    </section>
+
+  </main>
+
+  <!-- ============ BOTTOM BAR ============ -->
+  <footer class="bottombar" id="bottombar">
+    <div class="bb" id="bbAssess">
+      <button class="btn ghost" id="barPrev">Back</button>
+      <button class="btn primary grow" id="barNext">Next section</button>
     </div>
-    <div id="pocBody"></div>
-  </section>
+    <div class="bb" id="bbPoc">
+      <button class="btn ghost grow" id="btnBackAssess">Edit</button>
+      <button class="btn ghost grow" id="btnExport">Export</button>
+      <button class="btn navy grow" id="btnPrint">Print</button>
+    </div>
+  </footer>
 
 </div>
 
-<footer class="foot">
-  <div class="foot-in">
-    <div>
-      <h4>LTC Nurse Assessment</h4>
-      <p>Start of care documentation and personalized plan of care generation for home health long term care patients.</p>
-    </div>
-    <div>
-      <h4>Assessment</h4>
-      <ul>
-        <li>Comprehensive SOC assessment</li>
-        <li>Morse Fall Scale</li>
-        <li>Braden Scale</li>
-        <li>PHQ-2 depression screen</li>
-      </ul>
-    </div>
-    <div>
-      <h4>Plan of care</h4>
-      <ul>
-        <li>Problem list and priorities</li>
-        <li>Measurable, time-bound goals</li>
-        <li>Skilled interventions</li>
-        <li>Disciplines and frequency</li>
-      </ul>
-    </div>
-    <div>
-      <h4>Data</h4>
-      <ul>
-        <li>Stored locally in this browser</li>
-        <li>JSON export and import</li>
-        <li>Print to PDF for the chart</li>
-      </ul>
-    </div>
+<div class="backdrop" id="backdrop"></div>
+<aside class="sheet" id="sheet" role="dialog" aria-label="Assessment sections" aria-modal="true">
+  <div class="grip"></div>
+  <div class="sheet-h">
+    <h3>Assessment sections</h3>
+    <button class="btn ghost sm" id="btnGenerate">Plan of care</button>
+    <button class="icon-btn" id="btnSheetClose" aria-label="Close" style="background:var(--page);color:var(--muted)">&#10005;</button>
   </div>
-  <div class="foot-bar">Clinical decision support only. All generated content requires review by the assessing licensed clinician and physician signature before use.</div>
-</footer>
+  <div class="sheet-list" id="railList"></div>
+</aside>
 
 <div class="toast" id="toast"></div>
 
@@ -1989,8 +2058,9 @@ pre.narrative{background:#fff;border:1px solid var(--line);border-radius:var(--r
 </script>
 <script>
 /* =========================================================================
-   LTC Nurse Assessment - application logic
+   LTC Nurse Assessment - application logic (mobile first)
    Screens: home (patient list) -> assessment (15 sections) -> plan of care
+   One phone-width column: sticky top bar, section sheet, bottom action bar.
    Records are stored in localStorage; export/import moves them as JSON.
    ========================================================================= */
 (function () {
@@ -2006,7 +2076,8 @@ pre.narrative{background:#fff;border:1px solid var(--line);border-radius:var(--r
   var pocView = 'poc';     // poc | narrative | summary
   var lastPoc = null;
   var saveTimer = null;
-  var dirty = false;      // unsaved edits to the active record
+  var dirty = false;       // unsaved edits to the active record
+  var screen = 'home';
 
   /* ---------------- storage ---------------- */
   function load() {
@@ -2103,10 +2174,22 @@ pre.narrative{background:#fff;border:1px solid var(--line);border-radius:var(--r
 
   /* ---------------- screens ---------------- */
   function show(which) {
+    screen = which;
     ['home', 'assess', 'poc'].forEach(function (s) {
       el('screen-' + s).classList.toggle('on', s === which);
     });
-    el('navPt').textContent = current && which !== 'home' ? nameOf(current) : '';
+    el('tbHome').classList.toggle('on', which === 'home');
+    el('tbAssess').classList.toggle('on', which === 'assess');
+    el('tbPoc').classList.toggle('on', which === 'poc');
+    el('bbAssess').classList.toggle('on', which === 'assess');
+    el('bbPoc').classList.toggle('on', which === 'poc');
+    el('bottombar').style.display = which === 'home' ? 'none' : '';
+    el('progWrap').style.display = which === 'assess' ? '' : 'none';
+    if (which === 'poc' && current) {
+      el('pocPatient').innerHTML = esc(nameOf(current)) +
+        '<span class="sub">' + esc(current.data.dx_primary || 'Plan of care') + '</span>';
+    }
+    closeSheet();
     window.scrollTo(0, 0);
   }
 
@@ -2114,23 +2197,23 @@ pre.narrative{background:#fff;border:1px solid var(--line);border-radius:var(--r
   function renderHome() {
     var box = el('ptList');
     if (!db.records.length) {
-      box.innerHTML = '<div class="empty">No assessments yet. Start a new assessment to create the first record.</div>';
+      box.innerHTML = '<div class="card empty">No assessments yet. Start a new assessment to create the first record.</div>';
       return;
     }
     box.innerHTML = db.records.map(function (r) {
       var d = r.data || {};
       var pct = progressOf(r);
-      return '<div class="pt-row">' +
-        '<div class="pt-av">' + esc(initials(r)) + '</div>' +
-        '<div class="pt-main">' +
-        '<b>' + esc(nameOf(r)) + '</b>' +
+      return '<div class="pt-card">' +
+        '<button class="pt-open" data-open="' + r.id + '">' +
+        '<span class="pt-av">' + esc(initials(r)) + '</span>' +
+        '<span class="pt-info"><b>' + esc(nameOf(r)) + '</b>' +
         '<span>' + (d.dx_primary ? esc(d.dx_primary) + ' &middot; ' : '') +
-        'SOC ' + esc(fmtDate(d.soc_date) || 'not set') + ' &middot; ' + pct + '% complete</span>' +
-        '</div>' +
+        'SOC ' + esc(fmtDate(d.soc_date) || 'not set') + '</span>' +
+        '<span class="pt-meter"><i style="width:' + pct + '%"></i></span>' +
+        '<span class="xsmall muted">' + pct + '% documented</span></span></button>' +
         '<div class="pt-acts">' +
-        '<button class="btn ghost small" data-open="' + r.id + '">Open</button>' +
-        '<button class="btn ghost small" data-poc="' + r.id + '">Plan of care</button>' +
-        '<button class="btn ghost small" data-del="' + r.id + '">Delete</button>' +
+        '<button class="btn ghost sm" data-poc="' + r.id + '">Plan of care</button>' +
+        '<button class="btn ghost sm" data-del="' + r.id + '">Delete</button>' +
         '</div></div>';
     }).join('');
   }
@@ -2163,25 +2246,35 @@ pre.narrative{background:#fff;border:1px solid var(--line);border-radius:var(--r
   /* ---------------- assessment ---------------- */
   function renderAssess() {
     if (!current) { show('home'); return; }
-    renderRail();
+    renderSheetList();
     renderSection();
+    updateChrome();
   }
 
-  function renderRail() {
+  function updateChrome() {
+    var sec = S.SECTIONS[secIndex];
+    el('pickerStep').textContent = 'Section ' + (secIndex + 1) + ' of ' + S.SECTIONS.length;
+    el('pickerName').textContent = sec.title;
+    el('progBar').style.width = progressOf(current) + '%';
+    el('barPrev').disabled = secIndex === 0;
+    var last = secIndex === S.SECTIONS.length - 1;
+    el('barNext').textContent = last ? 'Generate plan of care' : 'Next section';
+  }
+
+  function renderSheetList() {
     var d = current.data;
     el('railList').innerHTML = S.SECTIONS.map(function (sec, i) {
       var done = sectionDone(sec, d);
-      return '<button class="rail-item' + (i === secIndex ? ' on' : '') + (done ? ' done' : '') + '" data-sec="' + i + '">' +
+      return '<button class="sheet-item' + (i === secIndex ? ' on' : '') + (done ? ' done' : '') +
+        '" data-sec="' + i + '">' +
         '<span class="n">' + (done && i !== secIndex ? '&#10003;' : (i + 1)) + '</span>' +
         '<span class="lbl">' + esc(sec.title) + '</span></button>';
     }).join('');
-    el('progBar').style.width = progressOf(current) + '%';
   }
 
-  // Updates rail completion state without replacing the buttons. Replacing them
-  // on blur would destroy the very button a click is landing on, swallowing the
-  // first section click after typing in a field.
-  function updateRailState() {
+  // Updates completion state without replacing the buttons. Replacing them on
+  // blur would destroy the very control a tap is landing on.
+  function updateSheetState() {
     var d = current.data;
     Array.prototype.forEach.call(el('railList').children, function (btn, i) {
       var done = sectionDone(S.SECTIONS[i], d);
@@ -2194,70 +2287,67 @@ pre.narrative{background:#fff;border:1px solid var(--line);border-radius:var(--r
 
   function renderSection() {
     var sec = S.SECTIONS[secIndex], d = current.data;
-    var html = '<div class="sec-head"><div class="n">' + (secIndex + 1) + '</div><h2>' + esc(sec.title) + '</h2></div>';
-    html += '<div class="grid">';
+    // the top bar already names the section, so the card goes straight to the fields
+    var html = '<div class="grid">';
     sec.fields.forEach(function (f) { if (S.visible(f, d)) html += fieldHtml(f, d); });
     html += '</div>';
-    html += '<div class="sec-nav">' +
-      '<button class="btn ghost" id="btnPrev"' + (secIndex === 0 ? ' disabled' : '') + '>Previous</button>' +
-      (secIndex === S.SECTIONS.length - 1
-        ? '<button class="btn primary" id="btnFinish">Generate plan of care</button>'
-        : '<button class="btn primary" id="btnNext">Next section</button>') +
-      '</div>';
     el('secCard').innerHTML = html;
     wireSection();
   }
 
   function fieldHtml(f, d) {
-    var span = 'grid-column:span ' + (f.col || 12);
+    var col = ' data-col="' + (f.col || 12) + '"';
     var v = d[f.id];
 
-    if (f.type === 'note') return '<div class="note" style="' + span + '">' + esc(f.text) + '</div>';
+    if (f.type === 'note') return '<div class="note">' + esc(f.text) + '</div>';
 
     if (f.type === 'computed') {
       var res = S.COMPUTERS[f.compute](d);
-      return '<div class="f" style="' + span + '"><label>' + esc(f.label) + '</label>' +
-        '<div class="computed">' + esc(res.text) +
-        (res.level && res.text !== '-' ? '<span class="tag ' + res.level + '">' + esc(res.tag || (res.level + ' risk')) + '</span>' : '') +
+      return '<div class="f"' + col + '><label>' + esc(f.label) + '</label>' +
+        '<div class="computed"><span>' + esc(res.text) + '</span>' +
+        (res.level && res.text !== '-' ? '<span class="tag ' + res.level + '">' +
+          esc(res.tag || (res.level + ' risk')) + '</span>' : '') +
         '</div></div>';
     }
 
-    var label = '<label for="fld_' + f.id + '">' + esc(f.label) + (f.required ? '<span class="req">*</span>' : '') + '</label>';
+    var label = '<label for="fld_' + f.id + '">' + esc(f.label) +
+      (f.required ? '<span class="req">*</span>' : '') + '</label>';
 
     if (f.type === 'textarea') {
-      return '<div class="f" style="' + span + '">' + label +
+      return '<div class="f"' + col + '>' + label +
         '<textarea id="fld_' + f.id + '" data-f="' + f.id + '"' + (f.rows ? ' rows="' + f.rows + '"' : '') +
         (f.placeholder ? ' placeholder="' + esc(f.placeholder) + '"' : '') + '>' + esc(v || '') + '</textarea></div>';
     }
     if (f.type === 'select') {
-      return '<div class="f" style="' + span + '">' + label +
-        '<select id="fld_' + f.id + '" data-f="' + f.id + '" data-rerender="1">' +
+      return '<div class="f"' + col + '>' + label +
+        '<select id="fld_' + f.id + '" data-f="' + f.id + '">' +
         '<option value="">- select -</option>' +
         f.options.map(function (o) {
           return '<option value="' + esc(o) + '"' + (v === o ? ' selected' : '') + '>' + esc(o) + '</option>';
         }).join('') + '</select></div>';
     }
     if (f.type === 'radio') {
-      return '<div class="f" style="' + span + '">' + label + '<div class="opts">' +
+      return '<div class="f"' + col + '>' + label + '<div class="opts">' +
         f.options.map(function (o) {
           return '<label class="opt' + (v === o ? ' on' : '') + '">' +
-            '<input type="radio" name="rad_' + f.id + '" data-f="' + f.id + '" data-rerender="1" value="' + esc(o) + '"' +
+            '<input type="radio" name="rad_' + f.id + '" data-f="' + f.id + '" value="' + esc(o) + '"' +
             (v === o ? ' checked' : '') + '>' + esc(o) + '</label>';
         }).join('') + '</div></div>';
     }
     if (f.type === 'checks') {
       var arr = Array.isArray(v) ? v : [];
-      return '<div class="f" style="' + span + '">' + label + '<div class="opts">' +
+      return '<div class="f"' + col + '>' + label + '<div class="opts">' +
         f.options.map(function (o) {
           return '<label class="opt' + (arr.indexOf(o) !== -1 ? ' on' : '') + '">' +
-            '<input type="checkbox" data-fc="' + f.id + '" data-rerender="1" value="' + esc(o) + '"' +
+            '<input type="checkbox" data-fc="' + f.id + '" value="' + esc(o) + '"' +
             (arr.indexOf(o) !== -1 ? ' checked' : '') + '>' + esc(o) + '</label>';
         }).join('') + '</div></div>';
     }
-    // text / number / date
     var type = f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text';
-    return '<div class="f" style="' + span + '">' + label +
-      '<input id="fld_' + f.id + '" data-f="' + f.id + '" type="' + type + '" value="' + esc(v || '') + '"' +
+    var mode = f.type === 'number' ? ' inputmode="decimal"' : '';
+    return '<div class="f"' + col + '>' + label +
+      '<input id="fld_' + f.id + '" data-f="' + f.id + '" type="' + type + '"' + mode +
+      ' value="' + esc(v || '') + '"' +
       (f.step ? ' step="' + f.step + '"' : '') +
       (f.min != null ? ' min="' + f.min + '"' : '') + (f.max != null ? ' max="' + f.max + '"' : '') +
       (f.placeholder ? ' placeholder="' + esc(f.placeholder) + '"' : '') + '></div>';
@@ -2266,19 +2356,18 @@ pre.narrative{background:#fff;border:1px solid var(--line);border-radius:var(--r
   function wireSection() {
     var card = el('secCard');
 
-    // free text / numbers / dates: save while typing, refresh computed values
     Array.prototype.forEach.call(card.querySelectorAll('input[data-f], textarea[data-f]'), function (node) {
       if (node.type === 'radio') return;
       node.addEventListener('input', function () {
         current.data[node.dataset.f] = node.value;
         scheduleSave();
         refreshComputed();
-        updateRailState();
+        updateSheetState();
       });
-      node.addEventListener('blur', updateRailState);
+      node.addEventListener('blur', updateSheetState);
     });
 
-    // selects and radios change conditional visibility -> re-render the section
+    // selects and radios can change which fields apply -> re-render the section
     Array.prototype.forEach.call(card.querySelectorAll('select[data-f]'), function (node) {
       node.addEventListener('change', function () {
         current.data[node.dataset.f] = node.value;
@@ -2297,24 +2386,22 @@ pre.narrative{background:#fff;border:1px solid var(--line);border-radius:var(--r
         var f = S.fieldById(id);
         var arr = Array.isArray(current.data[id]) ? current.data[id].slice() : [];
         var val = node.value;
-        // "None"-style answers are exclusive
-        var isNone = /^none/i.test(val) || val === 'None identified' || val === 'Intact / no issues' || val === 'Within normal limits';
         if (node.checked) {
-          if (isNone) arr = [val];
-          else arr = arr.filter(function (x) { return !(/^none/i.test(x) || x === 'None identified' || x === 'Intact / no issues' || x === 'Within normal limits'); }).concat([val]);
+          if (isExclusive(val)) arr = [val];
+          else arr = arr.filter(function (x) { return !isExclusive(x); }).concat([val]);
         } else {
           arr = arr.filter(function (x) { return x !== val; });
         }
-        // keep the schema order
         current.data[id] = f.options.filter(function (o) { return arr.indexOf(o) !== -1; });
         scheduleSave(); renderAssess();
       });
     });
+  }
 
-    var prev = el('btnPrev'), next = el('btnNext'), fin = el('btnFinish');
-    if (prev) prev.addEventListener('click', function () { if (secIndex > 0) { secIndex--; renderAssess(); } });
-    if (next) next.addEventListener('click', function () { if (secIndex < S.SECTIONS.length - 1) { secIndex++; renderAssess(); } });
-    if (fin) fin.addEventListener('click', generatePoc);
+  // "None" style answers cannot coexist with a positive finding
+  function isExclusive(val) {
+    return /^none/i.test(val) || val === 'None identified' ||
+      val === 'Intact / no issues' || val === 'Within normal limits';
   }
 
   function refreshComputed() {
@@ -2325,9 +2412,29 @@ pre.narrative{background:#fff;border:1px solid var(--line);border-radius:var(--r
     Array.prototype.forEach.call(blocks, function (n, i) {
       if (!comps[i]) return;
       var res = S.COMPUTERS[comps[i].compute](d);
-      n.innerHTML = esc(res.text) +
-        (res.level && res.text !== '-' ? '<span class="tag ' + res.level + '">' + esc(res.tag || (res.level + ' risk')) + '</span>' : '');
+      n.innerHTML = '<span>' + esc(res.text) + '</span>' +
+        (res.level && res.text !== '-' ? '<span class="tag ' + res.level + '">' +
+          esc(res.tag || (res.level + ' risk')) + '</span>' : '');
     });
+  }
+
+  function goSection(i) {
+    if (i < 0 || i >= S.SECTIONS.length) return;
+    secIndex = i;
+    renderAssess();
+    window.scrollTo(0, 0);
+  }
+
+  /* ---------------- section sheet ---------------- */
+  function openSheet() {
+    if (!current) return;
+    renderSheetList();
+    el('sheet').classList.add('on');
+    el('backdrop').classList.add('on');
+  }
+  function closeSheet() {
+    el('sheet').classList.remove('on');
+    el('backdrop').classList.remove('on');
   }
 
   /* ---------------- plan of care ---------------- */
@@ -2338,12 +2445,12 @@ pre.narrative{background:#fff;border:1px solid var(--line);border-radius:var(--r
     if (!d.pt_last && !d.pt_first) missing.push('patient name');
     if (!d.dx_primary) missing.push('primary diagnosis');
     if (!d.soc_date) missing.push('start of care date');
-    if (missing.length && !confirm('The following are not documented: ' + missing.join(', ') +
+    if (missing.length && !confirm('Not documented yet: ' + missing.join(', ') +
       '.\n\nGenerate the plan of care anyway?')) return;
 
     lastPoc = ENGINE.generate(d);
     current.poc = { generatedAt: lastPoc.generatedAt };
-    persist();
+    saveCurrent();
     show('poc');
     renderPoc();
   }
@@ -2354,27 +2461,26 @@ pre.narrative{background:#fff;border:1px solid var(--line);border-radius:var(--r
     if (pocView === 'narrative') { body.innerHTML = narrativeHtml(d, poc); wirePocBody(); return; }
     if (pocView === 'summary') { body.innerHTML = summaryHtml(d); return; }
 
-    var h = '';
+    var h = '<div class="stack">';
 
     if (poc.urgent.length) {
       h += '<div class="alert"><b>Immediate action required</b><ul>' +
         poc.urgent.map(function (u) { return '<li>' + esc(u) + '</li>'; }).join('') + '</ul></div>';
     }
 
-    /* header block */
-    h += '<div class="card"><div class="poc-head">' +
-      '<div><h2 style="font-size:22px">Personalized Plan of Care</h2>' +
-      '<p class="muted small" style="margin:4px 0 0">' + esc(nameOf(current)) +
+    /* header */
+    h += '<div class="card"><div class="poc-title"><h2>Personalized plan of care</h2></div>' +
+      '<p class="muted small" style="margin:4px 0 12px">' + esc(nameOf(current)) +
       (d.pt_mrn ? ' &middot; MRN ' + esc(d.pt_mrn) : '') +
-      (d.pt_dob ? ' &middot; DOB ' + esc(fmtDate(d.pt_dob)) : '') + '</p></div>' +
+      (d.pt_dob ? ' &middot; DOB ' + esc(fmtDate(d.pt_dob)) : '') + '</p>' +
       '<div class="chips">' +
       '<span class="chip teal">' + poc.problems.length + ' problems</span>' +
-      '<span class="chip ' + (poc.scores.morse.level === 'high' ? 'warn' : '') + '">Fall risk: ' + esc(poc.scores.morse.risk) + '</span>' +
+      '<span class="chip ' + (poc.scores.morse.level === 'high' ? 'warn' : '') + '">Falls: ' + esc(poc.scores.morse.risk) + '</span>' +
       (poc.scores.braden.complete ? '<span class="chip ' + (poc.scores.braden.level === 'high' ? 'warn' : '') + '">Braden ' + poc.scores.braden.value + '</span>' : '') +
       (poc.scores.phq2.positive ? '<span class="chip warn">PHQ-2 positive</span>' : '') +
-      '</div></div>';
+      '</div>';
 
-    h += '<div class="kv">' +
+    h += '<div class="kv" style="margin-top:14px">' +
       kv('Start of care', fmtDate(d.soc_date) || 'not set') +
       kv('Certification period', poc.certStart ? fmtDate(poc.certStart) + ' - ' + fmtDate(poc.certEnd) : 'set SOC date') +
       kv('Primary diagnosis', d.dx_primary || 'not documented') +
@@ -2385,88 +2491,77 @@ pre.narrative{background:#fff;border:1px solid var(--line);border-radius:var(--r
       kv('Prognosis', d.prognosis || 'not documented') +
       '</div>';
 
-    /* orders */
-    h += '<h3 style="font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:20px 0 8px">Disciplines &amp; frequency</h3>';
-    h += '<div class="chips">' + poc.disciplines.map(function (x) {
-      return '<span class="chip teal">' + esc(x.name) + (x.source === 'indicated' ? ' <span style="opacity:.6">(indicated)</span>' : '') + '</span>';
-    }).join('') + '</div>';
-    h += '<div class="kv" style="margin-top:12px">' +
-      kv('Skilled nursing frequency', d.sn_frequency || poc.suggestedFrequency + ' (suggested)') +
+    h += '<div class="group-label">Disciplines &amp; frequency</div>' +
+      '<div class="chips">' + poc.disciplines.map(function (x) {
+        return '<span class="chip teal">' + esc(x.name) +
+          (x.source === 'indicated' ? ' <span style="opacity:.6">indicated</span>' : '') + '</span>';
+      }).join('') + '</div>' +
+      '<div class="kv" style="margin-top:12px">' +
+      kv('Nursing frequency', d.sn_frequency || poc.suggestedFrequency + ' (suggested)') +
       kv('Therapy frequency', d.therapy_frequency || 'per therapy evaluation') +
       kv('Aide frequency', d.aide_frequency || 'not ordered') +
-      kv('Homebound', (function () {
-        var hb = Array.isArray(d.homebound) ? d.homebound : [];
-        return hb.length ? hb.length + ' criteria met' : 'not documented';
-      })()) + '</div>';
+      kv('Homebound', (Array.isArray(d.homebound) && d.homebound.length)
+        ? d.homebound.length + ' criteria met' : 'not documented') + '</div>';
 
-    /* safety */
-    h += '<h3 style="font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:20px 0 8px">Safety measures</h3>' +
-      '<div class="chips">' + poc.safety.map(function (s) { return '<span class="chip">' + esc(s) + '</span>'; }).join('') + '</div>';
+    h += '<div class="group-label">Safety measures</div><div class="chips">' +
+      poc.safety.map(function (s) { return '<span class="chip">' + esc(s) + '</span>'; }).join('') + '</div>';
 
-    /* DME */
     var dme = (Array.isArray(d.dme_current) ? d.dme_current : []).filter(function (x) { return x !== 'None'; });
-    h += '<h3 style="font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:20px 0 8px">Equipment &amp; supplies</h3>' +
+    h += '<div class="group-label">Equipment &amp; supplies</div>' +
       '<p class="small" style="margin:0">' + (dme.length ? esc(dme.join(', ')) : 'None in the home') +
       (d.dme_needed ? '<br><b>To be ordered:</b> ' + esc(d.dme_needed) : '') + '</p>';
 
     if (d.diet_order || d.labs_ordered) {
-      h += '<div class="kv" style="margin-top:16px">' +
+      h += '<div class="kv" style="margin-top:14px">' +
         (d.diet_order ? kv('Diet', d.diet_order) : '') +
         (d.labs_ordered ? kv('Labs / diagnostics', d.labs_ordered) : '') + '</div>';
     }
-    h += '</div>'; // header card
-
-    /* problem list */
-    h += '<div class="card" style="margin-top:16px">' +
-      '<h2 style="font-size:19px">Problem list, goals &amp; interventions</h2>' +
-      '<p class="muted small" style="margin:4px 0 0">Generated from the documented assessment findings and ordered by priority. ' +
-      'Review, individualize and obtain physician approval before implementation.</p>';
-
-    poc.problems.forEach(function (p, i) {
-      h += '<div class="prob"><div class="prob-h"><div class="n">' + (i + 1) + '</div>' +
-        '<h3>' + esc(p.problem) + '</h3>' +
-        '<span class="chip ' + (p.priority === 1 ? 'warn' : 'teal') + '">Priority ' + p.priority + '</span></div>';
-      if (p.disciplines.length) {
-        h += '<div class="chips" style="margin-bottom:4px">' + p.disciplines.map(function (c) {
-          return '<span class="chip">' + esc(ENGINE.DISC_NAMES[c] || c) + '</span>';
-        }).join('') + '</div>';
-      }
-      h += '<h5>Goals / expected outcomes</h5><ul>' +
-        p.goals.map(function (g) { return '<li>' + esc(g) + '</li>'; }).join('') + '</ul>';
-      h += '<h5>Interventions</h5><ul>' +
-        p.interventions.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>';
-      h += '</div>';
-    });
-
-    if (d.poc_notes) {
-      h += '<div class="prob"><div class="prob-h"><div class="n">+</div><h3>Additional orders and clinician notes</h3></div>' +
-        '<p style="margin:0;white-space:pre-wrap;font-size:14px">' + esc(d.poc_notes) + '</p></div>';
-    }
-
-    /* goals in the patient's words + discharge */
-    if (d.patient_goals || d.caregiver_goals || d.discharge_plan) {
-      h += '<div class="prob"><div class="prob-h"><div class="n">&#9733;</div><h3>Patient-centered goals &amp; discharge plan</h3></div>';
-      if (d.patient_goals) h += '<h5>Patient-stated goals</h5><p style="margin:0;font-size:14px">' + esc(d.patient_goals) + '</p>';
-      if (d.caregiver_goals) h += '<h5>Caregiver goals &amp; learning needs</h5><p style="margin:0;font-size:14px">' + esc(d.caregiver_goals) + '</p>';
-      if (d.discharge_plan) h += '<h5>Anticipated discharge plan</h5><p style="margin:0;font-size:14px">' + esc(d.discharge_plan) + '</p>';
-      h += '</div>';
-    }
-
-    /* signatures */
-    h += '<div class="sig">' +
-      '<div><div class="line"></div>Assessing clinician (RN) - ' + esc(d.nurse_name || '') + '<br>Date: ' + esc(fmtDate(d.visit_date) || '') + '</div>' +
-      '<div><div class="line"></div>Physician signature - ' + esc(d.md_name || '') + '<br>Date: ______________</div>' +
-      '</div>';
-    h += '<p class="xsmall muted" style="margin-top:18px">Generated ' + new Date(poc.generatedAt).toLocaleString() +
-      '. Clinical decision support only - content must be reviewed by the assessing licensed clinician and signed by the physician before it becomes the plan of care.</p>';
     h += '</div>';
 
-    /* CTA */
-    h += '<div class="cta no-print"><div><h3>Ready for the chart</h3>' +
-      '<p>Print or save this plan of care as a PDF for the physician signature packet, or export the full record as JSON to move it into your clinical system.</p></div>' +
-      '<div style="display:flex;gap:10px"><button class="btn" id="ctaPrint">Print / save as PDF</button>' +
-      '<button class="btn ghost" id="ctaBack" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.35)">Edit assessment</button></div></div>';
+    /* problem list - collapsed on a phone, priority 1 open */
+    h += '<div class="card"><h2 style="font-size:17px">Problems, goals &amp; interventions</h2>' +
+      '<p class="muted small" style="margin:4px 0 0">Built from the documented findings, ordered by priority. ' +
+      'Tap a problem to see its goals and interventions.</p>';
 
+    poc.problems.forEach(function (p, i) {
+      h += '<details class="prob"' + (i === 0 ? ' open' : '') + '>' +
+        '<summary><span class="n">' + (i + 1) + '</span>' +
+        '<h3>' + esc(p.problem) + '</h3>' +
+        '<span class="caret">&#9662;</span></summary>' +
+        '<div class="prob-body">' +
+        '<div class="chips"><span class="chip ' + (p.priority === 1 ? 'warn' : 'teal') + '">Priority ' + p.priority + '</span>' +
+        p.disciplines.map(function (c) {
+          return '<span class="chip">' + esc(ENGINE.DISC_NAMES[c] || c) + '</span>';
+        }).join('') + '</div>' +
+        '<h5>Goals / expected outcomes</h5><ul>' +
+        p.goals.map(function (g) { return '<li>' + esc(g) + '</li>'; }).join('') + '</ul>' +
+        '<h5>Interventions</h5><ul>' +
+        p.interventions.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' +
+        '</div></details>';
+    });
+    h += '</div>';
+
+    if (d.patient_goals || d.caregiver_goals || d.discharge_plan || d.poc_notes) {
+      h += '<div class="card"><h2 style="font-size:17px">Patient-centered goals &amp; discharge plan</h2>';
+      if (d.patient_goals) h += '<div class="group-label">Patient-stated goals</div><p class="small" style="margin:0">' + esc(d.patient_goals) + '</p>';
+      if (d.caregiver_goals) h += '<div class="group-label">Caregiver goals &amp; learning needs</div><p class="small" style="margin:0">' + esc(d.caregiver_goals) + '</p>';
+      if (d.discharge_plan) h += '<div class="group-label">Anticipated discharge plan</div><p class="small" style="margin:0">' + esc(d.discharge_plan) + '</p>';
+      if (d.poc_notes) h += '<div class="group-label">Additional orders &amp; notes</div><p class="small" style="margin:0;white-space:pre-wrap">' + esc(d.poc_notes) + '</p>';
+      h += '</div>';
+    }
+
+    h += '<div class="card"><div class="sig">' +
+      '<div><div class="line"></div>Assessing clinician (RN) - ' + esc(d.nurse_name || '') +
+      '<br>Date: ' + esc(fmtDate(d.visit_date) || '') + '</div>' +
+      '<div><div class="line"></div>Physician signature - ' + esc(d.md_name || '') +
+      '<br>Date: ______________</div></div></div>';
+
+    h += '<div class="disclaimer"><h3>Review before use</h3>' +
+      '<p>Generated ' + esc(new Date(poc.generatedAt).toLocaleString()) +
+      '. This is clinical decision support: the assessing licensed clinician must review and individualize it, ' +
+      'and the physician must sign it before it becomes the plan of care.</p></div>';
+
+    h += '</div>';
     body.innerHTML = h;
     wirePocBody();
   }
@@ -2477,44 +2572,45 @@ pre.narrative{background:#fff;border:1px solid var(--line);border-radius:var(--r
 
   function narrativeHtml(d, poc) {
     var text = ENGINE.narrative(d, poc);
-    return '<div class="card"><div class="poc-head"><div><h2 style="font-size:20px">Start of care narrative note</h2>' +
-      '<p class="muted small" style="margin:4px 0 0">Assembled from the documented assessment. Edit as needed after copying into the clinical record.</p></div>' +
-      '<button class="btn ghost small no-print" id="btnCopy">Copy text</button></div>' +
+    return '<div class="stack"><div class="card">' +
+      '<div class="poc-title"><h2>Start of care note</h2>' +
+      '<button class="btn ghost sm no-print" id="btnCopy">Copy</button></div>' +
+      '<p class="muted small" style="margin:4px 0 0">Assembled from the documented assessment. ' +
+      'Edit as needed once it is in the clinical record.</p></div>' +
       '<pre class="narrative" id="narrativeText">' + esc(text) + '</pre></div>';
   }
 
   function summaryHtml(d) {
-    var h = '<div class="card"><h2 style="font-size:20px">Assessment summary</h2>' +
-      '<p class="muted small" style="margin:4px 0 14px">Everything documented for this patient. Unanswered items are omitted.</p>';
+    var h = '<div class="stack"><div class="card"><h2 style="font-size:17px">Assessment summary</h2>' +
+      '<p class="muted small" style="margin:4px 0 0">Everything documented for this patient. ' +
+      'Unanswered items are omitted.</p></div>';
     S.SECTIONS.forEach(function (sec) {
       var rows = sec.fields.filter(function (f) {
         if (f.type === 'note') return false;
         if (!S.visible(f, d)) return false;
-        if (f.type === 'computed') return true;
+        if (f.type === 'computed') return S.COMPUTERS[f.compute](d).text !== '-';
         var v = d[f.id];
         return Array.isArray(v) ? v.length : (v !== undefined && v !== null && v !== '');
       });
       if (!rows.length) return;
-      h += '<h3 style="font-size:14px;margin:18px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line)">' + esc(sec.title) + '</h3>';
-      h += '<div class="kv" style="grid-template-columns:repeat(2,1fr)">';
+      h += '<div class="card"><h3 style="font-size:14.5px;margin-bottom:10px">' + esc(sec.title) + '</h3>' +
+        '<div class="kv">';
       rows.forEach(function (f) {
-        var val;
-        if (f.type === 'computed') { val = S.COMPUTERS[f.compute](d).text; if (val === '-') return; }
-        else val = Array.isArray(d[f.id]) ? d[f.id].join('; ') : d[f.id];
+        var val = f.type === 'computed' ? S.COMPUTERS[f.compute](d).text
+          : (Array.isArray(d[f.id]) ? d[f.id].join('; ') : d[f.id]);
         h += kv(f.label, val);
       });
-      h += '</div>';
+      h += '</div></div>';
     });
     return h + '</div>';
   }
 
   function wirePocBody() {
-    var c = el('ctaPrint'); if (c) c.addEventListener('click', function () { window.print(); });
-    var b = el('ctaBack'); if (b) b.addEventListener('click', function () { show('assess'); renderAssess(); });
     var cp = el('btnCopy');
     if (cp) cp.addEventListener('click', function () {
       var t = el('narrativeText').textContent;
-      if (navigator.clipboard) navigator.clipboard.writeText(t).then(function () { toast('Narrative copied'); },
+      if (navigator.clipboard) navigator.clipboard.writeText(t).then(
+        function () { toast('Note copied'); },
         function () { toast('Copy failed - select the text manually'); });
       else toast('Copy not supported in this browser');
     });
@@ -2523,18 +2619,18 @@ pre.narrative{background:#fff;border:1px solid var(--line);border-radius:var(--r
   /* ---------------- import / export ---------------- */
   function exportRecord() {
     if (!current) return;
+    var poc = lastPoc || ENGINE.generate(current.data);
     var payload = {
       format: 'ltc-soc-assessment',
       version: 1,
       exported: new Date().toISOString(),
       record: current,
-      planOfCare: lastPoc || ENGINE.generate(current.data),
-      narrative: ENGINE.narrative(current.data, lastPoc || ENGINE.generate(current.data))
+      planOfCare: poc,
+      narrative: ENGINE.narrative(current.data, poc)
     };
-    var text = JSON.stringify(payload, null, 2);
     var filename = (nameOf(current).replace(/[^a-z0-9]+/gi, '_') || 'record') +
       '_SOC_' + (current.data.soc_date || today()) + '.json';
-    saveFile(filename, text);
+    saveFile(filename, JSON.stringify(payload, null, 2));
   }
 
   // Plain download links are inert inside the Artifact viewer, so hand the file
@@ -2581,10 +2677,12 @@ pre.narrative{background:#fff;border:1px solid var(--line);border-radius:var(--r
   function init() {
     load();
     renderHome();
+    show('home');
 
     el('btnNew').addEventListener('click', newRecord);
-    el('navNew').addEventListener('click', newRecord);
-    el('navHome').addEventListener('click', function () { show('home'); renderHome(); });
+    el('btnNewTop').addEventListener('click', newRecord);
+    el('btnAssessBack').addEventListener('click', function () { show('home'); renderHome(); });
+    el('btnPocBack').addEventListener('click', function () { show('assess'); renderAssess(); });
     el('btnImport').addEventListener('click', function () { el('fileImport').click(); });
     el('fileImport').addEventListener('change', function (e) {
       if (e.target.files && e.target.files[0]) importRecord(e.target.files[0]);
@@ -2598,31 +2696,43 @@ pre.narrative{background:#fff;border:1px solid var(--line);border-radius:var(--r
       else if (b.dataset.poc) { open(b.dataset.poc); generatePoc(); }
     });
 
+    el('btnPicker').addEventListener('click', openSheet);
+    el('btnSheetClose').addEventListener('click', closeSheet);
+    el('backdrop').addEventListener('click', closeSheet);
     el('railList').addEventListener('click', function (e) {
-      var b = e.target.closest('.rail-item'); if (!b) return;
-      secIndex = parseInt(b.dataset.sec, 10);
-      renderAssess();
+      var b = e.target.closest('.sheet-item'); if (!b) return;
+      closeSheet();
+      goSection(parseInt(b.dataset.sec, 10));
+    });
+    el('btnGenerate').addEventListener('click', function () { closeSheet(); generatePoc(); });
+
+    el('barPrev').addEventListener('click', function () { goSection(secIndex - 1); });
+    el('barNext').addEventListener('click', function () {
+      if (secIndex === S.SECTIONS.length - 1) generatePoc();
+      else goSection(secIndex + 1);
     });
 
-    el('btnGenerate').addEventListener('click', generatePoc);
     el('btnBackAssess').addEventListener('click', function () { show('assess'); renderAssess(); });
     el('btnExport').addEventListener('click', exportRecord);
     el('btnPrint').addEventListener('click', function () { window.print(); });
+    el('btnPrintTop').addEventListener('click', function () { window.print(); });
 
-    Array.prototype.forEach.call(document.querySelectorAll('.tab[data-view]'), function (t) {
+    Array.prototype.forEach.call(document.querySelectorAll('.seg[data-view]'), function (t) {
       t.addEventListener('click', function () {
-        Array.prototype.forEach.call(document.querySelectorAll('.tab[data-view]'), function (x) { x.classList.remove('on'); });
+        Array.prototype.forEach.call(document.querySelectorAll('.seg[data-view]'), function (x) {
+          x.classList.remove('on');
+        });
         t.classList.add('on');
         pocView = t.dataset.view;
         renderPoc();
+        window.scrollTo(0, 0);
       });
     });
 
-    window.addEventListener('beforeprint', function () {
-      Array.prototype.forEach.call(document.querySelectorAll('.screen'), function (s) {
-        s.classList.toggle('print-me', s.classList.contains('on'));
-      });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeSheet();
     });
+
     // Flush only genuinely pending edits; an unconditional write here would let
     // an idle tab overwrite records saved in another tab.
     window.addEventListener('beforeunload', function () {
@@ -2639,7 +2749,7 @@ pre.narrative{background:#fff;border:1px solid var(--line);border-radius:var(--r
 </script>
 <script>
 document.getElementById('btnResetDemo').addEventListener('click', function () {
-  if (!confirm('Reset the demo back to the three sample patients? Anything you changed or added here is discarded.')) return;
+  if (!confirm('Reset the demo back to the three sample patients? Anything you changed here is discarded.')) return;
   try { window.LTC_DEMO.seed('ltc_soc_demo_v1'); } catch (e) {}
   location.reload();
 });

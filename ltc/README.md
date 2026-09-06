@@ -6,11 +6,17 @@ program builds the **personalized Plan of Care** from what was documented.
 
 Open `ltc/index.html` in a browser — no build step, no server, no dependencies.
 
+It is built mobile first: a phone-width column with a sticky header, a section sheet,
+a bottom action bar, 48px touch targets, 16px inputs (so iOS does not zoom on focus)
+and safe-area insets. On a tablet or desktop the same column centers and short fields
+pair up two per row. `manifest.json` lets a clinician add it to the home screen and run
+it full screen.
+
 **Want to see it working first?** Open `ltc/demo.html` — one self-contained file with
 three fictional patients already documented, so the assessment, the scores and the
 generated plan of care are all populated on open. It uses a separate storage key, so
-nothing you do in the demo touches real records. Rebuild it after changing any source
-file (it inlines them): see `demo-data.js` for the sample patients.
+nothing you do in the demo touches real records. Rebuild it with `python3 build-demo.py` after changing any source file (it inlines
+them); see `demo-data.js` for the sample patients.
 
 ## What it does
 
@@ -85,6 +91,8 @@ from the schema. Field ids are referenced by the rules, so keep them stable.
 | `app.js` | Rendering, navigation, autosave, JSON import/export, print |
 | `demo-data.js` | Three fictional sample patients used by the demo |
 | `demo.html` | Single-file demo: the whole program plus the sample patients inlined |
+| `build-demo.py` | Rebuilds `demo.html` from the sources — run it after changing any of them |
+| `manifest.json` | Web app manifest for add-to-home-screen / standalone display |
 
 ## Data
 

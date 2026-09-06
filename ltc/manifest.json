@@ -1,0 +1,19 @@
+{
+  "name": "LTC Nurse Assessment - Start of Care & Plan of Care",
+  "short_name": "LTC SOC",
+  "description": "Home health long term care nurse assessment that builds the personalized plan of care from the documented findings.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f7fafd",
+  "theme_color": "#0d2137",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230d2137'/%3E%3Ctext x='256' y='358' font-size='288' text-anchor='middle' fill='%231a8fd1' font-family='Arial' font-weight='bold'%3E%2B%3C/text%3E%3C/svg%3E",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
