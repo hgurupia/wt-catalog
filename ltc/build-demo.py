@@ -22,6 +22,7 @@ STRIP_HTML = '''
       <div class="demo-strip">
         <span class="demo-chip">Demo</span>
         <span class="demo-text">Three fictional patients are preloaded. No real people, no real records &mdash; nothing leaves this browser.</span>
+        <button class="demo-play" id="btnPlayTour">&#9654;&nbsp; Guided demo</button>
         <button class="demo-reset" id="btnResetDemo">Reset</button>
       </div>
 '''
@@ -37,7 +38,35 @@ STRIP_CSS = '''
 .demo-reset{background:#fff;border:1px solid var(--line);color:var(--navy);font-size:12.5px;
   font-weight:600;padding:0 14px;min-height:36px;border-radius:999px;flex:none}
 .demo-reset:active{border-color:var(--teal);color:var(--teal)}
-@media print{.demo-strip{display:none}}
+.demo-play{background:var(--teal);border:none;color:#fff;font-size:13px;font-weight:700;
+  padding:0 15px;min-height:36px;border-radius:999px;flex:none}
+.demo-play:active{background:#1780bd}
+
+/* ---------- guided demo ---------- */
+.tour-bar{position:fixed;left:0;right:0;bottom:0;z-index:55;max-width:640px;margin:0 auto;
+  background:var(--navy);color:#fff;border-radius:16px 16px 0 0;
+  padding:12px 16px calc(12px + var(--safe-b));transform:translateY(112%);
+  transition:transform .28s cubic-bezier(.32,.72,0,1);box-shadow:0 -10px 30px rgba(13,33,55,.26)}
+.tour-bar.on{transform:translateY(0)}
+.tour-top{display:flex;align-items:center;gap:10px}
+.tour-count{font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;
+  background:rgba(255,255,255,.14);padding:3px 10px;border-radius:999px;margin-right:auto}
+.tour-bar.paused .tour-count{background:var(--teal)}
+.tour-x{background:rgba(255,255,255,.13);border:none;color:#fff;width:32px;height:32px;
+  border-radius:10px;font-size:14px;flex:none}
+.tour-cap{margin:9px 0 11px;font-size:14.5px;line-height:1.45;color:#fff}
+.tour-acts{display:flex;gap:8px}
+.tour-btn{flex:1;background:rgba(255,255,255,.13);border:none;color:#fff;font-size:13.5px;
+  font-weight:700;min-height:42px;border-radius:11px}
+.tour-btn:active{background:rgba(255,255,255,.24)}
+body.tour-on .bottombar{bottom:var(--tour-h,0px)}
+body.tour-on .content{padding-bottom:calc(22px + var(--tour-h,0px))}
+body.tour-on .sheet{padding-bottom:calc(var(--safe-b) + var(--tour-h,0px))}
+.tour-spot{outline:3px solid var(--teal) !important;outline-offset:3px;border-radius:12px;
+  animation:tourPulse 1.1s ease-in-out infinite}
+@keyframes tourPulse{0%,100%{box-shadow:0 0 0 0 rgba(26,143,209,.42)}50%{box-shadow:0 0 0 8px rgba(26,143,209,0)}}
+@media (prefers-reduced-motion:reduce){.tour-spot{animation:none}}
+@media print{.demo-strip,.tour-bar{display:none}}
 '''
 
 SEED_JS = '''
@@ -58,6 +87,13 @@ document.getElementById('btnResetDemo').addEventListener('click', function () {
   location.reload();
 });
 ''' % DEMO_KEY
+
+
+TOUR_JS = '''
+document.getElementById('btnPlayTour').addEventListener('click', function () {
+  window.LTC_TOUR.start();
+});
+'''
 
 
 def read(name):
@@ -99,7 +135,9 @@ def build():
         '<script>', read('demo-data.js'), '</script>',
         '<script>' + SEED_JS + '</script>',
         '<script>', app_demo, '</script>',
+        '<script>', read('demo-tour.js'), '</script>',
         '<script>' + RESET_JS + '</script>',
+        '<script>' + TOUR_JS + '</script>',
     ]))
     return out
 

@@ -12,6 +12,14 @@ and safe-area insets. On a tablet or desktop the same column centers and short f
 pair up two per row. `manifest.json` lets a clinician add it to the home screen and run
 it full screen.
 
+**Presenting it to someone?** Open `ltc/demo.html` and tap **Guided demo**. It drives
+the real interface for about 75 seconds: opens a new assessment, types the patient in,
+answers the Morse and Braden scales so the scores and risk levels visibly move, marks the
+high-alert medication classes, then generates the plan of care and the start of care note.
+Captions explain each step; Pause, Skip step and the close button hand control back at any
+point. Nothing is staged — it taps the same controls a clinician taps, and the record it
+creates is a real record you can keep exploring afterwards.
+
 **Want to see it working first?** Open `ltc/demo.html` — one self-contained file with
 three fictional patients already documented, so the assessment, the scores and the
 generated plan of care are all populated on open. It uses a separate storage key, so
@@ -91,6 +99,7 @@ from the schema. Field ids are referenced by the rules, so keep them stable.
 | `app.js` | Rendering, navigation, autosave, JSON import/export, print |
 | `demo-data.js` | Three fictional sample patients used by the demo |
 | `demo.html` | Single-file demo: the whole program plus the sample patients inlined |
+| `demo-tour.js` | The guided walkthrough that drives the real UI for a live demo |
 | `build-demo.py` | Rebuilds `demo.html` from the sources — run it after changing any of them |
 | `manifest.json` | Web app manifest for add-to-home-screen / standalone display |
 
