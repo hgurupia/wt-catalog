@@ -6,6 +6,12 @@ program builds the **personalized Plan of Care** from what was documented.
 
 Open `ltc/index.html` in a browser — no build step, no server, no dependencies.
 
+**Want to see it working first?** Open `ltc/demo.html` — one self-contained file with
+three fictional patients already documented, so the assessment, the scores and the
+generated plan of care are all populated on open. It uses a separate storage key, so
+nothing you do in the demo touches real records. Rebuild it after changing any source
+file (it inlines them): see `demo-data.js` for the sample patients.
+
 ## What it does
 
 **1. Assess** — 15 sections covering the comprehensive SOC assessment:
@@ -77,6 +83,8 @@ from the schema. Field ids are referenced by the rules, so keep them stable.
 | `schema.js` | The 15 assessment sections, field definitions and the scoring scales |
 | `poc-engine.js` | Plan of care rules engine and the SOC narrative generator |
 | `app.js` | Rendering, navigation, autosave, JSON import/export, print |
+| `demo-data.js` | Three fictional sample patients used by the demo |
+| `demo.html` | Single-file demo: the whole program plus the sample patients inlined |
 
 ## Data
 

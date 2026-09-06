@@ -1,0 +1,2648 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0d2137">
+<title>LTC Start of Care Demo</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230d2137'/><text x='50' y='70' font-size='56' text-anchor='middle' fill='%231a8fd1' font-family='Arial' font-weight='bold'>+</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0d2137;
+  --navy-2:#0d3352;
+  --teal:#1a8fd1;
+  --teal-soft:#e8f3fb;
+  --page:#f7fafd;
+  --card:#ffffff;
+  --line:#e2eaf2;
+  --ink:#0d2137;
+  --muted:#5b6b7c;
+  --amber:#f2851c;
+  --red:#c0392b;
+  --radius:14px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+  background:var(--page);color:var(--ink);font-size:15px;line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{color:var(--navy);font-weight:800;letter-spacing:-.01em;margin:0}
+a{color:var(--teal);text-decoration:none}
+button{font-family:inherit}
+
+/* ---------- nav ---------- */
+.nav{background:var(--navy);color:#fff;position:sticky;top:0;z-index:40}
+.nav-in{max-width:1180px;margin:0 auto;padding:14px 22px;display:flex;align-items:center;gap:16px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:16px;color:#fff;letter-spacing:-.01em}
+.brand .mark{width:30px;height:30px;border-radius:9px;background:var(--teal);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800}
+.brand small{display:block;font-size:11px;font-weight:500;opacity:.7;letter-spacing:.02em}
+.nav-sp{flex:1}
+.nav-btn{background:transparent;border:1px solid rgba(255,255,255,.22);color:#fff;font-size:13px;font-weight:600;padding:8px 14px;border-radius:999px;cursor:pointer}
+.nav-btn:hover{background:rgba(255,255,255,.09)}
+.nav-btn.primary{background:var(--teal);border-color:var(--teal)}
+.nav-btn.primary:hover{background:#1780bd}
+.nav-pt{font-size:12.5px;opacity:.8;font-weight:500;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ---------- layout ---------- */
+.wrap{max-width:1180px;margin:0 auto;padding:26px 22px 60px}
+.screen{display:none}
+.screen.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px}
+.card+.card{margin-top:16px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.xsmall{font-size:12px}
+
+/* ---------- home ---------- */
+.hero{padding:34px 30px;margin-bottom:20px}
+.hero h1{font-size:30px;line-height:1.2}
+.hero p{color:var(--muted);max-width:620px;margin:10px 0 0}
+.hero-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+.btn{border:none;border-radius:10px;padding:11px 20px;font-size:14px;font-weight:700;cursor:pointer}
+.btn.primary{background:var(--teal);color:#fff}
+.btn.primary:hover{background:#1780bd}
+.btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--line)}
+.btn.ghost:hover{border-color:var(--teal);color:var(--teal)}
+.btn.navy{background:var(--navy);color:#fff}
+.btn.small{padding:7px 13px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:6px}
+.step{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
+.step .n{width:32px;height:32px;border-radius:10px;background:var(--teal);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:15px;margin-bottom:12px}
+.step h3{font-size:15px;margin-bottom:6px}
+.step p{margin:0;color:var(--muted);font-size:13.5px}
+
+.pt-row{display:flex;align-items:center;gap:14px;padding:14px 4px;border-bottom:1px solid var(--line)}
+.pt-row:last-child{border-bottom:none}
+.pt-av{width:40px;height:40px;border-radius:10px;background:var(--teal-soft);color:var(--teal);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex:none}
+.pt-main{flex:1;min-width:0}
+.pt-main b{display:block;font-size:14.5px;color:var(--navy)}
+.pt-main span{font-size:12.5px;color:var(--muted)}
+.pt-acts{display:flex;gap:8px;flex:none}
+.empty{text-align:center;padding:38px 10px;color:var(--muted)}
+
+/* ---------- assessment ---------- */
+.assess{display:grid;grid-template-columns:262px 1fr;gap:20px;align-items:start}
+.rail{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px;position:sticky;top:78px}
+.rail h4{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;padding:6px 10px 10px}
+.rail-item{display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;text-align:left;padding:8px 10px;border-radius:10px;cursor:pointer;color:var(--navy);font-size:13.5px;font-weight:600}
+.rail-item:hover{background:var(--page)}
+.rail-item.on{background:var(--teal-soft);color:var(--teal)}
+.rail-item .n{width:24px;height:24px;border-radius:8px;background:var(--page);color:var(--muted);font-size:11.5px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none}
+.rail-item.on .n{background:var(--teal);color:#fff}
+.rail-item.done .n{background:var(--navy);color:#fff}
+.rail-item .lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.progress{height:6px;background:var(--line);border-radius:999px;overflow:hidden;margin:10px 10px 14px}
+.progress i{display:block;height:100%;background:var(--teal);width:0;transition:width .25s}
+
+.sec-head{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.sec-head .n{width:34px;height:34px;border-radius:10px;background:var(--teal);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:14px;flex:none}
+.sec-head h2{font-size:20px}
+
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
+.f{display:flex;flex-direction:column;gap:5px}
+.f label{font-size:12.5px;font-weight:600;color:var(--navy)}
+.f label .req{color:var(--red);margin-left:3px}
+.f input[type=text],.f input[type=number],.f input[type=date],.f select,.f textarea{
+  width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:14px;
+  font-family:inherit;color:var(--ink);background:#fff;outline:none
+}
+.f input:focus,.f select:focus,.f textarea:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(26,143,209,.12)}
+.f textarea{min-height:80px;resize:vertical;line-height:1.5}
+.opts{display:flex;flex-wrap:wrap;gap:7px}
+.opt{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;padding:6px 13px;font-size:13px;cursor:pointer;background:#fff;color:var(--muted);font-weight:500}
+.opt input{accent-color:var(--teal);margin:0}
+.opt.on{border-color:var(--teal);background:var(--teal-soft);color:var(--teal);font-weight:600}
+.note{grid-column:span 12;background:var(--teal-soft);border-left:3px solid var(--teal);border-radius:0 10px 10px 0;padding:10px 14px;font-size:13px;color:var(--navy)}
+.computed{background:var(--page);border:1px dashed var(--line);border-radius:10px;padding:10px 12px;font-weight:700;font-size:14px;color:var(--navy)}
+.computed .tag{display:inline-block;margin-left:8px;font-size:11px;font-weight:800;padding:2px 9px;border-radius:999px;vertical-align:middle}
+.tag.low{background:var(--teal-soft);color:var(--teal)}
+.tag.moderate{background:#fdf0e2;color:var(--amber)}
+.tag.high{background:#fbeae8;color:var(--red)}
+
+.sec-nav{display:flex;justify-content:space-between;gap:10px;margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
+
+/* ---------- plan of care ---------- */
+.poc-head{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;justify-content:space-between;margin-bottom:16px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:5px 13px;font-size:12.5px;font-weight:600;background:#fff;color:var(--navy)}
+.chip.teal{background:var(--teal-soft);border-color:transparent;color:var(--teal)}
+.chip.warn{background:#fbeae8;border-color:transparent;color:var(--red)}
+.kv{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.kv div{background:var(--page);border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+.kv b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.kv span{font-size:14px;font-weight:600;color:var(--navy)}
+
+.prob{border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-top:14px;background:#fff}
+.prob-h{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px}
+.prob-h .n{width:28px;height:28px;border-radius:10px;background:var(--teal);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex:none}
+.prob-h h3{font-size:15.5px;line-height:1.35;flex:1}
+.prob h5{font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700;margin:14px 0 6px}
+.prob ul{margin:0;padding-left:20px}
+.prob li{font-size:14px;margin-bottom:5px;color:#22384d}
+.alert{background:#fbeae8;border:1px solid #f0cfca;border-radius:var(--radius);padding:14px 18px;margin-bottom:16px}
+.alert b{color:var(--red);display:block;font-size:13px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.alert ul{margin:0;padding-left:20px;font-size:14px}
+
+.cta{background:var(--navy-2);color:#fff;border-radius:var(--radius);padding:26px 28px;margin-top:20px;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between}
+.cta h3{color:#fff;font-size:18px}
+.cta p{margin:6px 0 0;font-size:13.5px;opacity:.78;max-width:560px}
+.cta .btn{background:#fff;color:var(--navy-2)}
+.cta .btn:hover{background:#eef4f9}
+
+pre.narrative{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:20px;white-space:pre-wrap;font-family:'Inter',sans-serif;font-size:13.5px;line-height:1.6;color:#22384d;margin:0}
+
+.tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.tab{border:1px solid var(--line);background:#fff;color:var(--navy);border-radius:999px;padding:8px 17px;font-size:13.5px;font-weight:600;cursor:pointer}
+.tab.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+
+.sig{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:26px;padding-top:20px;border-top:1px solid var(--line)}
+.sig div{font-size:12.5px;color:var(--muted)}
+.sig .line{border-bottom:1px solid var(--navy);height:34px;margin-bottom:6px}
+
+/* ---------- footer ---------- */
+.foot{background:var(--navy);color:#fff;margin-top:50px}
+.foot-in{max-width:1180px;margin:0 auto;padding:38px 22px 26px;display:grid;grid-template-columns:repeat(4,1fr);gap:26px}
+.foot h4{color:#fff;font-size:12.5px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+.foot p,.foot li{font-size:13px;opacity:.72;margin:0 0 6px}
+.foot ul{list-style:none;padding:0;margin:0}
+.foot-bar{border-top:1px solid rgba(255,255,255,.12);padding:14px 22px;font-size:12px;opacity:.6;text-align:center}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;padding:11px 20px;border-radius:999px;font-size:13.5px;font-weight:600;opacity:0;transition:.22s;pointer-events:none;z-index:80}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media (max-width:900px){
+  .assess{grid-template-columns:1fr}
+  .rail{position:static}
+  .steps{grid-template-columns:1fr}
+  .kv{grid-template-columns:repeat(2,1fr)}
+  .foot-in{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:620px){
+  .wrap{padding:18px 14px 40px}
+  .hero{padding:24px 20px}
+  .hero h1{font-size:24px}
+  .card{padding:18px}
+  .kv{grid-template-columns:1fr}
+  .sig{grid-template-columns:1fr}
+  .nav-pt{display:none}
+}
+
+/* ---------- demo strip ---------- */
+.demo-strip{background:var(--teal-soft);border-bottom:1px solid #cfe4f4}
+.demo-strip-in{max-width:1180px;margin:0 auto;padding:10px 22px;display:flex;align-items:center;
+  gap:12px;flex-wrap:wrap;color:var(--navy);font-size:13px}
+.demo-chip{background:var(--teal);color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.09em;
+  text-transform:uppercase;padding:3px 9px;border-radius:999px;flex:none}
+.demo-text{flex:1;min-width:220px}
+.demo-reset{background:#fff;border:1px solid var(--line);color:var(--navy);font-size:12.5px;
+  font-weight:600;padding:6px 13px;border-radius:999px;cursor:pointer;flex:none}
+.demo-reset:hover{border-color:var(--teal);color:var(--teal)}
+.demo-reset:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+@media print{.demo-strip{display:none}}
+
+/* ---------- print ---------- */
+@media print{
+  .nav,.foot,.foot-bar,.tabs,.cta,.sec-nav,.rail,.toast,.no-print{display:none !important}
+  body{background:#fff;font-size:11.5pt}
+  .wrap{max-width:none;padding:0}
+  .card,.prob{border:1px solid #c9d6e2;break-inside:avoid;page-break-inside:avoid}
+  .prob{margin-top:10px}
+  a{color:#000}
+  .screen{display:none !important}
+  .screen.print-me{display:block !important}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-in">
+    <div class="brand">
+      <span class="mark">+</span>
+      <span>LTC Nurse Assessment<small>Start of Care &amp; Plan of Care</small></span>
+    </div>
+    <span class="nav-sp"></span>
+    <span class="nav-pt" id="navPt"></span>
+    <button class="nav-btn" id="navHome">Patients</button>
+    <button class="nav-btn primary" id="navNew">New assessment</button>
+  </div>
+</nav>
+
+<div class="demo-strip">
+  <div class="demo-strip-in">
+    <span class="demo-chip">Demo</span>
+    <span class="demo-text">Three fictional patients are preloaded so you can see the program working. No real people, no real records &mdash; nothing leaves this browser.</span>
+    <button class="demo-reset" id="btnResetDemo">Reset demo data</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- ============ HOME ============ -->
+  <section class="screen on" id="screen-home">
+    <div class="card hero">
+      <h1>Long term care nurse assessment</h1>
+      <p>Complete the comprehensive start of care assessment at the bedside, and the program builds the personalized
+         plan of care from what you documented - problem list, measurable goals, interventions, disciplines,
+         visit frequency and the start of care narrative note.</p>
+      <div class="hero-actions">
+        <button class="btn primary" id="btnNew">Start a new assessment</button>
+        <button class="btn ghost" id="btnImport">Import record (JSON)</button>
+        <input type="file" id="fileImport" accept="application/json" style="display:none">
+      </div>
+    </div>
+
+    <div class="steps">
+      <div class="step"><div class="n">1</div><h3>Assess</h3><p>Fifteen sections covering referral and homebound status, vitals, home safety, skin and wounds, cognition, function, falls, medications and psychosocial needs.</p></div>
+      <div class="step"><div class="n">2</div><h3>Score</h3><p>Morse Fall Scale, Braden Scale, PHQ-2 and BMI calculate as you document, with risk levels shown inline.</p></div>
+      <div class="step"><div class="n">3</div><h3>Generate</h3><p>The plan of care assembles automatically from the findings, ready for clinician review, physician signature and printing.</p></div>
+    </div>
+
+    <div class="card" style="margin-top:20px">
+      <h2 style="font-size:18px;margin-bottom:4px">Patient records</h2>
+      <p class="muted small" style="margin:0 0 10px">Stored in this browser only. Export a record to move it into the clinical record.</p>
+      <div id="ptList"></div>
+    </div>
+  </section>
+
+  <!-- ============ ASSESSMENT ============ -->
+  <section class="screen" id="screen-assess">
+    <div class="assess">
+      <aside class="rail">
+        <h4>Assessment sections</h4>
+        <div class="progress"><i id="progBar"></i></div>
+        <div id="railList"></div>
+        <div style="padding:12px 10px 4px;border-top:1px solid var(--line);margin-top:10px">
+          <button class="btn primary small" id="btnGenerate" style="width:100%">Generate plan of care</button>
+        </div>
+      </aside>
+      <div>
+        <div class="card" id="secCard"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PLAN OF CARE ============ -->
+  <section class="screen" id="screen-poc">
+    <div class="tabs no-print">
+      <button class="tab on" data-view="poc">Plan of care</button>
+      <button class="tab" data-view="narrative">Start of care note</button>
+      <button class="tab" data-view="summary">Assessment summary</button>
+      <span style="flex:1"></span>
+      <button class="btn ghost small" id="btnBackAssess">Back to assessment</button>
+      <button class="btn ghost small" id="btnExport">Export JSON</button>
+      <button class="btn navy small" id="btnPrint">Print / PDF</button>
+    </div>
+    <div id="pocBody"></div>
+  </section>
+
+</div>
+
+<footer class="foot">
+  <div class="foot-in">
+    <div>
+      <h4>LTC Nurse Assessment</h4>
+      <p>Start of care documentation and personalized plan of care generation for home health long term care patients.</p>
+    </div>
+    <div>
+      <h4>Assessment</h4>
+      <ul>
+        <li>Comprehensive SOC assessment</li>
+        <li>Morse Fall Scale</li>
+        <li>Braden Scale</li>
+        <li>PHQ-2 depression screen</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Plan of care</h4>
+      <ul>
+        <li>Problem list and priorities</li>
+        <li>Measurable, time-bound goals</li>
+        <li>Skilled interventions</li>
+        <li>Disciplines and frequency</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Data</h4>
+      <ul>
+        <li>Stored locally in this browser</li>
+        <li>JSON export and import</li>
+        <li>Print to PDF for the chart</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot-bar">Clinical decision support only. All generated content requires review by the assessing licensed clinician and physician signature before use.</div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================================
+   LTC Nurse Assessment — assessment schema + standardized scoring scales
+   Home health Start of Care (SOC) comprehensive nursing assessment.
+   Field types: text, textarea, date, time, number, select, radio, checks,
+                note, computed
+   Every field: {id, label, type, ...}  ids are flat and stable (used by the
+   plan-of-care rules engine, so do not rename without updating poc-engine.js)
+   ========================================================================= */
+(function (root) {
+  'use strict';
+
+  /* ---------- shared option sets ---------- */
+  var YN = ['No', 'Yes'];
+  var YNU = ['No', 'Yes', 'Unknown'];
+
+  // Functional assistance levels used for ADL items
+  var ADL_LEVELS = [
+    '0 - Independent',
+    '1 - Setup / clean-up assist',
+    '2 - Supervision / touching assist',
+    '3 - Partial / moderate assist',
+    '4 - Substantial / maximal assist',
+    '5 - Dependent',
+    '6 - Not attempted (safety / refused)'
+  ];
+  var IADL_LEVELS = ['Independent', 'Needs assistance', 'Dependent', 'Not applicable'];
+
+  function adl(id, label) {
+    return { id: id, label: label, type: 'select', options: ADL_LEVELS, col: 6 };
+  }
+  function iadl(id, label) {
+    return { id: id, label: label, type: 'select', options: IADL_LEVELS, col: 6 };
+  }
+
+  /* ---------- assessment sections ---------- */
+  var SECTIONS = [
+    /* 1 ------------------------------------------------------------------ */
+    {
+      id: 'demographics',
+      title: 'Patient & Visit Information',
+      icon: '1',
+      fields: [
+        { id: 'pt_last', label: 'Last name', type: 'text', col: 4, required: true },
+        { id: 'pt_first', label: 'First name', type: 'text', col: 4, required: true },
+        { id: 'pt_mi', label: 'MI', type: 'text', col: 4 },
+        { id: 'pt_mrn', label: 'Medical record #', type: 'text', col: 4 },
+        { id: 'pt_dob', label: 'Date of birth', type: 'date', col: 4 },
+        { id: 'pt_sex', label: 'Sex', type: 'select', options: ['Female', 'Male', 'Other / not specified'], col: 4 },
+        { id: 'pt_address', label: 'Home address', type: 'text', col: 8 },
+        { id: 'pt_phone', label: 'Phone', type: 'text', col: 4 },
+        { id: 'pt_lang', label: 'Primary language', type: 'text', col: 4 },
+        { id: 'pt_interpreter', label: 'Interpreter needed', type: 'radio', options: YN, col: 4 },
+        { id: 'pt_advance_dir', label: 'Advance directive on file', type: 'select', options: ['No', 'Yes - copy in home', 'Yes - copy requested', 'Unknown'], col: 4 },
+        { id: 'soc_date', label: 'Start of care date', type: 'date', col: 4, required: true },
+        { id: 'visit_date', label: 'Assessment visit date', type: 'date', col: 4 },
+        { id: 'nurse_name', label: 'Assessing clinician (RN)', type: 'text', col: 4 },
+        { id: 'emerg_name', label: 'Emergency contact - name', type: 'text', col: 4 },
+        { id: 'emerg_rel', label: 'Relationship', type: 'text', col: 4 },
+        { id: 'emerg_phone', label: 'Emergency contact - phone', type: 'text', col: 4 }
+      ]
+    },
+
+    /* 2 ------------------------------------------------------------------ */
+    {
+      id: 'referral',
+      title: 'Referral, Diagnoses & Homebound Status',
+      icon: '2',
+      fields: [
+        { id: 'ref_source', label: 'Referral source', type: 'select', options: ['Hospital discharge', 'Skilled nursing facility', 'Physician office', 'Assisted living / LTC facility', 'Family / self', 'Other'], col: 4 },
+        { id: 'ref_hosp_discharge', label: 'Inpatient discharge within last 14 days', type: 'radio', options: YN, col: 4 },
+        { id: 'ref_discharge_date', label: 'Discharge date', type: 'date', col: 4, showIf: { ref_hosp_discharge: 'Yes' } },
+        { id: 'md_name', label: 'Physician following plan of care', type: 'text', col: 6 },
+        { id: 'md_phone', label: 'Physician phone / fax', type: 'text', col: 6 },
+        { id: 'dx_primary', label: 'Primary diagnosis (with ICD-10 if known)', type: 'text', col: 12, required: true },
+        { id: 'dx_secondary', label: 'Other pertinent diagnoses (one per line)', type: 'textarea', col: 12 },
+        { id: 'surgical_hx', label: 'Recent surgical procedure / date', type: 'text', col: 6 },
+        { id: 'allergies', label: 'Allergies (drug, food, environmental) - write NKDA if none', type: 'text', col: 6 },
+        { id: 'payer', label: 'Primary payer', type: 'select', options: ['Medicare', 'Medicare Advantage', 'Medicaid / LTC waiver', 'Commercial', 'Private pay', 'Other'], col: 4 },
+        { id: 'auth_number', label: 'Authorization #', type: 'text', col: 4 },
+        { id: 'auth_visits', label: 'Authorized visits', type: 'text', col: 4 },
+        { id: 'homebound', label: 'Homebound status', type: 'checks', col: 12, options: [
+          'Requires assistance of another person to leave home',
+          'Requires supportive device (walker, cane, wheelchair, crutches)',
+          'Leaving home requires considerable and taxing effort',
+          'Unsafe to leave home unattended (cognition / falls)',
+          'Medically restricted from leaving home',
+          'Severe dyspnea / activity intolerance on exertion'
+        ] },
+        { id: 'homebound_narrative', label: 'Homebound narrative (why leaving home is taxing)', type: 'textarea', col: 12 }
+      ]
+    },
+
+    /* 3 ------------------------------------------------------------------ */
+    {
+      id: 'vitals',
+      title: 'Vital Signs & Parameters',
+      icon: '3',
+      fields: [
+        { id: 'vs_temp', label: 'Temp (F)', type: 'number', step: '0.1', col: 3 },
+        { id: 'vs_pulse', label: 'Pulse (bpm)', type: 'number', col: 3 },
+        { id: 'vs_resp', label: 'Respirations', type: 'number', col: 3 },
+        { id: 'vs_o2', label: 'SpO2 (%)', type: 'number', col: 3 },
+        { id: 'vs_bp_sys', label: 'BP systolic', type: 'number', col: 3 },
+        { id: 'vs_bp_dia', label: 'BP diastolic', type: 'number', col: 3 },
+        { id: 'vs_bp_position', label: 'Position', type: 'select', options: ['Sitting', 'Lying', 'Standing'], col: 3 },
+        { id: 'vs_orthostatic', label: 'Orthostatic drop noted', type: 'radio', options: YN, col: 3 },
+        { id: 'vs_weight', label: 'Weight (lb)', type: 'number', step: '0.1', col: 3 },
+        { id: 'vs_height', label: 'Height (in)', type: 'number', step: '0.1', col: 3 },
+        { id: 'vs_bmi', label: 'BMI (calculated)', type: 'computed', compute: 'bmi', col: 3 },
+        { id: 'vs_glucose', label: 'Blood glucose (mg/dL)', type: 'number', col: 3 },
+        { id: 'vs_o2_therapy', label: 'On supplemental oxygen', type: 'radio', options: YN, col: 4 },
+        { id: 'vs_o2_lpm', label: 'O2 liters/min and delivery device', type: 'text', col: 8, showIf: { vs_o2_therapy: 'Yes' } },
+        { id: 'note_params', type: 'note', text: 'Physician notification parameters below are transcribed onto the plan of care.' },
+        { id: 'param_sbp_hi', label: 'Notify MD - systolic above', type: 'number', col: 3, default: '160' },
+        { id: 'param_sbp_lo', label: 'Notify MD - systolic below', type: 'number', col: 3, default: '90' },
+        { id: 'param_hr_hi', label: 'Notify MD - pulse above', type: 'number', col: 3, default: '110' },
+        { id: 'param_hr_lo', label: 'Notify MD - pulse below', type: 'number', col: 3, default: '55' },
+        { id: 'param_temp', label: 'Notify MD - temp above (F)', type: 'number', step: '0.1', col: 3, default: '100.4' },
+        { id: 'param_o2', label: 'Notify MD - SpO2 below (%)', type: 'number', col: 3, default: '90' },
+        { id: 'param_glucose_hi', label: 'Notify MD - glucose above', type: 'number', col: 3, default: '300' },
+        { id: 'param_glucose_lo', label: 'Notify MD - glucose below', type: 'number', col: 3, default: '70' },
+        { id: 'param_weight', label: 'Notify MD - weight gain (lb in 1 wk)', type: 'number', col: 3, default: '5' },
+        { id: 'param_other', label: 'Other notification parameters', type: 'text', col: 9 }
+      ]
+    },
+
+    /* 4 ------------------------------------------------------------------ */
+    {
+      id: 'environment',
+      title: 'Living Situation, Home Safety & Emergency Plan',
+      icon: '4',
+      fields: [
+        { id: 'living_arrangement', label: 'Living arrangement', type: 'select', options: ['Lives alone', 'Lives with spouse / partner', 'Lives with family', 'Lives with paid caregiver', 'Assisted living / group home', 'Other'], col: 6 },
+        { id: 'assistance_available', label: 'Availability of assistance in the home', type: 'select', options: ['Around the clock', 'Regular daytime', 'Regular nighttime', 'Occasional / short-term', 'No assistance available'], col: 6 },
+        { id: 'caregiver_name', label: 'Primary caregiver name / relationship', type: 'text', col: 6 },
+        { id: 'caregiver_ability', label: 'Caregiver ability / willingness', type: 'select', options: ['Able and willing', 'Willing but needs training', 'Limited by own health', 'Unwilling / unavailable', 'No caregiver identified'], col: 6 },
+        { id: 'home_type', label: 'Residence type', type: 'select', options: ['House', 'Apartment', 'Mobile home', 'Assisted living', 'Other'], col: 4 },
+        { id: 'home_stairs', label: 'Stairs to enter or within home', type: 'radio', options: YN, col: 4 },
+        { id: 'home_utilities', label: 'Utilities adequate (heat, water, electricity)', type: 'radio', options: YN, col: 4 },
+        { id: 'home_hazards', label: 'Safety hazards identified', type: 'checks', col: 12, options: [
+          'Throw rugs / clutter in walkways',
+          'Inadequate lighting',
+          'No grab bars in bathroom',
+          'Unsafe stairs / no handrail',
+          'Cords or tripping hazards',
+          'No working smoke detector',
+          'Pets underfoot',
+          'Firearms in home',
+          'Smoking in home (with or without oxygen)',
+          'Infestation / sanitation concerns',
+          'Unsafe medication storage',
+          'None identified'
+        ] },
+        { id: 'emerg_plan', label: 'Emergency / disaster plan in place', type: 'radio', options: YN, col: 4 },
+        { id: 'emerg_triage', label: 'Emergency triage classification', type: 'select', col: 8, options: [
+          'Level 1 - life-threatening; visit or contact required during emergency',
+          'Level 2 - not immediately life-threatening; contact within 24-48 hrs',
+          'Level 3 - stable; can be postponed 72+ hrs with caregiver support'
+        ] },
+        { id: 'evac_plan', label: 'Evacuation plan / backup power for equipment', type: 'text', col: 12 },
+        { id: 'env_notes', label: 'Environmental notes', type: 'textarea', col: 12 }
+      ]
+    },
+
+    /* 5 ------------------------------------------------------------------ */
+    {
+      id: 'sensory_pain',
+      title: 'Sensory Status & Pain',
+      icon: '5',
+      fields: [
+        { id: 'vision', label: 'Vision', type: 'select', options: ['Adequate (with or without glasses)', 'Impaired - can see large print', 'Severely impaired / legally blind'], col: 6 },
+        { id: 'hearing', label: 'Hearing', type: 'select', options: ['Adequate', 'Impaired - needs repetition / raised voice', 'Severely impaired / deaf'], col: 6 },
+        { id: 'hearing_aid', label: 'Uses hearing aid(s)', type: 'radio', options: YN, col: 4 },
+        { id: 'speech', label: 'Speech / expression of ideas', type: 'select', options: ['Clear and appropriate', 'Minimal difficulty finding words', 'Requires prompting / limited to phrases', 'Nonverbal or unintelligible'], col: 8 },
+        { id: 'pain_present', label: 'Pain reported', type: 'radio', options: YN, col: 4 },
+        { id: 'pain_score', label: 'Current pain (0-10)', type: 'number', min: 0, max: 10, col: 4, showIf: { pain_present: 'Yes' } },
+        { id: 'pain_worst', label: 'Worst pain in last 24 hrs (0-10)', type: 'number', min: 0, max: 10, col: 4, showIf: { pain_present: 'Yes' } },
+        { id: 'pain_scale_used', label: 'Pain scale used', type: 'select', options: ['Numeric 0-10', 'Wong-Baker FACES', 'PAINAD (nonverbal)', 'Verbal descriptor'], col: 4, showIf: { pain_present: 'Yes' } },
+        { id: 'pain_location', label: 'Location / quality', type: 'text', col: 8, showIf: { pain_present: 'Yes' } },
+        { id: 'pain_frequency', label: 'Frequency', type: 'select', options: ['Intermittent', 'Constant', 'With activity only', 'At night only'], col: 4, showIf: { pain_present: 'Yes' } },
+        { id: 'pain_effect', label: 'Pain interferes with activity or sleep', type: 'radio', options: YN, col: 4, showIf: { pain_present: 'Yes' } },
+        { id: 'pain_relief', label: 'Current relief measures and effectiveness', type: 'textarea', col: 12, showIf: { pain_present: 'Yes' } }
+      ]
+    },
+
+    /* 6 ------------------------------------------------------------------ */
+    {
+      id: 'integumentary',
+      title: 'Integumentary, Wounds & Braden Scale',
+      icon: '6',
+      fields: [
+        { id: 'skin_condition', label: 'General skin condition', type: 'checks', col: 12, options: [
+          'Intact / no issues', 'Dry / flaking', 'Fragile / tissue-paper thin', 'Bruising', 'Rash', 'Edema', 'Pallor', 'Jaundice', 'Skin tears', 'Excoriation / maceration'
+        ] },
+        { id: 'wound_present', label: 'Wound, ulcer, incision or ostomy present', type: 'radio', options: YN, col: 4 },
+        { id: 'wound_type', label: 'Wound type(s)', type: 'checks', col: 8, showIf: { wound_present: 'Yes' }, options: [
+          'Pressure ulcer / injury', 'Venous stasis ulcer', 'Arterial ulcer', 'Diabetic / neuropathic ulcer', 'Surgical incision', 'Skin tear / trauma', 'Ostomy site', 'Other'
+        ] },
+        { id: 'wound_detail', label: 'Wound detail - location, stage, measurements (L x W x D), drainage, odor, periwound', type: 'textarea', col: 12, showIf: { wound_present: 'Yes' } },
+        { id: 'wound_orders', label: 'Current wound treatment orders', type: 'textarea', col: 12, showIf: { wound_present: 'Yes' } },
+        { id: 'wound_infection', label: 'Signs of wound infection', type: 'radio', options: YN, col: 4, showIf: { wound_present: 'Yes' } },
+        { id: 'note_braden', type: 'note', text: 'Braden Scale for Predicting Pressure Sore Risk. Total 6-23; lower scores indicate higher risk.' },
+        { id: 'braden_sensory', label: 'Sensory perception', type: 'select', col: 6, options: ['1 - Completely limited', '2 - Very limited', '3 - Slightly limited', '4 - No impairment'] },
+        { id: 'braden_moisture', label: 'Moisture', type: 'select', col: 6, options: ['1 - Constantly moist', '2 - Very moist', '3 - Occasionally moist', '4 - Rarely moist'] },
+        { id: 'braden_activity', label: 'Activity', type: 'select', col: 6, options: ['1 - Bedfast', '2 - Chairfast', '3 - Walks occasionally', '4 - Walks frequently'] },
+        { id: 'braden_mobility', label: 'Mobility', type: 'select', col: 6, options: ['1 - Completely immobile', '2 - Very limited', '3 - Slightly limited', '4 - No limitation'] },
+        { id: 'braden_nutrition', label: 'Nutrition', type: 'select', col: 6, options: ['1 - Very poor', '2 - Probably inadequate', '3 - Adequate', '4 - Excellent'] },
+        { id: 'braden_friction', label: 'Friction and shear', type: 'select', col: 6, options: ['1 - Problem', '2 - Potential problem', '3 - No apparent problem'] },
+        { id: 'braden_total', label: 'Braden total / risk level', type: 'computed', compute: 'braden', col: 12 }
+      ]
+    },
+
+    /* 7 ------------------------------------------------------------------ */
+    {
+      id: 'cardiopulm',
+      title: 'Cardiopulmonary Status',
+      icon: '7',
+      fields: [
+        { id: 'cardiac_findings', label: 'Cardiovascular findings', type: 'checks', col: 12, options: [
+          'Within normal limits', 'Irregular pulse', 'Peripheral edema', 'Chest pain / angina', 'Dizziness / syncope', 'Palpitations', 'Diminished peripheral pulses', 'Pacemaker / ICD', 'Anticoagulant therapy'
+        ] },
+        { id: 'edema_detail', label: 'Edema location / severity', type: 'text', col: 6 },
+        { id: 'weight_gain', label: 'Weight gain of 3+ lb in 1 day or 5+ lb in 1 week', type: 'radio', options: YNU, col: 6 },
+        { id: 'resp_findings', label: 'Respiratory findings', type: 'checks', col: 12, options: [
+          'Within normal limits', 'Dyspnea on exertion', 'Dyspnea at rest', 'Orthopnea', 'Productive cough', 'Nonproductive cough', 'Wheezing', 'Crackles / rales', 'Diminished breath sounds', 'Uses inhalers / nebulizer', 'CPAP / BiPAP'
+        ] },
+        { id: 'dyspnea_level', label: 'When is the patient short of breath', type: 'select', col: 12, options: [
+          'Never short of breath',
+          'With moderate exertion (stairs, climbing)',
+          'With minimal exertion (walking >20 ft, transfers)',
+          'With ADLs / talking',
+          'At rest'
+        ] },
+        { id: 'smoking', label: 'Tobacco use', type: 'select', options: ['Never', 'Former', 'Current'], col: 4 },
+        { id: 'cardio_notes', label: 'Cardiopulmonary notes', type: 'textarea', col: 12 }
+      ]
+    },
+
+    /* 8 ------------------------------------------------------------------ */
+    {
+      id: 'elimination',
+      title: 'Elimination - GI / GU',
+      icon: '8',
+      fields: [
+        { id: 'bowel_pattern', label: 'Bowel pattern', type: 'select', options: ['Regular / continent', 'Constipation', 'Diarrhea', 'Alternating', 'Ostomy'], col: 6 },
+        { id: 'last_bm', label: 'Date of last bowel movement', type: 'date', col: 6 },
+        { id: 'bowel_incont', label: 'Bowel incontinence', type: 'select', options: ['Continent', 'Occasional incontinence', 'Frequent incontinence', 'Ostomy'], col: 6 },
+        { id: 'bowel_program', label: 'Bowel program / laxative use', type: 'text', col: 6 },
+        { id: 'urinary_status', label: 'Urinary status', type: 'select', options: ['Continent', 'Occasional incontinence', 'Frequent / total incontinence', 'Indwelling catheter', 'Intermittent catheterization', 'Suprapubic catheter', 'Urostomy'], col: 6 },
+        { id: 'uti_signs', label: 'Signs or symptoms of UTI', type: 'radio', options: YN, col: 6 },
+        { id: 'catheter_detail', label: 'Catheter type, size, last change date, drainage', type: 'text', col: 12, showIf: { urinary_status: ['Indwelling catheter', 'Intermittent catheterization', 'Suprapubic catheter'] } },
+        { id: 'dialysis', label: 'Dialysis', type: 'select', options: ['None', 'Hemodialysis', 'Peritoneal'], col: 6 },
+        { id: 'elim_notes', label: 'Elimination notes', type: 'textarea', col: 12 }
+      ]
+    },
+
+    /* 9 ------------------------------------------------------------------ */
+    {
+      id: 'nutrition',
+      title: 'Nutrition & Hydration',
+      icon: '9',
+      fields: [
+        { id: 'diet_order', label: 'Prescribed diet', type: 'text', col: 6 },
+        { id: 'appetite', label: 'Appetite / intake', type: 'select', options: ['Good - eats most meals', 'Fair - eats about half', 'Poor - eats less than half', 'Minimal / refuses'], col: 6 },
+        { id: 'weight_loss', label: 'Unintentional weight loss (5% in 30 days or 10% in 180 days)', type: 'radio', options: YNU, col: 6 },
+        { id: 'swallowing', label: 'Swallowing', type: 'select', options: ['No difficulty', 'Difficulty with thin liquids', 'Difficulty with solids', 'Coughing / choking with meals', 'NPO'], col: 6 },
+        { id: 'dentition', label: 'Dentition / oral status', type: 'select', options: ['Adequate', 'Dentures - fit well', 'Dentures - poor fit', 'Missing teeth / poor dentition', 'Oral lesions'], col: 6 },
+        { id: 'hydration', label: 'Hydration status', type: 'select', options: ['Adequate', 'Borderline - encourage fluids', 'Signs of dehydration', 'Fluid restriction ordered'], col: 6 },
+        { id: 'enteral', label: 'Enteral / parenteral nutrition', type: 'select', options: ['None', 'Gastrostomy tube', 'Jejunostomy tube', 'NG tube', 'TPN'], col: 6 },
+        { id: 'enteral_detail', label: 'Formula, rate, flush schedule', type: 'text', col: 6, showIf: { enteral: ['Gastrostomy tube', 'Jejunostomy tube', 'NG tube', 'TPN'] } },
+        { id: 'food_access', label: 'Able to obtain and prepare adequate food', type: 'radio', options: YN, col: 6 },
+        { id: 'nutrition_notes', label: 'Nutrition notes', type: 'textarea', col: 12 }
+      ]
+    },
+
+    /* 10 ----------------------------------------------------------------- */
+    {
+      id: 'neuro',
+      title: 'Neurological, Cognitive & Behavioral',
+      icon: '10',
+      fields: [
+        { id: 'orientation', label: 'Orientation', type: 'select', options: ['Alert and oriented x4', 'Oriented x3 (not time)', 'Oriented x2', 'Oriented to self only', 'Disoriented / nonresponsive'], col: 6 },
+        { id: 'cognitive_function', label: 'Cognitive functioning', type: 'select', col: 6, options: [
+          'Alert; able to focus and follow directions independently',
+          'Requires prompting in new or complex situations',
+          'Requires assistance and direction in routine situations',
+          'Requires considerable assistance in routine situations',
+          'Totally dependent / cannot direct care'
+        ] },
+        { id: 'confusion_freq', label: 'Frequency of confusion', type: 'select', col: 6, options: [
+          'Never', 'In new or complex situations only', 'On awakening or at night only (sundowning)', 'During the day but not constantly', 'Constantly'
+        ] },
+        { id: 'memory_deficit', label: 'Memory deficit noted', type: 'radio', options: YN, col: 6 },
+        { id: 'dementia_dx', label: 'Diagnosed dementia / Alzheimer disease', type: 'radio', options: YN, col: 6 },
+        { id: 'behaviors', label: 'Behaviors demonstrated', type: 'checks', col: 12, options: [
+          'None', 'Wandering / elopement risk', 'Verbal aggression', 'Physical aggression', 'Resistive to care', 'Socially inappropriate behavior', 'Delusions / hallucinations', 'Impaired decision-making'
+        ] },
+        { id: 'note_phq', type: 'note', text: 'PHQ-2 depression screen: over the last 2 weeks, how often has the patient been bothered by the following?' },
+        { id: 'phq_interest', label: 'Little interest or pleasure in doing things', type: 'select', col: 6, options: ['0 - Not at all', '1 - Several days', '2 - More than half the days', '3 - Nearly every day'] },
+        { id: 'phq_down', label: 'Feeling down, depressed or hopeless', type: 'select', col: 6, options: ['0 - Not at all', '1 - Several days', '2 - More than half the days', '3 - Nearly every day'] },
+        { id: 'phq_total', label: 'PHQ-2 total / result', type: 'computed', compute: 'phq2', col: 12 },
+        { id: 'suicidal_ideation', label: 'Expresses thoughts of self-harm', type: 'radio', options: YN, col: 6 },
+        { id: 'neuro_notes', label: 'Neuro / behavioral notes', type: 'textarea', col: 12 }
+      ]
+    },
+
+    /* 11 ----------------------------------------------------------------- */
+    {
+      id: 'functional',
+      title: 'Functional Status - ADLs & IADLs',
+      icon: '11',
+      fields: [
+        { id: 'note_adl', type: 'note', text: 'Rate current ability, considering the patient\'s ability on the day of assessment and safety.' },
+        adl('adl_grooming', 'Grooming'),
+        adl('adl_bath', 'Bathing'),
+        adl('adl_dress_upper', 'Dressing - upper body'),
+        adl('adl_dress_lower', 'Dressing - lower body'),
+        adl('adl_toilet', 'Toileting / toilet transfer'),
+        adl('adl_transfer', 'Bed-to-chair transfer'),
+        adl('adl_ambulation', 'Ambulation / locomotion'),
+        adl('adl_feeding', 'Eating / feeding'),
+        { id: 'mobility_device', label: 'Mobility device used', type: 'checks', col: 12, options: ['None', 'Cane', 'Walker', 'Rollator', 'Crutches', 'Wheelchair', 'Hospital bed', 'Mechanical lift', 'Bedbound'] },
+        { id: 'gait_quality', label: 'Gait / balance', type: 'select', col: 6, options: ['Steady', 'Slightly unsteady - no assistive device', 'Unsteady - requires device', 'Unsteady even with device', 'Unable to ambulate'] },
+        { id: 'endurance', label: 'Activity tolerance', type: 'select', col: 6, options: ['Full activity', 'Tires with moderate activity', 'Tires with minimal activity', 'Requires frequent rest periods', 'Bed / chair bound'] },
+        { id: 'note_iadl', type: 'note', text: 'Instrumental activities of daily living' },
+        iadl('iadl_meds', 'Managing medications'),
+        iadl('iadl_meals', 'Meal preparation'),
+        iadl('iadl_phone', 'Using telephone / calling for help'),
+        iadl('iadl_shopping', 'Shopping'),
+        iadl('iadl_housekeeping', 'Light housekeeping / laundry'),
+        iadl('iadl_transport', 'Transportation'),
+        iadl('iadl_finances', 'Managing finances'),
+        { id: 'functional_notes', label: 'Functional notes', type: 'textarea', col: 12 }
+      ]
+    },
+
+    /* 12 ----------------------------------------------------------------- */
+    {
+      id: 'falls',
+      title: 'Fall Risk - Morse Fall Scale',
+      icon: '12',
+      fields: [
+        { id: 'note_morse', type: 'note', text: 'Morse Fall Scale. Score 0-24 low risk, 25-44 moderate risk, 45 or higher high risk.' },
+        { id: 'morse_history', label: 'History of falling (within 3 months)', type: 'select', col: 6, options: ['0 - No', '25 - Yes'] },
+        { id: 'morse_secondary', label: 'Secondary diagnosis (more than one medical diagnosis)', type: 'select', col: 6, options: ['0 - No', '15 - Yes'] },
+        { id: 'morse_aid', label: 'Ambulatory aid', type: 'select', col: 6, options: ['0 - None / bedrest / nurse assist', '15 - Crutches / cane / walker', '30 - Furniture'] },
+        { id: 'morse_iv', label: 'IV access or saline lock', type: 'select', col: 6, options: ['0 - No', '20 - Yes'] },
+        { id: 'morse_gait', label: 'Gait / transferring', type: 'select', col: 6, options: ['0 - Normal / bedrest / immobile', '10 - Weak', '20 - Impaired'] },
+        { id: 'morse_mental', label: 'Mental status', type: 'select', col: 6, options: ['0 - Oriented to own ability', '15 - Overestimates or forgets limits'] },
+        { id: 'morse_total', label: 'Morse total / risk level', type: 'computed', compute: 'morse', col: 12 },
+        { id: 'falls_number', label: 'Number of falls in the past 12 months', type: 'number', col: 4 },
+        { id: 'fall_injury', label: 'Any fall with injury', type: 'radio', options: YN, col: 4 },
+        { id: 'fear_falling', label: 'Patient reports fear of falling', type: 'radio', options: YN, col: 4 },
+        { id: 'falls_notes', label: 'Circumstances of recent falls', type: 'textarea', col: 12 }
+      ]
+    },
+
+    /* 13 ----------------------------------------------------------------- */
+    {
+      id: 'medications',
+      title: 'Medications & Reconciliation',
+      icon: '13',
+      fields: [
+        { id: 'med_list', label: 'Current medications - one per line (drug, dose, route, frequency, indication)', type: 'textarea', rows: 10, col: 12 },
+        { id: 'med_count', label: 'Total number of medications', type: 'number', col: 4 },
+        { id: 'med_classes', label: 'High-alert / high-risk classes in regimen', type: 'checks', col: 12, options: [
+          'None', 'Anticoagulant / antiplatelet', 'Insulin', 'Oral hypoglycemic', 'Opioid analgesic', 'Benzodiazepine / sedative-hypnotic', 'Antipsychotic', 'Digoxin', 'Diuretic', 'Antiarrhythmic', 'Chemotherapy / immunosuppressant', 'Antibiotic (active course)'
+        ] },
+        { id: 'med_issues', label: 'Medication issues identified', type: 'checks', col: 12, options: [
+          'None identified', 'Duplicate therapy', 'Significant drug-drug interaction', 'Dose outside safe range', 'Ineffective drug therapy', 'Missing indication / no matching diagnosis', 'Expired or discontinued meds in home', 'Cannot afford medications', 'Non-adherence reported'
+        ] },
+        { id: 'med_admin', label: 'Who administers medications', type: 'select', col: 6, options: ['Patient independently', 'Patient with reminders', 'Caregiver administers', 'Nurse administers', 'No reliable administrator'] },
+        { id: 'med_organizer', label: 'Uses pill box / organizer', type: 'radio', options: YN, col: 6 },
+        { id: 'md_notified_meds', label: 'Physician notified of medication issues', type: 'radio', options: YNU, col: 6 },
+        { id: 'med_notes', label: 'Medication reconciliation notes', type: 'textarea', col: 12 }
+      ]
+    },
+
+    /* 14 ----------------------------------------------------------------- */
+    {
+      id: 'services',
+      title: 'Skilled Services, Equipment & Frequency',
+      icon: '14',
+      fields: [
+        { id: 'disciplines', label: 'Disciplines to be ordered', type: 'checks', col: 12, options: [
+          'Skilled nursing (SN)', 'Physical therapy (PT)', 'Occupational therapy (OT)', 'Speech therapy (ST)', 'Medical social worker (MSW)', 'Home health aide (HHA)'
+        ] },
+        { id: 'sn_frequency', label: 'SN visit frequency', type: 'text', col: 6, placeholder: 'e.g. 2w1, 1w3 then 1w2 x 4 wks' },
+        { id: 'therapy_frequency', label: 'Therapy frequency', type: 'text', col: 6, placeholder: 'e.g. PT 2w4, OT eval and treat' },
+        { id: 'aide_frequency', label: 'Aide frequency / tasks', type: 'text', col: 12 },
+        { id: 'skilled_services', label: 'Skilled interventions required', type: 'checks', col: 12, options: [
+          'Comprehensive assessment / observation', 'Medication management and teaching', 'Wound care', 'Injections', 'Catheter care', 'Ostomy care', 'IV / infusion therapy', 'Enteral feeding management', 'Disease process teaching', 'Diabetic management and teaching', 'Cardiac / respiratory monitoring', 'Pain management', 'Venipuncture / lab draws'
+        ] },
+        { id: 'dme_current', label: 'DME / supplies in the home', type: 'checks', col: 12, options: [
+          'None', 'Hospital bed', 'Wheelchair', 'Walker / rollator', 'Cane', 'Bedside commode', 'Shower chair / tub bench', 'Grab bars', 'Oxygen concentrator', 'Nebulizer', 'CPAP / BiPAP', 'Glucometer', 'Blood pressure cuff', 'Scale', 'Mechanical lift', 'Wound care supplies'
+        ] },
+        { id: 'dme_needed', label: 'DME / supplies needed (to be ordered)', type: 'text', col: 12 },
+        { id: 'labs_ordered', label: 'Labs / diagnostics ordered', type: 'text', col: 12 },
+        { id: 'safety_measures_extra', label: 'Additional safety measures ordered', type: 'text', col: 12 }
+      ]
+    },
+
+    /* 15 ----------------------------------------------------------------- */
+    {
+      id: 'psychosocial',
+      title: 'Psychosocial, Goals & Discharge Planning',
+      icon: '15',
+      fields: [
+        { id: 'psychosocial_factors', label: 'Psychosocial / social determinants', type: 'checks', col: 12, options: [
+          'None identified', 'Financial strain', 'Food insecurity', 'Transportation barrier', 'Social isolation', 'Caregiver strain', 'Recent loss / grief', 'Housing instability', 'Suspected abuse or neglect', 'Substance use concern', 'Health literacy barrier', 'Language barrier'
+        ] },
+        { id: 'immunizations', label: 'Immunization status', type: 'checks', col: 12, options: ['Influenza current', 'Pneumococcal up to date', 'COVID-19 up to date', 'Tdap up to date', 'Declined', 'Unknown'] },
+        { id: 'patient_goals', label: 'Patient-stated goals (in the patient\'s own words)', type: 'textarea', col: 12, placeholder: 'e.g. "I want to walk to the mailbox again and stay out of the hospital."' },
+        { id: 'caregiver_goals', label: 'Caregiver / family goals and learning needs', type: 'textarea', col: 12 },
+        { id: 'prognosis', label: 'Rehabilitation prognosis', type: 'select', col: 6, options: ['Excellent', 'Good', 'Fair', 'Guarded', 'Poor'] },
+        { id: 'risk_rehosp', label: 'Risk factors for hospitalization', type: 'checks', col: 12, options: [
+          'None', 'Recent decline in mental / emotional / behavioral status', 'Multiple hospitalizations in past 6 months', 'History of falls', 'Taking 5 or more medications', 'Currently reports exhaustion', 'Other unhealthy behaviors', 'Frailty indicators'
+        ] },
+        { id: 'discharge_plan', label: 'Anticipated discharge plan', type: 'select', col: 6, options: ['Return to prior level of function; self / caregiver manages care', 'Discharge to caregiver management', 'Transfer to community services / LTC waiver', 'Long-term custodial placement anticipated', 'Hospice referral anticipated'] },
+        { id: 'cert_period_weeks', label: 'Certification period (weeks)', type: 'number', col: 4, default: '9' },
+        { id: 'poc_notes', label: 'Additional orders or clinician notes for the plan of care', type: 'textarea', col: 12 }
+      ]
+    }
+  ];
+
+  /* ---------- scoring ---------- */
+  function num(v) { var n = parseFloat(String(v == null ? '' : v).replace(/[^0-9.\-]/g, '')); return isNaN(n) ? null : n; }
+  function lead(v) { // leading integer of an option like "25 - Yes"
+    if (!v) return 0;
+    var m = String(v).match(/^\s*(\d+)/);
+    return m ? parseInt(m[1], 10) : 0;
+  }
+
+  function bmi(d) {
+    var w = num(d.vs_weight), h = num(d.vs_height);
+    if (!w || !h) return { value: '', text: '-' };
+    var v = (703 * w) / (h * h);
+    var cat = v < 18.5 ? 'underweight' : v < 25 ? 'normal' : v < 30 ? 'overweight' : 'obese';
+    var out = { value: v.toFixed(1), text: v.toFixed(1) + ' (' + cat + ')' };
+    if (v < 18.5 || v >= 30) { out.level = 'moderate'; out.tag = 'out of range'; }
+    return out;
+  }
+
+  function braden(d) {
+    var keys = ['braden_sensory', 'braden_moisture', 'braden_activity', 'braden_mobility', 'braden_nutrition', 'braden_friction'];
+    var answered = 0, total = 0;
+    keys.forEach(function (k) { if (d[k]) { answered++; total += lead(d[k]); } });
+    if (answered < keys.length) return { value: total, text: total ? total + ' (incomplete - ' + answered + '/6 answered)' : '-', level: 'low', complete: false };
+    var risk = total <= 9 ? 'Very high risk' : total <= 12 ? 'High risk' : total <= 14 ? 'Moderate risk' : total <= 18 ? 'Mild risk' : 'No risk';
+    var level = total <= 12 ? 'high' : total <= 18 ? 'moderate' : 'low';
+    return { value: total, text: total + ' - ' + risk, risk: risk, level: level, complete: true };
+  }
+
+  function morse(d) {
+    var keys = ['morse_history', 'morse_secondary', 'morse_aid', 'morse_iv', 'morse_gait', 'morse_mental'];
+    var answered = 0, total = 0;
+    keys.forEach(function (k) { if (d[k]) { answered++; total += lead(d[k]); } });
+    var risk = total >= 45 ? 'High risk' : total >= 25 ? 'Moderate risk' : 'Low risk';
+    var level = total >= 45 ? 'high' : total >= 25 ? 'moderate' : 'low';
+    return {
+      value: total,
+      text: total + ' - ' + risk + (answered < keys.length ? ' (' + answered + '/6 answered)' : ''),
+      risk: risk, level: level, complete: answered === keys.length
+    };
+  }
+
+  function phq2(d) {
+    if (!d.phq_interest && !d.phq_down) return { value: 0, text: '-', level: 'low', positive: false };
+    var total = lead(d.phq_interest) + lead(d.phq_down);
+    var pos = total >= 3;
+    return {
+      value: total,
+      text: total + ' - ' + (pos ? 'Positive screen; further evaluation indicated' : 'Negative screen'),
+      level: pos ? 'moderate' : 'low',
+      positive: pos
+    };
+  }
+
+  var COMPUTERS = { bmi: bmi, braden: braden, morse: morse, phq2: phq2 };
+
+  function scores(d) {
+    return { bmi: bmi(d), braden: braden(d), morse: morse(d), phq2: phq2(d) };
+  }
+
+  /* ---------- helpers used by the engine and UI ---------- */
+  function fieldById(id) {
+    for (var i = 0; i < SECTIONS.length; i++) {
+      var f = SECTIONS[i].fields;
+      for (var j = 0; j < f.length; j++) if (f[j].id === id) return f[j];
+    }
+    return null;
+  }
+
+  function visible(field, d) {
+    if (!field.showIf) return true;
+    for (var k in field.showIf) {
+      var want = field.showIf[k], have = d[k];
+      if (Array.isArray(want)) { if (want.indexOf(have) === -1) return false; }
+      else if (have !== want) return false;
+    }
+    return true;
+  }
+
+  root.LTC_SCHEMA = {
+    SECTIONS: SECTIONS,
+    ADL_LEVELS: ADL_LEVELS,
+    IADL_LEVELS: IADL_LEVELS,
+    COMPUTERS: COMPUTERS,
+    scores: scores,
+    fieldById: fieldById,
+    visible: visible,
+    num: num,
+    lead: lead
+  };
+})(window);
+
+</script>
+<script>
+/* =========================================================================
+   Plan of Care engine
+   Turns the completed LTC nurse assessment into a personalized plan of care:
+   problem list, measurable goals, interventions, disciplines, frequency,
+   safety measures and a Start of Care narrative note.
+
+   Every rule is data: {id, when(ctx) -> bool, problem, priority, disciplines,
+   goals[], interventions[]}.  Goals and interventions accept ${...}-free
+   plain strings or functions of ctx so they can quote the patient's own data.
+   ========================================================================= */
+(function (root) {
+  'use strict';
+
+  var S = root.LTC_SCHEMA;
+
+  /* ---------- small helpers over the answer set ---------- */
+  function ctxOf(d) {
+    var sc = S.scores(d);
+    var checks = function (id) { var v = d[id]; return Array.isArray(v) ? v : (v ? [v] : []); };
+    var has = function (id, opt) { return checks(id).indexOf(opt) !== -1; };
+    var hasAny = function (id, opts) { return opts.some(function (o) { return has(id, o); }); };
+    var dxText = ((d.dx_primary || '') + ' ' + (d.dx_secondary || '')).toLowerCase();
+    var dx = function () {
+      var words = Array.prototype.slice.call(arguments);
+      return words.some(function (w) { return dxText.indexOf(w) !== -1; });
+    };
+    // ADL level as a number 0-6 (6 = not attempted)
+    var adl = function (id) { return S.lead(d[id]); };
+    var adlAnswered = function (id) { return !!d[id]; };
+    var maxAdl = function () {
+      var ids = ['adl_grooming', 'adl_bath', 'adl_dress_upper', 'adl_dress_lower', 'adl_toilet', 'adl_transfer', 'adl_ambulation', 'adl_feeding'];
+      return ids.reduce(function (m, id) { return Math.max(m, adlAnswered(id) ? adl(id) : 0); }, 0);
+    };
+    var dependentAdls = function () {
+      var ids = [
+        ['adl_grooming', 'grooming'], ['adl_bath', 'bathing'], ['adl_dress_upper', 'upper body dressing'],
+        ['adl_dress_lower', 'lower body dressing'], ['adl_toilet', 'toileting'], ['adl_transfer', 'transfers'],
+        ['adl_ambulation', 'ambulation'], ['adl_feeding', 'eating']
+      ];
+      return ids.filter(function (p) { return adl(p[0]) >= 3; }).map(function (p) { return p[1]; });
+    };
+    return {
+      d: d, sc: sc, checks: checks, has: has, hasAny: hasAny, dx: dx,
+      adl: adl, maxAdl: maxAdl, dependentAdls: dependentAdls,
+      num: S.num, lead: S.lead,
+      livesAlone: d.living_arrangement === 'Lives alone',
+      noCaregiver: d.caregiver_ability === 'No caregiver identified' || d.caregiver_ability === 'Unwilling / unavailable' || d.assistance_available === 'No assistance available'
+    };
+  }
+
+  function ptName(d) {
+    var n = [d.pt_first, d.pt_last].filter(Boolean).join(' ');
+    return n || 'the patient';
+  }
+
+  /* ---------- the rule set ---------- */
+  /* priority: 1 = highest.  Duplicated disciplines are de-duplicated later. */
+  var RULES = [
+
+    /* --- always-on core --- */
+    {
+      id: 'core_assessment',
+      always: true,
+      priority: 1,
+      problem: 'Need for skilled observation and assessment of an unstable or complex condition',
+      disciplines: ['SN'],
+      goals: [
+        function (c) { return 'Patient will remain medically stable, without unplanned emergency department visit or hospitalization, through the certification period.'; },
+        'Patient or caregiver will verbalize which signs and symptoms require a call to the agency or physician by visit 3.'
+      ],
+      interventions: [
+        'SN to perform comprehensive head-to-toe assessment each visit, including vital signs, pain, weight trend and functional change.',
+        function (c) {
+          var p = c.d;
+          var parts = [];
+          if (p.param_sbp_hi || p.param_sbp_lo) parts.push('SBP >' + (p.param_sbp_hi || '160') + ' or <' + (p.param_sbp_lo || '90'));
+          if (p.param_hr_hi || p.param_hr_lo) parts.push('HR >' + (p.param_hr_hi || '110') + ' or <' + (p.param_hr_lo || '55'));
+          if (p.param_temp) parts.push('temp >' + p.param_temp + 'F');
+          if (p.param_o2) parts.push('SpO2 <' + p.param_o2 + '%');
+          if (p.param_glucose_hi || p.param_glucose_lo) parts.push('glucose >' + (p.param_glucose_hi || '300') + ' or <' + (p.param_glucose_lo || '70'));
+          if (p.param_weight) parts.push('weight gain >' + p.param_weight + ' lb in one week');
+          if (p.param_other) parts.push(p.param_other);
+          return 'Notify physician for: ' + (parts.length ? parts.join('; ') : 'any significant change in condition') + '.';
+        },
+        'Instruct patient and caregiver on the agency 24-hour on-call number and when to call 911.',
+        'Coordinate care with the physician and report changes in condition, new orders and response to treatment.'
+      ]
+    },
+
+    /* --- falls --- */
+    {
+      id: 'falls',
+      when: function (c) { return c.sc.morse.value >= 25 || c.d.fall_injury === 'Yes' || (c.num(c.d.falls_number) || 0) >= 1 || c.d.gait_quality === 'Unsteady even with device' || c.d.gait_quality === 'Unsteady - requires device'; },
+      priority: 1,
+      problem: 'Risk for falls related to impaired gait, balance and medication effects',
+      disciplines: ['SN', 'PT'],
+      goals: [
+        'Patient will remain free of falls and fall-related injury through the certification period.',
+        'Patient or caregiver will demonstrate three fall-prevention measures in the home by visit 4.',
+        'Patient will demonstrate safe and consistent use of the prescribed assistive device by visit 4.'
+      ],
+      interventions: [
+        function (c) { return 'SN to assess fall risk each visit (Morse Fall Scale ' + c.sc.morse.value + ' - ' + c.sc.morse.risk + ') and reassess after any fall or change in medications.'; },
+        'Instruct on removing throw rugs and clutter, improving lighting, wearing non-skid footwear and using nightlights on the path to the bathroom.',
+        'Instruct on rising slowly from bed and chair to avoid orthostatic dizziness.',
+        'Refer to PT for gait, balance, strengthening and assistive device training.',
+        'Review medications contributing to fall risk (sedatives, antihypertensives, hypoglycemics, anticholinergics) and report concerns to the physician.',
+        'Instruct patient and caregiver to report any fall to the agency immediately, whether or not injury occurred.'
+      ]
+    },
+
+    /* --- pressure injury risk --- */
+    {
+      id: 'skin_risk',
+      when: function (c) { return c.sc.braden.complete && c.sc.braden.value <= 18; },
+      priority: 2,
+      problem: 'Risk for impaired skin integrity related to reduced mobility, moisture and nutritional status',
+      disciplines: ['SN'],
+      goals: [
+        'Patient skin will remain intact, with no new pressure injury through the certification period.',
+        'Caregiver will demonstrate correct repositioning and pressure-relief technique by visit 3.'
+      ],
+      interventions: [
+        function (c) { return 'SN to complete full skin inspection every visit, with attention to bony prominences (Braden ' + c.sc.braden.value + ' - ' + c.sc.braden.risk + ').'; },
+        'Instruct on repositioning at least every 2 hours in bed and every hour in chair; use pillows to offload heels and bony prominences.',
+        'Instruct on keeping skin clean and dry, applying moisture barrier after incontinence episodes and using pH-balanced cleanser.',
+        'Instruct on pressure-redistribution surface for bed and chair; obtain physician order for appropriate support surface if indicated.',
+        'Encourage adequate protein, calorie and fluid intake to support skin integrity.'
+      ]
+    },
+
+    /* --- active wound --- */
+    {
+      id: 'wound',
+      when: function (c) { return c.d.wound_present === 'Yes'; },
+      priority: 1,
+      problem: 'Impaired skin integrity - wound requiring skilled care',
+      disciplines: ['SN'],
+      goals: [
+        'Wound will show measurable progress toward healing (decrease in size, depth or drainage) at each reassessment.',
+        'Wound will remain free of clinical infection through the certification period.',
+        'Patient or caregiver will demonstrate correct dressing change technique and infection signs by visit 4 if the caregiver is to perform care between visits.'
+      ],
+      interventions: [
+        function (c) { return 'Perform wound care per physician order: ' + (c.d.wound_orders ? c.d.wound_orders.replace(/\s+/g, ' ').trim() : '[obtain and transcribe physician wound care order]') + '.'; },
+        'Measure wound length, width, depth and undermining weekly; document tissue type, exudate amount and character, odor and periwound condition.',
+        'Assess for signs of infection each visit: increased erythema, warmth, purulent drainage, odor, increased pain, fever; report promptly to physician.',
+        'Instruct patient and caregiver on clean technique, dressing supply handling and safe disposal of soiled dressings.',
+        'Instruct on offloading and pressure relief to the wound area.',
+        'Report failure to progress within 2 weeks to the physician and request wound care consultation.'
+      ]
+    },
+
+    /* --- pain --- */
+    {
+      id: 'pain',
+      when: function (c) { return c.d.pain_present === 'Yes' && ((c.num(c.d.pain_score) || 0) >= 4 || (c.num(c.d.pain_worst) || 0) >= 5 || c.d.pain_effect === 'Yes'); },
+      priority: 2,
+      problem: 'Pain interfering with function, sleep and participation in care',
+      disciplines: ['SN'],
+      goals: [
+        function (c) {
+          var cur = c.num(c.d.pain_score);
+          var target = cur != null ? Math.max(0, Math.min(3, cur - 2)) : 3;
+          return 'Patient will report pain at or below ' + target + '/10, at a level that allows participation in ADLs and sleep, within 3 weeks.';
+        },
+        'Patient or caregiver will verbalize the prescribed pain regimen, including non-drug measures, by visit 3.'
+      ],
+      interventions: [
+        function (c) { return 'Assess pain each visit using the ' + (c.d.pain_scale_used || 'numeric 0-10') + ' scale, including location, quality, timing and effect on function.'; },
+        'Instruct on scheduled versus as-needed dosing and on taking analgesic before painful activity rather than after pain escalates.',
+        'Instruct on non-pharmacologic measures: positioning, heat or cold as ordered, pacing, relaxation and activity modification.',
+        'Monitor for analgesic side effects, particularly constipation, sedation and confusion; instruct on a bowel regimen when opioids are prescribed.',
+        'Report uncontrolled pain or new pain pattern to the physician for regimen adjustment.'
+      ]
+    },
+
+    /* --- medication management --- */
+    {
+      id: 'meds',
+      when: function (c) {
+        return (c.num(c.d.med_count) || 0) >= 5
+          || (c.checks('med_issues').length && !c.has('med_issues', 'None identified'))
+          || (c.checks('med_classes').length && !c.has('med_classes', 'None'))
+          || c.d.iadl_meds === 'Needs assistance' || c.d.iadl_meds === 'Dependent';
+      },
+      priority: 1,
+      problem: 'Knowledge deficit and safety risk related to a complex medication regimen (polypharmacy)',
+      disciplines: ['SN'],
+      goals: [
+        'Patient or caregiver will state the name, purpose, dose and time of each medication, and two side effects to report, by visit 4.',
+        'Patient will take medications as prescribed, with no missed or duplicated doses reported, by the end of the certification period.'
+      ],
+      interventions: [
+        'Perform medication reconciliation at start of care and after every hospitalization, physician visit or new order; review all prescription, over-the-counter and herbal products in the home.',
+        'Assess for duplicate therapy, drug-drug interactions, doses outside safe range and medications without a matching diagnosis; report findings to the physician.',
+        function (c) { return 'Set up and instruct on use of a weekly pill organizer' + (c.d.med_organizer === 'Yes' ? '; verify accurate fill each visit.' : ' to support adherence.'); },
+        'Instruct on safe medication storage and disposal of expired or discontinued medications.',
+        'Assess adherence each visit using pill counts and patient report; identify and address barriers including cost, literacy and dexterity.'
+      ]
+    },
+    {
+      id: 'anticoag',
+      when: function (c) { return c.has('med_classes', 'Anticoagulant / antiplatelet'); },
+      priority: 1,
+      problem: 'Risk for bleeding related to anticoagulant or antiplatelet therapy',
+      disciplines: ['SN'],
+      goals: ['Patient will remain free of clinically significant bleeding events through the certification period.',
+        'Patient or caregiver will verbalize bleeding precautions and signs of bleeding to report by visit 3.'],
+      interventions: [
+        'Assess each visit for bruising, bleeding gums, epistaxis, hematuria, melena, and new or worsening headache or confusion.',
+        'Instruct on bleeding precautions: soft toothbrush, electric razor, avoid NSAIDs unless approved, prevent falls and report any head injury immediately.',
+        'Instruct on dietary consistency and drug interactions relevant to the prescribed anticoagulant; reinforce lab monitoring schedule.',
+        'Coordinate INR or other ordered lab draws and report results to the physician for dosage adjustment.'
+      ]
+    },
+    {
+      id: 'hypoglycemia',
+      when: function (c) { return c.hasAny('med_classes', ['Insulin', 'Oral hypoglycemic']); },
+      priority: 1,
+      problem: 'Risk for hypoglycemia and hyperglycemia related to antidiabetic therapy',
+      disciplines: ['SN'],
+      goals: [
+        'Patient will maintain blood glucose within physician-ordered parameters, without emergency treatment for hypo- or hyperglycemia, through the certification period.',
+        'Patient or caregiver will demonstrate accurate glucose monitoring and correct treatment of hypoglycemia by visit 4.'
+      ],
+      interventions: [
+        'Instruct on signs of hypoglycemia (shakiness, sweating, confusion, hunger) and the 15-15 rule for treatment; ensure a fast-acting carbohydrate source is available in the home.',
+        'Observe return demonstration of glucometer use, and of insulin preparation, injection technique and site rotation when insulin is prescribed.',
+        'Instruct on sick-day management and on the relationship between meals, activity and glucose.',
+        'Review glucose log each visit and report readings outside ordered parameters to the physician.',
+        'Instruct on safe sharps disposal.'
+      ]
+    },
+
+    /* --- disease-specific --- */
+    {
+      id: 'chf',
+      when: function (c) { return c.dx('heart failure', 'chf', 'chronic systolic', 'chronic diastolic', 'cardiomyopathy') || c.d.weight_gain === 'Yes' || (c.has('cardiac_findings', 'Peripheral edema') && c.has('resp_findings', 'Dyspnea on exertion')); },
+      priority: 1,
+      problem: 'Excess fluid volume related to cardiac dysfunction',
+      disciplines: ['SN'],
+      goals: [
+        'Patient will remain free of signs of fluid overload (no increase in edema, no weight gain beyond ordered parameters, no orthopnea) through the certification period.',
+        'Patient or caregiver will demonstrate daily weight monitoring and verbalize the weight change that requires a call by visit 3.'
+      ],
+      interventions: [
+        'Assess each visit for edema, jugular venous distention, lung sounds, orthopnea, activity tolerance and weight trend.',
+        function (c) { return 'Instruct on daily weights: same time each morning, after voiding, before breakfast, in similar clothing; report gain of ' + (c.d.param_weight || '5') + ' lb in one week or 3 lb in one day.'; },
+        'Instruct on sodium restriction and fluid guidance as ordered, including reading food labels and avoiding processed foods.',
+        'Instruct on diuretic therapy, timing of doses and signs of dehydration or electrolyte imbalance.',
+        'Instruct on energy conservation and gradual activity progression as tolerated.'
+      ]
+    },
+    {
+      id: 'copd',
+      when: function (c) { return c.dx('copd', 'emphysema', 'chronic bronchitis', 'asthma', 'pulmonary fibrosis') || c.d.vs_o2_therapy === 'Yes' || c.hasAny('resp_findings', ['Dyspnea at rest', 'Wheezing', 'Uses inhalers / nebulizer']); },
+      priority: 2,
+      problem: 'Impaired gas exchange / ineffective breathing pattern',
+      disciplines: ['SN'],
+      goals: [
+        function (c) { return 'Patient will maintain SpO2 at or above ' + (c.d.param_o2 || '90') + '% and report breathing adequate for ADLs through the certification period.'; },
+        'Patient will demonstrate pursed-lip breathing and correct inhaler or nebulizer technique by visit 3.'
+      ],
+      interventions: [
+        'Assess respiratory rate, effort, breath sounds, oxygen saturation and sputum characteristics each visit.',
+        'Instruct on pursed-lip and diaphragmatic breathing, controlled coughing and energy conservation techniques.',
+        'Observe return demonstration of inhaler, spacer and nebulizer use, including rinsing the mouth after steroid inhalers.',
+        'Instruct on early signs of respiratory infection or exacerbation and when to call the physician.',
+        'Reinforce oxygen safety: no smoking or open flame in the home, secure tubing, keep concentrator away from heat sources, and maintain backup supply.',
+        'Reinforce smoking cessation and offer resources when applicable.'
+      ]
+    },
+    {
+      id: 'diabetes',
+      when: function (c) { return c.dx('diabetes', 'dm2', 'type 2 diabetes', 'type 1 diabetes', 'hyperglycemia'); },
+      priority: 2,
+      problem: 'Ineffective glycemic management related to knowledge deficit of the diabetic regimen',
+      disciplines: ['SN'],
+      goals: [
+        'Patient or caregiver will verbalize the prescribed diabetic diet, medication regimen and monitoring schedule by visit 4.',
+        'Patient will demonstrate daily foot inspection technique by visit 3.'
+      ],
+      interventions: [
+        'Instruct on the diabetic diet, carbohydrate consistency and meal timing in relation to medication.',
+        'Perform and instruct on daily foot inspection; assess for neuropathy, skin breakdown, nail condition and appropriate footwear each visit.',
+        'Instruct on long-term complications and the importance of glycemic control, ophthalmology and podiatry follow-up.',
+        'Review glucose log and A1C results with the patient; coordinate with the physician for regimen adjustment.'
+      ]
+    },
+    {
+      id: 'catheter',
+      when: function (c) { return ['Indwelling catheter', 'Intermittent catheterization', 'Suprapubic catheter'].indexOf(c.d.urinary_status) !== -1; },
+      priority: 2,
+      problem: 'Risk for catheter-associated urinary tract infection',
+      disciplines: ['SN'],
+      goals: [
+        'Patient will remain free of catheter-associated urinary tract infection through the certification period.',
+        'Patient or caregiver will demonstrate catheter and drainage bag care by visit 3.'
+      ],
+      interventions: [
+        function (c) { return 'Provide catheter care and change per physician order' + (c.d.catheter_detail ? ' (' + c.d.catheter_detail.replace(/\s+/g, ' ').trim() + ')' : '') + '; maintain a closed drainage system.'; },
+        'Assess urine color, clarity, odor and output each visit; assess for suprapubic pain, fever, chills or new confusion.',
+        'Instruct on keeping the drainage bag below bladder level, securing tubing to prevent traction, and daily perineal hygiene.',
+        'Encourage fluid intake as permitted by the plan of care to promote urinary flow.'
+      ]
+    },
+    {
+      id: 'uti',
+      when: function (c) { return c.d.uti_signs === 'Yes'; },
+      priority: 1,
+      problem: 'Actual or suspected urinary tract infection',
+      disciplines: ['SN'],
+      goals: ['Signs and symptoms of urinary infection will resolve within 2 weeks, verified by clinical assessment or physician follow-up.'],
+      interventions: [
+        'Notify physician of urinary symptoms; obtain order for urinalysis and culture as indicated.',
+        'Monitor temperature, mental status changes and urinary symptoms each visit.',
+        'Instruct on completing the full antibiotic course, hydration and perineal hygiene.'
+      ]
+    },
+    {
+      id: 'incontinence',
+      when: function (c) { return ['Occasional incontinence', 'Frequent / total incontinence'].indexOf(c.d.urinary_status) !== -1 || ['Occasional incontinence', 'Frequent incontinence'].indexOf(c.d.bowel_incont) !== -1; },
+      priority: 3,
+      problem: 'Impaired elimination with risk for incontinence-associated dermatitis',
+      disciplines: ['SN'],
+      goals: [
+        'Perineal skin will remain intact and free of excoriation through the certification period.',
+        'Patient or caregiver will verbalize a toileting schedule and skin protection routine by visit 3.'
+      ],
+      interventions: [
+        'Instruct on a timed toileting schedule and on prompt cleansing after each incontinence episode.',
+        'Instruct on use of pH-balanced cleanser and moisture barrier ointment; avoid harsh soaps and vigorous rubbing.',
+        'Assess perineal and sacral skin each visit for redness, maceration or breakdown.',
+        'Ensure clear, well-lit, unobstructed path to the bathroom and consider bedside commode if mobility is limited.'
+      ]
+    },
+    {
+      id: 'constipation',
+      when: function (c) { return c.d.bowel_pattern === 'Constipation' || c.has('med_classes', 'Opioid analgesic'); },
+      priority: 3,
+      problem: 'Constipation related to immobility, medication effect and reduced fluid or fiber intake',
+      disciplines: ['SN'],
+      goals: ['Patient will have a soft, formed bowel movement at least every 3 days without straining, by the end of week 2.'],
+      interventions: [
+        'Monitor and document bowel pattern each visit; instruct patient or caregiver to keep a bowel record.',
+        'Instruct on increasing dietary fiber and fluids within any ordered restrictions, and on activity to promote motility.',
+        'Instruct on the ordered bowel regimen; obtain orders for a stimulant laxative and stool softener when opioids are prescribed.',
+        'Report no bowel movement in 3 days, abdominal distention or vomiting to the physician.'
+      ]
+    },
+    {
+      id: 'nutrition',
+      when: function (c) { return c.d.weight_loss === 'Yes' || ['Poor - eats less than half', 'Minimal / refuses'].indexOf(c.d.appetite) !== -1 || c.d.hydration === 'Signs of dehydration' || c.d.food_access === 'No' || (c.sc.bmi.value && parseFloat(c.sc.bmi.value) < 18.5); },
+      priority: 2,
+      problem: 'Imbalanced nutrition: less than body requirements',
+      disciplines: ['SN'],
+      goals: [
+        'Patient will maintain or gain weight, with no further unintentional loss, through the certification period.',
+        'Patient or caregiver will verbalize three strategies to increase caloric and protein intake by visit 3.'
+      ],
+      interventions: [
+        'Weigh patient weekly and record trend; report continued loss to the physician.',
+        'Assess intake pattern, food preferences, chewing and swallowing ability, and barriers to obtaining or preparing food.',
+        'Instruct on small frequent nutrient-dense meals, protein at every meal and oral supplements if ordered.',
+        'Encourage fluids within ordered restrictions and monitor for signs of dehydration.',
+        'Refer to MSW for community nutrition resources when access or cost is a barrier.'
+      ]
+    },
+    {
+      id: 'dysphagia',
+      when: function (c) { return ['Difficulty with thin liquids', 'Difficulty with solids', 'Coughing / choking with meals'].indexOf(c.d.swallowing) !== -1; },
+      priority: 1,
+      problem: 'Impaired swallowing with risk for aspiration',
+      disciplines: ['SN', 'ST'],
+      goals: [
+        'Patient will remain free of aspiration and aspiration pneumonia through the certification period.',
+        'Patient or caregiver will demonstrate aspiration precautions at every meal by visit 3.'
+      ],
+      interventions: [
+        'Refer to speech therapy for swallowing evaluation and diet texture recommendations.',
+        'Instruct on aspiration precautions: upright 90 degrees during meals and 30-45 minutes after, small bites, slow pace, chin tuck as recommended, no straws if contraindicated.',
+        'Instruct on oral care before and after meals to reduce bacterial load.',
+        'Monitor for coughing or wet vocal quality with meals, low-grade fever and changes in breath sounds; report to physician.'
+      ]
+    },
+    {
+      id: 'cognition',
+      when: function (c) { return c.d.dementia_dx === 'Yes' || c.d.memory_deficit === 'Yes' || ['Requires assistance and direction in routine situations', 'Requires considerable assistance in routine situations', 'Totally dependent / cannot direct care'].indexOf(c.d.cognitive_function) !== -1 || ['During the day but not constantly', 'Constantly', 'On awakening or at night only (sundowning)'].indexOf(c.d.confusion_freq) !== -1; },
+      priority: 1,
+      problem: 'Impaired cognition affecting safety and the ability to self-direct care',
+      disciplines: ['SN', 'MSW'],
+      goals: [
+        'Patient will remain free from injury related to cognitive impairment through the certification period.',
+        'Caregiver will verbalize and demonstrate supervision, cueing and communication strategies by visit 4.'
+      ],
+      interventions: [
+        'Assess cognition, orientation and behavior each visit; report acute change in mental status to the physician as it may indicate infection, dehydration or medication effect.',
+        'Direct all teaching to the caregiver as the responsible party, and reinforce with written material and simple written schedules.',
+        'Instruct caregiver on environmental supports: consistent routine, reduced clutter and noise, visible clocks and calendars, adequate lighting.',
+        'Instruct caregiver on securing medications, chemicals, sharp objects, car keys and firearms.',
+        function (c) { return c.has('behaviors', 'Wandering / elopement risk') ? 'Instruct caregiver on wandering precautions: door alarms, secured exits, identification bracelet and enrollment in a safe-return program.' : 'Instruct caregiver on redirection and de-escalation techniques rather than confrontation.'; },
+        'Refer to MSW for caregiver support, community resources and long-term care planning.'
+      ]
+    },
+    {
+      id: 'depression',
+      when: function (c) { return c.sc.phq2.positive || c.d.suicidal_ideation === 'Yes'; },
+      priority: 1,
+      problem: 'Risk for depression affecting recovery and adherence to the plan of care',
+      disciplines: ['SN', 'MSW'],
+      goals: [
+        'Patient will report improved mood and engagement in the plan of care, with a PHQ-2 score below 3, within 4 weeks.',
+        'Patient will remain safe, without self-harm, through the certification period.'
+      ],
+      interventions: [
+        function (c) { return 'Positive PHQ-2 screen (score ' + c.sc.phq2.value + '); notify physician and request further evaluation with a full depression assessment.'; },
+        'Assess mood, sleep, appetite, energy and any expression of hopelessness or self-harm each visit.',
+        'Refer to medical social worker for counseling, community resources and coordination of behavioral health follow-up.',
+        'Encourage participation in meaningful activity and social contact; involve family and faith or community supports as the patient wishes.',
+        'If medication is prescribed for mood, instruct on adherence, expected time to effect and side effects to report.'
+      ],
+      urgent: function (c) { return c.d.suicidal_ideation === 'Yes' ? 'Patient expressed thoughts of self-harm - implement agency safety protocol, notify physician immediately, and do not leave the patient unsafe or unattended.' : null; }
+    },
+    {
+      id: 'mobility',
+      when: function (c) { return c.adl('adl_ambulation') >= 2 || c.adl('adl_transfer') >= 2 || ['Unsteady - requires device', 'Unsteady even with device', 'Unable to ambulate'].indexOf(c.d.gait_quality) !== -1 || ['Tires with minimal activity', 'Requires frequent rest periods', 'Bed / chair bound'].indexOf(c.d.endurance) !== -1; },
+      priority: 2,
+      problem: 'Impaired physical mobility and activity intolerance',
+      disciplines: ['SN', 'PT'],
+      goals: [
+        'Patient will transfer and ambulate safely with the least restrictive assistive device and no more than supervision, within 6 weeks.',
+        'Patient will increase ambulation distance sufficient to complete household activities without excessive fatigue, within 6 weeks.'
+      ],
+      interventions: [
+        'Refer to physical therapy for evaluation, therapeutic exercise, gait training and assistive device instruction.',
+        'Instruct on a home exercise program as established by therapy and reinforce at each nursing visit.',
+        'Instruct on safe transfer technique and correct assistive device height and use.',
+        'Instruct on energy conservation and pacing: sit for tasks, alternate activity with rest, organize supplies within reach.'
+      ]
+    },
+    {
+      id: 'selfcare',
+      when: function (c) { return c.maxAdl() >= 3; },
+      priority: 2,
+      problem: 'Self-care deficit in activities of daily living',
+      disciplines: ['SN', 'OT', 'HHA'],
+      goals: [
+        function (c) {
+          var list = c.dependentAdls();
+          return 'Patient will participate in ' + (list.length ? list.slice(0, 3).join(', ') : 'personal care') + ' with no more than supervision or setup assistance, or with adaptive equipment, within 6 weeks.';
+        },
+        'Caregiver will demonstrate safe assistance with personal care and transfers by visit 4.'
+      ],
+      interventions: [
+        'Refer to occupational therapy for ADL retraining, adaptive equipment evaluation and energy conservation.',
+        'Refer to home health aide for assistance with personal care per the written aide plan; supervise aide per agency policy and regulation.',
+        'Instruct caregiver on safe body mechanics and assistance techniques to prevent injury to patient and caregiver.',
+        'Assess for adaptive equipment needs: shower chair, long-handled sponge, reacher, sock aid, raised toilet seat, grab bars.'
+      ]
+    },
+    {
+      id: 'caregiver_gap',
+      when: function (c) { return c.noCaregiver || (c.livesAlone && c.maxAdl() >= 3) || c.d.caregiver_ability === 'Limited by own health' || c.d.caregiver_ability === 'Willing but needs training'; },
+      priority: 1,
+      problem: 'Inadequate caregiver support for the current level of care needs',
+      disciplines: ['SN', 'MSW'],
+      goals: [
+        'A sustainable caregiving plan will be established, with identified providers for all care the patient cannot perform, within 3 weeks.',
+        'Caregiver will verbalize confidence in providing required care and will identify respite options by visit 5.'
+      ],
+      interventions: [
+        'Refer to medical social worker to evaluate caregiver capacity and to arrange community, waiver or private-duty resources.',
+        'Assess caregiver strain each visit and provide teaching in short, repeated segments with written reinforcement.',
+        'Instruct on emergency response options: personal emergency response system, daily check-in call, neighbor or family contact.',
+        'Coordinate meal delivery, transportation and homemaker services as available.'
+      ]
+    },
+    {
+      id: 'home_safety',
+      when: function (c) { var h = c.checks('home_hazards'); return (h.length && !c.has('home_hazards', 'None identified')) || c.d.home_utilities === 'No'; },
+      priority: 2,
+      problem: 'Environmental hazards in the home increasing risk for injury',
+      disciplines: ['SN'],
+      goals: ['Identified home hazards will be corrected or mitigated, verified by clinician observation, within 3 weeks.'],
+      interventions: [
+        function (c) {
+          var h = c.checks('home_hazards').filter(function (x) { return x !== 'None identified'; });
+          return 'Instruct patient and caregiver on correcting identified hazards: ' + (h.join('; ') || 'as observed in the home') + '.';
+        },
+        'Verify working smoke detectors and carbon monoxide detectors; instruct on a fire escape plan.',
+        'Reassess the home environment each visit and document correction of hazards.'
+      ]
+    },
+    {
+      id: 'emergency_prep',
+      when: function (c) { return c.d.emerg_plan === 'No' || (c.d.vs_o2_therapy === 'Yes') || c.d.dialysis === 'Hemodialysis' || c.d.dialysis === 'Peritoneal'; },
+      priority: 3,
+      problem: 'Lack of an emergency preparedness plan for a patient dependent on care or equipment',
+      disciplines: ['SN'],
+      goals: ['Patient or caregiver will verbalize the emergency and evacuation plan, including backup power and supply plan, by visit 3.'],
+      interventions: [
+        function (c) { return 'Establish and document emergency triage level' + (c.d.emerg_triage ? ' (' + c.d.emerg_triage + ')' : '') + ' and review with patient and caregiver.'; },
+        'Instruct on maintaining an emergency supply of medications, water, food and required supplies.',
+        'Notify the utility company and register the patient for priority restoration when the patient depends on electrically powered equipment.',
+        'Provide agency emergency contact information and instruct on the plan for severe weather or evacuation.'
+      ]
+    },
+    {
+      id: 'rehosp',
+      when: function (c) { return c.d.ref_hosp_discharge === 'Yes' || c.hasAny('risk_rehosp', ['Multiple hospitalizations in past 6 months', 'Recent decline in mental / emotional / behavioral status', 'Frailty indicators']); },
+      priority: 1,
+      problem: 'Risk for avoidable rehospitalization',
+      disciplines: ['SN'],
+      goals: [
+        'Patient will remain in the home setting without unplanned hospital readmission through the certification period.',
+        'Patient or caregiver will demonstrate use of a zone tool (green / yellow / red) to identify and act on early warning signs by visit 3.'
+      ],
+      interventions: [
+        'Complete post-hospital medication reconciliation and confirm that discharge instructions match the current physician orders.',
+        'Confirm that follow-up physician appointments are scheduled and that transportation is arranged.',
+        'Provide and review a condition-specific zone tool; instruct on which findings require a call to the agency and which require 911.',
+        'Front-load nursing visits in the first two weeks after discharge to detect early decline.'
+      ]
+    },
+    {
+      id: 'advance_dir',
+      when: function (c) { return c.d.pt_advance_dir === 'No' || c.d.pt_advance_dir === 'Unknown'; },
+      priority: 3,
+      problem: 'Advance directive not established or not available in the home',
+      disciplines: ['SN', 'MSW'],
+      goals: ['Patient will verbalize understanding of advance directive options and state a decision, with documentation placed in the home record, within 4 weeks.'],
+      interventions: [
+        'Provide written information on advance directives and healthcare surrogate designation per agency policy and state law.',
+        'Discuss goals of care and care preferences with the patient and family; document the patient stated wishes.',
+        'Refer to medical social worker to assist with completion and distribution of documents to the physician and hospital.'
+      ]
+    },
+    {
+      id: 'psychosocial',
+      when: function (c) { var p = c.checks('psychosocial_factors'); return p.length && !c.has('psychosocial_factors', 'None identified'); },
+      priority: 3,
+      problem: 'Psychosocial and social determinant barriers affecting the plan of care',
+      disciplines: ['SN', 'MSW'],
+      goals: ['Identified psychosocial barriers will be addressed through referral or resource linkage, with the patient reporting reduced barrier impact, within 4 weeks.'],
+      interventions: [
+        function (c) {
+          var p = c.checks('psychosocial_factors').filter(function (x) { return x !== 'None identified'; });
+          return 'Refer to medical social worker for: ' + p.join('; ') + '.';
+        },
+        'Coordinate community resources: meal programs, transportation, prescription assistance, utility assistance and support groups.',
+        'Reassess psychosocial status each visit and document changes.'
+      ],
+      urgent: function (c) { return c.has('psychosocial_factors', 'Suspected abuse or neglect') ? 'Suspected abuse or neglect identified - follow agency policy and mandatory state reporting requirements; notify supervisor and physician.' : null; }
+    },
+    {
+      id: 'infection_prev',
+      when: function (c) { return c.hasAny('immunizations', ['Unknown', 'Declined']) || c.d.wound_present === 'Yes' || c.has('med_classes', 'Chemotherapy / immunosuppressant'); },
+      priority: 3,
+      problem: 'Risk for infection',
+      disciplines: ['SN'],
+      goals: ['Patient will remain free of new infection through the certification period.'],
+      interventions: [
+        'Instruct on hand hygiene, respiratory etiquette and safe handling of soiled items for patient and all caregivers.',
+        'Assess for fever, new confusion, wound changes, urinary symptoms and respiratory symptoms each visit.',
+        'Review immunization status and provide education on influenza, pneumococcal and COVID-19 vaccination per physician direction.'
+      ]
+    }
+  ];
+
+  /* ---------- discipline mapping ---------- */
+  var DISC_NAMES = {
+    SN: 'Skilled nursing',
+    PT: 'Physical therapy',
+    OT: 'Occupational therapy',
+    ST: 'Speech therapy',
+    MSW: 'Medical social worker',
+    HHA: 'Home health aide'
+  };
+  var DISC_FROM_LABEL = {
+    'Skilled nursing (SN)': 'SN', 'Physical therapy (PT)': 'PT', 'Occupational therapy (OT)': 'OT',
+    'Speech therapy (ST)': 'ST', 'Medical social worker (MSW)': 'MSW', 'Home health aide (HHA)': 'HHA'
+  };
+
+  function resolve(item, c) { return typeof item === 'function' ? item(c) : item; }
+
+  /* ---------- suggested visit frequency ---------- */
+  function suggestFrequency(c, problems) {
+    var ids = problems.map(function (p) { return p.id; });
+    var high = ids.indexOf('wound') !== -1 || ids.indexOf('rehosp') !== -1 || c.sc.morse.value >= 45 ||
+      c.d.ref_hosp_discharge === 'Yes' || ids.indexOf('hypoglycemia') !== -1;
+    if (c.d.wound_present === 'Yes' && c.d.wound_infection === 'Yes') return '1w5, 1w3, 2w2 (front-loaded for infected wound; adjust to physician orders)';
+    if (high) return '1w3, 1w2, 2w2, 1w4 (front-loaded first two weeks)';
+    if (problems.length >= 6) return '2w1, 1w2, 1w6';
+    return '1w1, 2w1, 1w7';
+  }
+
+  /* ---------- main generator ---------- */
+  function generate(d) {
+    var c = ctxOf(d);
+    var problems = [];
+    var urgent = [];
+    var disciplines = {};
+
+    // disciplines explicitly ordered by the clinician always count
+    c.checks('disciplines').forEach(function (label) {
+      var code = DISC_FROM_LABEL[label];
+      if (code) disciplines[code] = { code: code, name: DISC_NAMES[code], source: 'ordered' };
+    });
+
+    RULES.forEach(function (r) {
+      var fires = r.always || (r.when && r.when(c));
+      if (!fires) return;
+      problems.push({
+        id: r.id,
+        priority: r.priority || 3,
+        problem: r.problem,
+        disciplines: r.disciplines || [],
+        goals: (r.goals || []).map(function (g) { return resolve(g, c); }).filter(Boolean),
+        interventions: (r.interventions || []).map(function (i) { return resolve(i, c); }).filter(Boolean)
+      });
+      (r.disciplines || []).forEach(function (code) {
+        if (!disciplines[code]) disciplines[code] = { code: code, name: DISC_NAMES[code], source: 'indicated' };
+      });
+      if (r.urgent) { var u = r.urgent(c); if (u) urgent.push(u); }
+    });
+
+    problems.sort(function (a, b) { return a.priority - b.priority; });
+
+    // certification period
+    var weeks = c.num(d.cert_period_weeks) || 9;
+    var socDate = d.soc_date ? new Date(d.soc_date + 'T00:00:00') : null;
+    var certEnd = null;
+    if (socDate && !isNaN(socDate)) {
+      certEnd = new Date(socDate.getTime());
+      certEnd.setDate(certEnd.getDate() + Math.round(weeks * 7) - 1);
+    }
+
+    var safety = buildSafety(c, problems);
+
+    return {
+      generatedAt: new Date().toISOString(),
+      patient: ptName(d),
+      scores: c.sc,
+      problems: problems,
+      urgent: urgent,
+      disciplines: Object.keys(disciplines).map(function (k) { return disciplines[k]; })
+        .sort(function (a, b) { return ['SN', 'PT', 'OT', 'ST', 'MSW', 'HHA'].indexOf(a.code) - ['SN', 'PT', 'OT', 'ST', 'MSW', 'HHA'].indexOf(b.code); }),
+      suggestedFrequency: suggestFrequency(c, problems),
+      safety: safety,
+      certStart: d.soc_date || '',
+      certEnd: certEnd ? certEnd.toISOString().slice(0, 10) : '',
+      certWeeks: weeks
+    };
+  }
+
+  function buildSafety(c, problems) {
+    var ids = problems.map(function (p) { return p.id; });
+    var out = ['Universal / standard precautions', 'Agency 24-hour emergency phone number posted in the home'];
+    if (ids.indexOf('falls') !== -1) out.push('Fall precautions; clear pathways; assistive device within reach');
+    if (c.d.vs_o2_therapy === 'Yes') out.push('Oxygen safety precautions; no smoking or open flame');
+    if (ids.indexOf('anticoag') !== -1) out.push('Bleeding precautions');
+    if (ids.indexOf('dysphagia') !== -1) out.push('Aspiration precautions');
+    if (ids.indexOf('hypoglycemia') !== -1) out.push('Hypoglycemia protocol; fast-acting carbohydrate available');
+    if (ids.indexOf('skin_risk') !== -1 || ids.indexOf('wound') !== -1) out.push('Pressure injury prevention; repositioning schedule');
+    if (c.has('behaviors', 'Wandering / elopement risk')) out.push('Wandering / elopement precautions');
+    if (ids.indexOf('cognition') !== -1) out.push('Supervision for safety; secure medications and hazardous items');
+    if (c.d.dementia_dx === 'Yes' || c.d.suicidal_ideation === 'Yes') out.push('Remove or secure firearms and hazardous materials');
+    if (c.d.emerg_plan === 'No') out.push('Emergency preparedness plan to be established');
+    if (c.d.safety_measures_extra) out.push(c.d.safety_measures_extra);
+    return out;
+  }
+
+  /* ---------- Start of Care narrative note ---------- */
+  function narrative(d, poc) {
+    var c = ctxOf(d);
+    var L = [];
+    var name = ptName(d);
+    var age = '';
+    if (d.pt_dob) {
+      var dob = new Date(d.pt_dob + 'T00:00:00');
+      var ref = d.soc_date ? new Date(d.soc_date + 'T00:00:00') : new Date();
+      if (!isNaN(dob)) {
+        var a = ref.getFullYear() - dob.getFullYear();
+        var m = ref.getMonth() - dob.getMonth();
+        if (m < 0 || (m === 0 && ref.getDate() < dob.getDate())) a--;
+        age = { n: a, text: a + '-year-old ' };
+      }
+    }
+    var sex = d.pt_sex === 'Female' ? 'female' : d.pt_sex === 'Male' ? 'male' : 'patient';
+    // "an 85-year-old", "a 72-year-old"
+    var article = (age && /^(8|11$|18$)/.test(String(age.n))) ? 'an ' : 'a ';
+    var ageText = age ? age.text : '';
+
+    L.push('START OF CARE - SKILLED NURSING ASSESSMENT VISIT');
+    L.push('');
+    L.push('Admitted to home health services on ' + (d.soc_date || '[date]') + '. ' + name + ' is ' + (age ? article : 'a ') + ageText + sex +
+      ' referred by ' + (d.ref_source || '[referral source]').toLowerCase() +
+      (d.ref_hosp_discharge === 'Yes' ? ', discharged from an inpatient stay on ' + (d.ref_discharge_date || '[date]') : '') +
+      ' with a primary diagnosis of ' + (d.dx_primary || '[primary diagnosis]') + '.' +
+      (d.dx_secondary ? ' Other active diagnoses include ' + d.dx_secondary.split('\n').filter(Boolean).join(', ') + '.' : '') +
+      ' Allergies: ' + (d.allergies || 'NKDA') + '.');
+    L.push('');
+
+    // homebound
+    var hb = c.checks('homebound');
+    L.push('HOMEBOUND STATUS: ' + (hb.length
+      ? 'Patient meets homebound criteria - ' + hb.join('; ') + '.'
+      : '[homebound criteria to be documented]') +
+      (d.homebound_narrative ? ' ' + d.homebound_narrative : ''));
+    L.push('');
+
+    // objective
+    var vs = [];
+    if (d.vs_temp) vs.push('T ' + d.vs_temp + 'F');
+    if (d.vs_pulse) vs.push('P ' + d.vs_pulse);
+    if (d.vs_resp) vs.push('R ' + d.vs_resp);
+    if (d.vs_bp_sys && d.vs_bp_dia) vs.push('BP ' + d.vs_bp_sys + '/' + d.vs_bp_dia + (d.vs_bp_position ? ' ' + d.vs_bp_position.toLowerCase() : ''));
+    if (d.vs_o2) vs.push('SpO2 ' + d.vs_o2 + '%' + (d.vs_o2_therapy === 'Yes' ? ' on ' + (d.vs_o2_lpm || 'supplemental oxygen') : ' on room air'));
+    if (d.vs_weight) vs.push('weight ' + d.vs_weight + ' lb');
+    if (c.sc.bmi.value) vs.push('BMI ' + c.sc.bmi.value);
+    if (d.vs_glucose) vs.push('glucose ' + d.vs_glucose + ' mg/dL');
+    L.push('VITAL SIGNS: ' + (vs.length ? vs.join(', ') + '.' : 'not recorded.'));
+    L.push('');
+
+    var sys = [];
+    if (d.orientation) sys.push('Neuro: ' + d.orientation + (d.confusion_freq && d.confusion_freq !== 'Never' ? '; confusion ' + d.confusion_freq.toLowerCase() : '') + '.');
+    var cardio = c.checks('cardiac_findings').filter(function (x) { return x !== 'Within normal limits'; });
+    var resp = c.checks('resp_findings').filter(function (x) { return x !== 'Within normal limits'; });
+    if (cardio.length || d.edema_detail) sys.push('Cardiovascular: ' + (cardio.join(', ') || 'no acute findings') + (d.edema_detail ? '; edema ' + d.edema_detail : '') + '.');
+    if (resp.length || d.dyspnea_level) sys.push('Respiratory: ' + (resp.join(', ') || 'no acute findings') + (d.dyspnea_level ? '; dyspnea ' + d.dyspnea_level.toLowerCase() : '') + '.');
+    var skin = c.checks('skin_condition').filter(function (x) { return x !== 'Intact / no issues'; });
+    if (skin.length || d.wound_present === 'Yes') {
+      sys.push('Integumentary: ' + (skin.join(', ') || 'skin intact') +
+        (d.wound_present === 'Yes' ? '. Wound present - ' + (d.wound_detail ? d.wound_detail.replace(/\s+/g, ' ').trim() : '[describe location, stage, measurements, drainage]') : '') +
+        (c.sc.braden.complete ? '. Braden ' + c.sc.braden.value + ' (' + c.sc.braden.risk + ')' : '') + '.');
+    }
+    if (d.bowel_pattern || d.urinary_status) sys.push('Elimination: bowel ' + (d.bowel_pattern || 'not assessed').toLowerCase() + '; urinary ' + (d.urinary_status || 'not assessed').toLowerCase() + '.');
+    if (d.appetite || d.diet_order) sys.push('Nutrition: ' + (d.diet_order ? d.diet_order + ' diet; ' : '') + 'appetite ' + (d.appetite || 'not assessed').toLowerCase() + (d.weight_loss === 'Yes' ? '; unintentional weight loss reported' : '') + '.');
+    if (d.pain_present === 'Yes') sys.push('Pain: ' + (d.pain_score || '?') + '/10 currently, worst ' + (d.pain_worst || '?') + '/10 in 24 hours, ' + (d.pain_location || 'location not specified') + ', ' + (d.pain_frequency || 'frequency not specified').toLowerCase() + '.');
+    if (sys.length) { L.push('SYSTEMS REVIEW:'); sys.forEach(function (s) { L.push('  ' + s); }); L.push(''); }
+
+    // functional
+    var deps = c.dependentAdls();
+    L.push('FUNCTIONAL STATUS: ' + (deps.length
+      ? 'Requires moderate to maximal assistance with ' + deps.join(', ') + '.'
+      : 'Independent to supervision level with activities of daily living.') +
+      (d.gait_quality ? ' Gait ' + d.gait_quality.toLowerCase() + '.' : '') +
+      (c.checks('mobility_device').filter(function (x) { return x !== 'None'; }).length ? ' Uses ' + c.checks('mobility_device').filter(function (x) { return x !== 'None'; }).join(', ').toLowerCase() + '.' : '') +
+      ' Morse Fall Scale ' + c.sc.morse.value + ' - ' + c.sc.morse.risk + '.');
+    L.push('');
+
+    L.push('LIVING SITUATION: ' + (d.living_arrangement || '[not documented]') + '. Assistance available: ' + (d.assistance_available || '[not documented]').toLowerCase() + '.' +
+      (d.caregiver_name ? ' Primary caregiver: ' + d.caregiver_name + (d.caregiver_ability ? ' (' + d.caregiver_ability.toLowerCase() + ')' : '') + '.' : ''));
+    L.push('');
+
+    L.push('MEDICATIONS: ' + (d.med_count ? d.med_count + ' medications on the current regimen. ' : '') +
+      'Medication reconciliation completed this visit.' +
+      (c.checks('med_issues').filter(function (x) { return x !== 'None identified'; }).length
+        ? ' Issues identified: ' + c.checks('med_issues').filter(function (x) { return x !== 'None identified'; }).join(', ') + '; physician ' + (d.md_notified_meds === 'Yes' ? 'notified' : 'to be notified') + '.'
+        : ' No medication issues identified.'));
+    L.push('');
+
+    if (poc.urgent.length) {
+      L.push('IMMEDIATE ACTIONS TAKEN:');
+      poc.urgent.forEach(function (u) { L.push('  - ' + u); });
+      L.push('');
+    }
+
+    L.push('ASSESSMENT / CLINICAL IMPRESSION: Patient requires skilled nursing for ' +
+      poc.problems.slice(0, 4).map(function (p) { return p.problem.toLowerCase(); }).join('; ') + '.' +
+      ' Rehabilitation prognosis ' + (d.prognosis || 'fair').toLowerCase() + '.');
+    L.push('');
+
+    L.push('PLAN: ' + poc.disciplines.map(function (x) { return x.name; }).join(', ') + ' ordered. ' +
+      'Skilled nursing frequency ' + (d.sn_frequency || poc.suggestedFrequency) + '. ' +
+      'Individualized plan of care established with the patient and caregiver this visit; goals reviewed and agreed to. ' +
+      'Plan of care to be submitted to ' + (d.md_name || 'the physician') + ' for review and signature.' +
+      (d.patient_goals ? ' Patient-stated goal: "' + d.patient_goals.replace(/\s+/g, ' ').trim() + '"' : ''));
+    L.push('');
+    L.push('Clinician: ' + (d.nurse_name || '____________________') + ', RN        Date: ' + (d.visit_date || d.soc_date || '__________'));
+
+    return L.join('\n');
+  }
+
+  root.LTC_POC = {
+    generate: generate,
+    narrative: narrative,
+    RULES: RULES,
+    DISC_NAMES: DISC_NAMES
+  };
+})(window);
+
+</script>
+<script>
+/* =========================================================================
+   Demo data - three fictional patients used to show the program working.
+   Not real people and not real clinical records: every name, MRN, address
+   and finding here is invented for demonstration.
+   Loaded only by demo.html, never by the working app.
+   ========================================================================= */
+(function (root) {
+  'use strict';
+
+  var PATIENTS = [
+    {
+      id: 'demo-alvarez',
+      created: '2026-09-06T14:10:00.000Z',
+      updated: '2026-09-06T15:42:00.000Z',
+      data: {
+        pt_last: 'Alvarez', pt_first: 'Rosa', pt_mrn: 'DEMO-40218', pt_dob: '1941-04-12',
+        pt_sex: 'Female', pt_address: '1420 Palmetto Ln, Hialeah FL', pt_phone: '(305) 555-0142',
+        pt_lang: 'Spanish', pt_interpreter: 'No', pt_advance_dir: 'No',
+        soc_date: '2026-09-06', visit_date: '2026-09-06', nurse_name: 'M. Ortiz',
+        emerg_name: 'Ana Alvarez', emerg_rel: 'Daughter', emerg_phone: '(305) 555-0177',
+
+        ref_source: 'Hospital discharge', ref_hosp_discharge: 'Yes', ref_discharge_date: '2026-09-04',
+        md_name: 'Dr. A. Reyes', md_phone: '(305) 555-0190',
+        dx_primary: 'Chronic systolic heart failure (I50.22)',
+        dx_secondary: 'Type 2 diabetes mellitus (E11.9)\nStage 3 chronic kidney disease (N18.30)\nEssential hypertension (I10)',
+        allergies: 'Sulfa', payer: 'Medicare', auth_visits: '18',
+        homebound: ['Requires assistance of another person to leave home',
+          'Requires supportive device (walker, cane, wheelchair, crutches)',
+          'Leaving home requires considerable and taxing effort'],
+        homebound_narrative: 'Becomes short of breath after ambulating approximately 20 feet and requires seated rest before continuing. Cannot manage the four entry steps without hands-on assistance.',
+
+        vs_temp: '98.4', vs_pulse: '88', vs_resp: '20', vs_o2: '93',
+        vs_bp_sys: '148', vs_bp_dia: '82', vs_bp_position: 'Sitting', vs_orthostatic: 'Yes',
+        vs_weight: '168', vs_height: '62', vs_glucose: '184', vs_o2_therapy: 'No',
+        param_sbp_hi: '160', param_sbp_lo: '90', param_hr_hi: '110', param_hr_lo: '55',
+        param_temp: '100.4', param_o2: '90', param_glucose_hi: '300', param_glucose_lo: '70', param_weight: '5',
+
+        living_arrangement: 'Lives alone', assistance_available: 'Occasional / short-term',
+        caregiver_name: 'Ana Alvarez, daughter', caregiver_ability: 'Willing but needs training',
+        home_type: 'House', home_stairs: 'Yes', home_utilities: 'Yes',
+        home_hazards: ['Throw rugs / clutter in walkways', 'No grab bars in bathroom', 'Inadequate lighting'],
+        emerg_plan: 'No', emerg_triage: 'Level 2 - not immediately life-threatening; contact within 24-48 hrs',
+        env_notes: 'Bedroom and only full bathroom are on the second floor; patient has been sleeping in the living room recliner.',
+
+        vision: 'Impaired - can see large print', hearing: 'Adequate', hearing_aid: 'No',
+        speech: 'Clear and appropriate',
+        pain_present: 'Yes', pain_score: '5', pain_worst: '7', pain_scale_used: 'Numeric 0-10',
+        pain_location: 'Bilateral knees, aching', pain_frequency: 'With activity only', pain_effect: 'Yes',
+        pain_relief: 'Acetaminophen 650 mg twice daily with partial relief; reports she waits until pain is severe before taking it.',
+
+        skin_condition: ['Dry / flaking', 'Edema', 'Fragile / tissue-paper thin'],
+        wound_present: 'Yes', wound_type: ['Venous stasis ulcer'],
+        wound_detail: 'Right medial malleolus, 3.2 x 2.1 x 0.3 cm, 100% granulation, moderate serous drainage, no odor, periwound macerated.',
+        wound_orders: 'Cleanse with normal saline, apply calcium alginate and compression wrap, change three times weekly.',
+        wound_infection: 'No',
+        braden_sensory: '3 - Slightly limited', braden_moisture: '3 - Occasionally moist',
+        braden_activity: '2 - Chairfast', braden_mobility: '2 - Very limited',
+        braden_nutrition: '2 - Probably inadequate', braden_friction: '2 - Potential problem',
+
+        cardiac_findings: ['Peripheral edema', 'Anticoagulant therapy', 'Diminished peripheral pulses'],
+        edema_detail: '2+ pitting, bilateral lower extremities to mid-calf', weight_gain: 'Yes',
+        resp_findings: ['Dyspnea on exertion', 'Orthopnea', 'Crackles / rales'],
+        dyspnea_level: 'With minimal exertion (walking >20 ft, transfers)', smoking: 'Former',
+        cardio_notes: 'Sleeps on three pillows. Reports 6 lb weight gain since hospital discharge two days ago.',
+
+        bowel_pattern: 'Constipation', bowel_incont: 'Continent', bowel_program: 'Docusate as needed, used rarely',
+        urinary_status: 'Occasional incontinence', uti_signs: 'No', dialysis: 'None',
+
+        diet_order: '2 gm sodium, carbohydrate-modified', appetite: 'Fair - eats about half',
+        weight_loss: 'No', swallowing: 'No difficulty', dentition: 'Dentures - fit well',
+        hydration: 'Borderline - encourage fluids', enteral: 'None', food_access: 'Yes',
+
+        orientation: 'Oriented x3 (not time)',
+        cognitive_function: 'Requires prompting in new or complex situations',
+        confusion_freq: 'In new or complex situations only', memory_deficit: 'Yes', dementia_dx: 'No',
+        behaviors: ['None'], phq_interest: '2 - More than half the days', phq_down: '1 - Several days',
+        suicidal_ideation: 'No',
+        neuro_notes: 'Requires written instructions in Spanish; teach-back is reliable when material is reviewed twice.',
+
+        adl_grooming: '1 - Setup / clean-up assist', adl_bath: '3 - Partial / moderate assist',
+        adl_dress_upper: '1 - Setup / clean-up assist', adl_dress_lower: '3 - Partial / moderate assist',
+        adl_toilet: '2 - Supervision / touching assist', adl_transfer: '2 - Supervision / touching assist',
+        adl_ambulation: '3 - Partial / moderate assist', adl_feeding: '0 - Independent',
+        mobility_device: ['Walker'], gait_quality: 'Unsteady - requires device',
+        endurance: 'Tires with minimal activity',
+        iadl_meds: 'Needs assistance', iadl_meals: 'Needs assistance', iadl_phone: 'Independent',
+        iadl_shopping: 'Dependent', iadl_housekeeping: 'Dependent', iadl_transport: 'Dependent',
+        iadl_finances: 'Needs assistance',
+
+        morse_history: '25 - Yes', morse_secondary: '15 - Yes',
+        morse_aid: '15 - Crutches / cane / walker', morse_iv: '0 - No',
+        morse_gait: '20 - Impaired', morse_mental: '15 - Overestimates or forgets limits',
+        falls_number: '2', fall_injury: 'No', fear_falling: 'Yes',
+        falls_notes: 'Both falls occurred at night walking to the bathroom without her walker.',
+
+        med_list: 'Furosemide 40 mg PO daily - heart failure\nCarvedilol 6.25 mg PO twice daily - heart failure\nLisinopril 10 mg PO daily - hypertension\nApixaban 5 mg PO twice daily - atrial fibrillation\nInsulin glargine 18 units subcutaneous nightly - diabetes\nMetformin 500 mg PO twice daily - diabetes\nAtorvastatin 40 mg PO nightly - hyperlipidemia\nPotassium chloride 20 mEq PO daily - supplement\nAcetaminophen 650 mg PO twice daily - pain\nDocusate 100 mg PO as needed - constipation\nMultivitamin PO daily',
+        med_count: '11',
+        med_classes: ['Anticoagulant / antiplatelet', 'Insulin', 'Oral hypoglycemic', 'Diuretic'],
+        med_issues: ['Non-adherence reported', 'Expired or discontinued meds in home'],
+        med_admin: 'Patient with reminders', med_organizer: 'No', md_notified_meds: 'Yes',
+        med_notes: 'Two discontinued bottles from a prior admission found in the kitchen and removed with the patient present.',
+
+        disciplines: ['Skilled nursing (SN)', 'Physical therapy (PT)', 'Home health aide (HHA)'],
+        sn_frequency: '1w3, 1w2, 2w2, 1w4', therapy_frequency: 'PT 2w3 then 1w4',
+        aide_frequency: 'HHA 3w1 for bathing and personal care',
+        skilled_services: ['Comprehensive assessment / observation', 'Medication management and teaching',
+          'Wound care', 'Disease process teaching', 'Diabetic management and teaching',
+          'Cardiac / respiratory monitoring'],
+        dme_current: ['Walker', 'Shower chair / tub bench', 'Scale', 'Glucometer', 'Blood pressure cuff'],
+        dme_needed: 'Bedside commode, bathroom grab bars',
+        labs_ordered: 'BMP and INR in one week per physician order',
+        safety_measures_extra: 'Night light on path from recliner to bathroom',
+
+        psychosocial_factors: ['Social isolation', 'Transportation barrier'],
+        immunizations: ['Influenza current', 'Unknown'],
+        patient_goals: 'I want to walk to my mailbox again and stay out of the hospital.',
+        caregiver_goals: 'Daughter wants to learn the wound dressing so she can help on weekends.',
+        prognosis: 'Fair',
+        risk_rehosp: ['Multiple hospitalizations in past 6 months', 'History of falls', 'Taking 5 or more medications'],
+        discharge_plan: 'Discharge to caregiver management', cert_period_weeks: '9',
+        poc_notes: 'All teaching to be provided in Spanish with written Spanish materials left in the home.'
+      }
+    },
+
+    {
+      id: 'demo-whitfield',
+      created: '2026-09-05T13:00:00.000Z',
+      updated: '2026-09-05T14:35:00.000Z',
+      data: {
+        pt_last: 'Whitfield', pt_first: 'James', pt_mrn: 'DEMO-40219', pt_dob: '1948-11-30',
+        pt_sex: 'Male', pt_phone: '(954) 555-0108', pt_lang: 'English', pt_advance_dir: 'Yes - copy in home',
+        soc_date: '2026-09-05', visit_date: '2026-09-05', nurse_name: 'K. Delgado',
+        emerg_name: 'Margaret Whitfield', emerg_rel: 'Spouse', emerg_phone: '(954) 555-0109',
+
+        ref_source: 'Physician office', ref_hosp_discharge: 'No',
+        md_name: 'Dr. P. Nassar',
+        dx_primary: 'Chronic obstructive pulmonary disease with exacerbation (J44.1)',
+        dx_secondary: 'Alzheimer disease, early stage (G30.0)\nBenign prostatic hyperplasia (N40.0)',
+        allergies: 'NKDA', payer: 'Medicare Advantage',
+        homebound: ['Severe dyspnea / activity intolerance on exertion', 'Unsafe to leave home unattended (cognition / falls)'],
+        homebound_narrative: 'Desaturates to 88% walking the length of the hallway; wife reports he becomes disoriented outside the home.',
+
+        vs_temp: '98.1', vs_pulse: '96', vs_resp: '24', vs_o2: '91',
+        vs_bp_sys: '132', vs_bp_dia: '78', vs_bp_position: 'Sitting',
+        vs_weight: '152', vs_height: '70', vs_o2_therapy: 'Yes', vs_o2_lpm: '2 L/min via nasal cannula continuous',
+        param_o2: '88', param_temp: '100.4', param_hr_hi: '110',
+
+        living_arrangement: 'Lives with spouse / partner', assistance_available: 'Around the clock',
+        caregiver_name: 'Margaret Whitfield, spouse', caregiver_ability: 'Limited by own health',
+        home_type: 'House', home_stairs: 'No', home_utilities: 'Yes',
+        home_hazards: ['Cords or tripping hazards', 'Smoking in home (with or without oxygen)'],
+        emerg_plan: 'No',
+        emerg_triage: 'Level 1 - life-threatening; visit or contact required during emergency',
+        evac_plan: 'No backup power source for the concentrator; utility company not notified.',
+
+        vision: 'Adequate (with or without glasses)', hearing: 'Impaired - needs repetition / raised voice',
+        speech: 'Minimal difficulty finding words', pain_present: 'No',
+
+        skin_condition: ['Intact / no issues'], wound_present: 'No',
+        braden_sensory: '4 - No impairment', braden_moisture: '4 - Rarely moist',
+        braden_activity: '3 - Walks occasionally', braden_mobility: '3 - Slightly limited',
+        braden_nutrition: '3 - Adequate', braden_friction: '3 - No apparent problem',
+
+        cardiac_findings: ['Within normal limits'],
+        resp_findings: ['Dyspnea at rest', 'Wheezing', 'Productive cough', 'Uses inhalers / nebulizer', 'Diminished breath sounds'],
+        dyspnea_level: 'With ADLs / talking', smoking: 'Current',
+        cardio_notes: 'Wife reports he still smokes one or two cigarettes daily, at times while wearing the cannula.',
+
+        bowel_pattern: 'Regular / continent', urinary_status: 'Occasional incontinence', uti_signs: 'No',
+        diet_order: 'Regular', appetite: 'Fair - eats about half', weight_loss: 'Yes',
+        swallowing: 'No difficulty', dentition: 'Adequate', hydration: 'Adequate', food_access: 'Yes',
+
+        orientation: 'Oriented x2', cognitive_function: 'Requires assistance and direction in routine situations',
+        confusion_freq: 'On awakening or at night only (sundowning)', memory_deficit: 'Yes', dementia_dx: 'Yes',
+        behaviors: ['Wandering / elopement risk', 'Resistive to care'],
+        phq_interest: '1 - Several days', phq_down: '0 - Not at all', suicidal_ideation: 'No',
+
+        adl_grooming: '2 - Supervision / touching assist', adl_bath: '3 - Partial / moderate assist',
+        adl_dress_upper: '2 - Supervision / touching assist', adl_dress_lower: '3 - Partial / moderate assist',
+        adl_toilet: '2 - Supervision / touching assist', adl_transfer: '1 - Setup / clean-up assist',
+        adl_ambulation: '2 - Supervision / touching assist', adl_feeding: '1 - Setup / clean-up assist',
+        mobility_device: ['Cane'], gait_quality: 'Slightly unsteady - no assistive device',
+        endurance: 'Requires frequent rest periods',
+        iadl_meds: 'Dependent', iadl_meals: 'Dependent', iadl_phone: 'Needs assistance',
+        iadl_shopping: 'Dependent', iadl_housekeeping: 'Dependent', iadl_transport: 'Dependent',
+        iadl_finances: 'Dependent',
+
+        morse_history: '0 - No', morse_secondary: '15 - Yes',
+        morse_aid: '15 - Crutches / cane / walker', morse_iv: '0 - No',
+        morse_gait: '10 - Weak', morse_mental: '15 - Overestimates or forgets limits',
+        falls_number: '0', fall_injury: 'No', fear_falling: 'No',
+
+        med_list: 'Tiotropium inhaler 18 mcg daily - COPD\nAlbuterol nebulizer every 6 hours as needed - COPD\nPrednisone 20 mg PO daily x 5 days - exacerbation\nAzithromycin 250 mg PO daily x 4 days - exacerbation\nDonepezil 10 mg PO nightly - Alzheimer disease\nTamsulosin 0.4 mg PO daily - BPH',
+        med_count: '6', med_classes: ['Antibiotic (active course)'],
+        med_issues: ['None identified'], med_admin: 'Caregiver administers', med_organizer: 'Yes',
+
+        disciplines: ['Skilled nursing (SN)', 'Occupational therapy (OT)', 'Medical social worker (MSW)'],
+        sn_frequency: '2w1, 1w6', therapy_frequency: 'OT evaluate and treat',
+        skilled_services: ['Comprehensive assessment / observation', 'Disease process teaching',
+          'Cardiac / respiratory monitoring', 'Medication management and teaching'],
+        dme_current: ['Oxygen concentrator', 'Nebulizer', 'Cane', 'Shower chair / tub bench'],
+        dme_needed: 'Portable oxygen cylinders for emergency use',
+        safety_measures_extra: 'Door alarms installed by family; smoking cessation plan in progress',
+
+        psychosocial_factors: ['Caregiver strain', 'Health literacy barrier'],
+        immunizations: ['Influenza current', 'Pneumococcal up to date', 'COVID-19 up to date'],
+        patient_goals: 'I want to breathe well enough to sit on the porch with my wife.',
+        caregiver_goals: 'Spouse asks for respite options; she has her own back injury.',
+        prognosis: 'Guarded',
+        risk_rehosp: ['Recent decline in mental / emotional / behavioral status', 'Frailty indicators'],
+        discharge_plan: 'Discharge to caregiver management', cert_period_weeks: '9'
+      }
+    },
+
+    {
+      id: 'demo-carter',
+      created: '2026-09-03T16:20:00.000Z',
+      updated: '2026-09-03T17:05:00.000Z',
+      data: {
+        pt_last: 'Carter', pt_first: 'Evelyn', pt_mrn: 'DEMO-40221', pt_dob: '1942-06-08',
+        pt_sex: 'Female', pt_phone: '(561) 555-0163', pt_lang: 'English',
+        pt_advance_dir: 'Yes - copy in home',
+        soc_date: '2026-09-03', visit_date: '2026-09-03', nurse_name: 'M. Ortiz',
+        emerg_name: 'David Carter', emerg_rel: 'Son', emerg_phone: '(561) 555-0164',
+
+        ref_source: 'Skilled nursing facility', ref_hosp_discharge: 'Yes', ref_discharge_date: '2026-09-02',
+        md_name: 'Dr. L. Menendez',
+        dx_primary: 'Aftercare following surgical repair of right hip fracture (Z47.81)',
+        dx_secondary: 'Osteoporosis (M81.0)\nHypothyroidism (E03.9)',
+        surgical_hx: 'Right hip ORIF, 2026-08-21', allergies: 'Codeine', payer: 'Medicare',
+        homebound: ['Requires supportive device (walker, cane, wheelchair, crutches)',
+          'Leaving home requires considerable and taxing effort'],
+        homebound_narrative: 'Weight-bearing as tolerated with a rolling walker; unable to negotiate the three entry steps without assistance.',
+
+        vs_temp: '97.9', vs_pulse: '76', vs_resp: '18', vs_o2: '97',
+        vs_bp_sys: '124', vs_bp_dia: '70', vs_bp_position: 'Sitting',
+        vs_weight: '134', vs_height: '64', vs_o2_therapy: 'No',
+        param_temp: '100.4', param_sbp_hi: '160', param_sbp_lo: '90',
+
+        living_arrangement: 'Lives with family', assistance_available: 'Regular daytime',
+        caregiver_name: 'David Carter, son', caregiver_ability: 'Able and willing',
+        home_type: 'House', home_stairs: 'Yes', home_utilities: 'Yes',
+        home_hazards: ['None identified'], emerg_plan: 'Yes',
+        emerg_triage: 'Level 3 - stable; can be postponed 72+ hrs with caregiver support',
+
+        vision: 'Adequate (with or without glasses)', hearing: 'Adequate', speech: 'Clear and appropriate',
+        pain_present: 'Yes', pain_score: '4', pain_worst: '6', pain_scale_used: 'Numeric 0-10',
+        pain_location: 'Right hip, incisional', pain_frequency: 'With activity only', pain_effect: 'Yes',
+        pain_relief: 'Acetaminophen scheduled; declines opioids due to prior nausea.',
+
+        skin_condition: ['Intact / no issues'], wound_present: 'Yes', wound_type: ['Surgical incision'],
+        wound_detail: 'Right lateral hip incision 14 cm, staples intact, edges approximated, no drainage or erythema.',
+        wound_orders: 'Keep clean and dry; staple removal scheduled at the surgeon office on 2026-09-08.',
+        wound_infection: 'No',
+        braden_sensory: '4 - No impairment', braden_moisture: '4 - Rarely moist',
+        braden_activity: '3 - Walks occasionally', braden_mobility: '3 - Slightly limited',
+        braden_nutrition: '3 - Adequate', braden_friction: '2 - Potential problem',
+
+        cardiac_findings: ['Within normal limits'], resp_findings: ['Within normal limits'],
+        dyspnea_level: 'With moderate exertion (stairs, climbing)', smoking: 'Never',
+
+        bowel_pattern: 'Constipation', bowel_incont: 'Continent',
+        urinary_status: 'Continent', uti_signs: 'No',
+        diet_order: 'Regular with high protein', appetite: 'Good - eats most meals',
+        weight_loss: 'No', swallowing: 'No difficulty', hydration: 'Adequate', food_access: 'Yes',
+
+        orientation: 'Alert and oriented x4',
+        cognitive_function: 'Alert; able to focus and follow directions independently',
+        confusion_freq: 'Never', memory_deficit: 'No', dementia_dx: 'No', behaviors: ['None'],
+        phq_interest: '1 - Several days', phq_down: '1 - Several days', suicidal_ideation: 'No',
+
+        adl_grooming: '0 - Independent', adl_bath: '3 - Partial / moderate assist',
+        adl_dress_upper: '0 - Independent', adl_dress_lower: '3 - Partial / moderate assist',
+        adl_toilet: '2 - Supervision / touching assist', adl_transfer: '2 - Supervision / touching assist',
+        adl_ambulation: '2 - Supervision / touching assist', adl_feeding: '0 - Independent',
+        mobility_device: ['Rollator', 'Bedside commode'], gait_quality: 'Unsteady - requires device',
+        endurance: 'Tires with moderate activity',
+        iadl_meds: 'Independent', iadl_meals: 'Needs assistance', iadl_phone: 'Independent',
+        iadl_shopping: 'Dependent', iadl_housekeeping: 'Needs assistance',
+        iadl_transport: 'Dependent', iadl_finances: 'Independent',
+
+        morse_history: '25 - Yes', morse_secondary: '15 - Yes',
+        morse_aid: '15 - Crutches / cane / walker', morse_iv: '0 - No',
+        morse_gait: '10 - Weak', morse_mental: '0 - Oriented to own ability',
+        falls_number: '1', fall_injury: 'Yes', fear_falling: 'Yes',
+        falls_notes: 'Index fall at home in August resulting in the right hip fracture.',
+
+        med_list: 'Acetaminophen 1000 mg PO three times daily - pain\nApixaban 2.5 mg PO twice daily x 30 days - VTE prophylaxis\nLevothyroxine 88 mcg PO daily - hypothyroidism\nAlendronate 70 mg PO weekly - osteoporosis\nCalcium with vitamin D PO twice daily - supplement\nSenna PO nightly - constipation',
+        med_count: '6', med_classes: ['Anticoagulant / antiplatelet'],
+        med_issues: ['None identified'], med_admin: 'Patient independently', med_organizer: 'Yes',
+
+        disciplines: ['Skilled nursing (SN)', 'Physical therapy (PT)', 'Occupational therapy (OT)'],
+        sn_frequency: '1w1, 2w1, 1w7', therapy_frequency: 'PT 3w2 then 2w4, OT 2w2',
+        skilled_services: ['Comprehensive assessment / observation', 'Medication management and teaching',
+          'Wound care', 'Pain management'],
+        dme_current: ['Walker / rollator', 'Bedside commode', 'Shower chair / tub bench', 'Grab bars'],
+        dme_needed: 'Raised toilet seat',
+        safety_measures_extra: 'Posterior hip precautions posted at the bedside',
+
+        psychosocial_factors: ['None identified'],
+        immunizations: ['Influenza current', 'Pneumococcal up to date', 'COVID-19 up to date'],
+        patient_goals: 'I want to climb my own stairs and go back to my Thursday card game.',
+        caregiver_goals: 'Son wants to learn safe transfer technique before he returns to work.',
+        prognosis: 'Good', risk_rehosp: ['History of falls'],
+        discharge_plan: 'Return to prior level of function; self / caregiver manages care',
+        cert_period_weeks: '9'
+      }
+    }
+  ];
+
+  root.LTC_DEMO = {
+    patients: PATIENTS,
+    seed: function (key) {
+      localStorage.setItem(key, JSON.stringify({ records: JSON.parse(JSON.stringify(PATIENTS)) }));
+    }
+  };
+})(window);
+
+</script>
+<script>
+(function () {
+  var KEY = 'ltc_soc_demo_v1';
+  var stored = null;
+  try { stored = localStorage.getItem(KEY); } catch (e) { stored = null; }
+  var empty = true;
+  if (stored) { try { empty = !(JSON.parse(stored).records || []).length; } catch (e) { empty = true; } }
+  if (empty) { try { window.LTC_DEMO.seed(KEY); } catch (e) {} }
+})();
+</script>
+<script>
+/* =========================================================================
+   LTC Nurse Assessment - application logic
+   Screens: home (patient list) -> assessment (15 sections) -> plan of care
+   Records are stored in localStorage; export/import moves them as JSON.
+   ========================================================================= */
+(function () {
+  'use strict';
+
+  var S = window.LTC_SCHEMA;
+  var ENGINE = window.LTC_POC;
+  var KEY = 'ltc_soc_demo_v1';
+
+  var db = { records: [] };
+  var current = null;      // active record
+  var secIndex = 0;        // active section
+  var pocView = 'poc';     // poc | narrative | summary
+  var lastPoc = null;
+  var saveTimer = null;
+  var dirty = false;      // unsaved edits to the active record
+
+  /* ---------------- storage ---------------- */
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) db = JSON.parse(raw);
+    } catch (e) { db = { records: [] }; }
+    if (!db || !Array.isArray(db.records)) db = { records: [] };
+  }
+  function persist() {
+    dirty = false;
+    try { localStorage.setItem(KEY, JSON.stringify(db)); }
+    catch (e) { toast('Could not save - browser storage is full or blocked'); }
+  }
+  // Writes the active record without clobbering records another tab may have
+  // added: re-read what is stored, splice the active record into it, save that.
+  function saveCurrent() {
+    if (!current) return;
+    var stored = null;
+    try { stored = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { stored = null; }
+    if (stored && Array.isArray(stored.records)) {
+      var i = -1;
+      stored.records.forEach(function (r, n) { if (r.id === current.id) i = n; });
+      if (i >= 0) stored.records[i] = current; else stored.records.unshift(current);
+      db = stored;
+    }
+    persist();
+  }
+  function scheduleSave() {
+    if (current) current.updated = new Date().toISOString();
+    dirty = true;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveCurrent, 350);
+  }
+  function uid() { return 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+  /* ---------------- utils ---------------- */
+  function el(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function toast(msg) {
+    var t = el('toast'); t.textContent = msg; t.classList.add('on');
+    clearTimeout(toast._t); toast._t = setTimeout(function () { t.classList.remove('on'); }, 2200);
+  }
+  function today() { return new Date().toISOString().slice(0, 10); }
+  function fmtDate(s) {
+    if (!s) return '';
+    var d = new Date(s + 'T00:00:00');
+    if (isNaN(d)) return s;
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+  function nameOf(r) {
+    var d = r.data || {};
+    var n = [d.pt_last, d.pt_first].filter(Boolean).join(', ');
+    return n || 'Unnamed patient';
+  }
+  function initials(r) {
+    var d = r.data || {};
+    var a = (d.pt_first || '').charAt(0), b = (d.pt_last || '').charAt(0);
+    return ((a + b) || '?').toUpperCase();
+  }
+
+  /* ---------------- record lifecycle ---------------- */
+  function newRecord() {
+    var data = {};
+    S.SECTIONS.forEach(function (sec) {
+      sec.fields.forEach(function (f) { if (f.default != null) data[f.id] = f.default; });
+    });
+    data.soc_date = today();
+    data.visit_date = today();
+    var r = { id: uid(), created: new Date().toISOString(), updated: new Date().toISOString(), data: data };
+    db.records.unshift(r);
+    persist();
+    open(r.id);
+  }
+  function open(id) {
+    current = db.records.filter(function (r) { return r.id === id; })[0] || null;
+    if (!current) return;
+    secIndex = 0;
+    show('assess');
+    renderAssess();
+  }
+  function removeRecord(id) {
+    var r = db.records.filter(function (x) { return x.id === id; })[0];
+    if (!r) return;
+    if (!confirm('Delete the record for ' + nameOf(r) + '? This cannot be undone.')) return;
+    db.records = db.records.filter(function (x) { return x.id !== id; });
+    if (current && current.id === id) current = null;
+    persist(); renderHome(); toast('Record deleted');
+  }
+
+  /* ---------------- screens ---------------- */
+  function show(which) {
+    ['home', 'assess', 'poc'].forEach(function (s) {
+      el('screen-' + s).classList.toggle('on', s === which);
+    });
+    el('navPt').textContent = current && which !== 'home' ? nameOf(current) : '';
+    window.scrollTo(0, 0);
+  }
+
+  /* ---------------- home ---------------- */
+  function renderHome() {
+    var box = el('ptList');
+    if (!db.records.length) {
+      box.innerHTML = '<div class="empty">No assessments yet. Start a new assessment to create the first record.</div>';
+      return;
+    }
+    box.innerHTML = db.records.map(function (r) {
+      var d = r.data || {};
+      var pct = progressOf(r);
+      return '<div class="pt-row">' +
+        '<div class="pt-av">' + esc(initials(r)) + '</div>' +
+        '<div class="pt-main">' +
+        '<b>' + esc(nameOf(r)) + '</b>' +
+        '<span>' + (d.dx_primary ? esc(d.dx_primary) + ' &middot; ' : '') +
+        'SOC ' + esc(fmtDate(d.soc_date) || 'not set') + ' &middot; ' + pct + '% complete</span>' +
+        '</div>' +
+        '<div class="pt-acts">' +
+        '<button class="btn ghost small" data-open="' + r.id + '">Open</button>' +
+        '<button class="btn ghost small" data-poc="' + r.id + '">Plan of care</button>' +
+        '<button class="btn ghost small" data-del="' + r.id + '">Delete</button>' +
+        '</div></div>';
+    }).join('');
+  }
+
+  function progressOf(r) {
+    var d = r.data || {}, total = 0, done = 0;
+    S.SECTIONS.forEach(function (sec) {
+      sec.fields.forEach(function (f) {
+        if (f.type === 'note' || f.type === 'computed') return;
+        if (!S.visible(f, d)) return;
+        total++;
+        var v = d[f.id];
+        if (Array.isArray(v) ? v.length : (v !== undefined && v !== null && v !== '')) done++;
+      });
+    });
+    return total ? Math.round(done / total * 100) : 0;
+  }
+  function sectionDone(sec, d) {
+    var total = 0, done = 0;
+    sec.fields.forEach(function (f) {
+      if (f.type === 'note' || f.type === 'computed') return;
+      if (!S.visible(f, d)) return;
+      total++;
+      var v = d[f.id];
+      if (Array.isArray(v) ? v.length : (v !== undefined && v !== null && v !== '')) done++;
+    });
+    return total && done === total;
+  }
+
+  /* ---------------- assessment ---------------- */
+  function renderAssess() {
+    if (!current) { show('home'); return; }
+    renderRail();
+    renderSection();
+  }
+
+  function renderRail() {
+    var d = current.data;
+    el('railList').innerHTML = S.SECTIONS.map(function (sec, i) {
+      var done = sectionDone(sec, d);
+      return '<button class="rail-item' + (i === secIndex ? ' on' : '') + (done ? ' done' : '') + '" data-sec="' + i + '">' +
+        '<span class="n">' + (done && i !== secIndex ? '&#10003;' : (i + 1)) + '</span>' +
+        '<span class="lbl">' + esc(sec.title) + '</span></button>';
+    }).join('');
+    el('progBar').style.width = progressOf(current) + '%';
+  }
+
+  // Updates rail completion state without replacing the buttons. Replacing them
+  // on blur would destroy the very button a click is landing on, swallowing the
+  // first section click after typing in a field.
+  function updateRailState() {
+    var d = current.data;
+    Array.prototype.forEach.call(el('railList').children, function (btn, i) {
+      var done = sectionDone(S.SECTIONS[i], d);
+      btn.classList.toggle('done', done);
+      var n = btn.querySelector('.n');
+      if (n) n.innerHTML = (done && i !== secIndex) ? '&#10003;' : (i + 1);
+    });
+    el('progBar').style.width = progressOf(current) + '%';
+  }
+
+  function renderSection() {
+    var sec = S.SECTIONS[secIndex], d = current.data;
+    var html = '<div class="sec-head"><div class="n">' + (secIndex + 1) + '</div><h2>' + esc(sec.title) + '</h2></div>';
+    html += '<div class="grid">';
+    sec.fields.forEach(function (f) { if (S.visible(f, d)) html += fieldHtml(f, d); });
+    html += '</div>';
+    html += '<div class="sec-nav">' +
+      '<button class="btn ghost" id="btnPrev"' + (secIndex === 0 ? ' disabled' : '') + '>Previous</button>' +
+      (secIndex === S.SECTIONS.length - 1
+        ? '<button class="btn primary" id="btnFinish">Generate plan of care</button>'
+        : '<button class="btn primary" id="btnNext">Next section</button>') +
+      '</div>';
+    el('secCard').innerHTML = html;
+    wireSection();
+  }
+
+  function fieldHtml(f, d) {
+    var span = 'grid-column:span ' + (f.col || 12);
+    var v = d[f.id];
+
+    if (f.type === 'note') return '<div class="note" style="' + span + '">' + esc(f.text) + '</div>';
+
+    if (f.type === 'computed') {
+      var res = S.COMPUTERS[f.compute](d);
+      return '<div class="f" style="' + span + '"><label>' + esc(f.label) + '</label>' +
+        '<div class="computed">' + esc(res.text) +
+        (res.level && res.text !== '-' ? '<span class="tag ' + res.level + '">' + esc(res.tag || (res.level + ' risk')) + '</span>' : '') +
+        '</div></div>';
+    }
+
+    var label = '<label for="fld_' + f.id + '">' + esc(f.label) + (f.required ? '<span class="req">*</span>' : '') + '</label>';
+
+    if (f.type === 'textarea') {
+      return '<div class="f" style="' + span + '">' + label +
+        '<textarea id="fld_' + f.id + '" data-f="' + f.id + '"' + (f.rows ? ' rows="' + f.rows + '"' : '') +
+        (f.placeholder ? ' placeholder="' + esc(f.placeholder) + '"' : '') + '>' + esc(v || '') + '</textarea></div>';
+    }
+    if (f.type === 'select') {
+      return '<div class="f" style="' + span + '">' + label +
+        '<select id="fld_' + f.id + '" data-f="' + f.id + '" data-rerender="1">' +
+        '<option value="">- select -</option>' +
+        f.options.map(function (o) {
+          return '<option value="' + esc(o) + '"' + (v === o ? ' selected' : '') + '>' + esc(o) + '</option>';
+        }).join('') + '</select></div>';
+    }
+    if (f.type === 'radio') {
+      return '<div class="f" style="' + span + '">' + label + '<div class="opts">' +
+        f.options.map(function (o) {
+          return '<label class="opt' + (v === o ? ' on' : '') + '">' +
+            '<input type="radio" name="rad_' + f.id + '" data-f="' + f.id + '" data-rerender="1" value="' + esc(o) + '"' +
+            (v === o ? ' checked' : '') + '>' + esc(o) + '</label>';
+        }).join('') + '</div></div>';
+    }
+    if (f.type === 'checks') {
+      var arr = Array.isArray(v) ? v : [];
+      return '<div class="f" style="' + span + '">' + label + '<div class="opts">' +
+        f.options.map(function (o) {
+          return '<label class="opt' + (arr.indexOf(o) !== -1 ? ' on' : '') + '">' +
+            '<input type="checkbox" data-fc="' + f.id + '" data-rerender="1" value="' + esc(o) + '"' +
+            (arr.indexOf(o) !== -1 ? ' checked' : '') + '>' + esc(o) + '</label>';
+        }).join('') + '</div></div>';
+    }
+    // text / number / date
+    var type = f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text';
+    return '<div class="f" style="' + span + '">' + label +
+      '<input id="fld_' + f.id + '" data-f="' + f.id + '" type="' + type + '" value="' + esc(v || '') + '"' +
+      (f.step ? ' step="' + f.step + '"' : '') +
+      (f.min != null ? ' min="' + f.min + '"' : '') + (f.max != null ? ' max="' + f.max + '"' : '') +
+      (f.placeholder ? ' placeholder="' + esc(f.placeholder) + '"' : '') + '></div>';
+  }
+
+  function wireSection() {
+    var card = el('secCard');
+
+    // free text / numbers / dates: save while typing, refresh computed values
+    Array.prototype.forEach.call(card.querySelectorAll('input[data-f], textarea[data-f]'), function (node) {
+      if (node.type === 'radio') return;
+      node.addEventListener('input', function () {
+        current.data[node.dataset.f] = node.value;
+        scheduleSave();
+        refreshComputed();
+        updateRailState();
+      });
+      node.addEventListener('blur', updateRailState);
+    });
+
+    // selects and radios change conditional visibility -> re-render the section
+    Array.prototype.forEach.call(card.querySelectorAll('select[data-f]'), function (node) {
+      node.addEventListener('change', function () {
+        current.data[node.dataset.f] = node.value;
+        scheduleSave(); renderAssess();
+      });
+    });
+    Array.prototype.forEach.call(card.querySelectorAll('input[type=radio][data-f]'), function (node) {
+      node.addEventListener('change', function () {
+        current.data[node.dataset.f] = node.value;
+        scheduleSave(); renderAssess();
+      });
+    });
+    Array.prototype.forEach.call(card.querySelectorAll('input[data-fc]'), function (node) {
+      node.addEventListener('change', function () {
+        var id = node.dataset.fc;
+        var f = S.fieldById(id);
+        var arr = Array.isArray(current.data[id]) ? current.data[id].slice() : [];
+        var val = node.value;
+        // "None"-style answers are exclusive
+        var isNone = /^none/i.test(val) || val === 'None identified' || val === 'Intact / no issues' || val === 'Within normal limits';
+        if (node.checked) {
+          if (isNone) arr = [val];
+          else arr = arr.filter(function (x) { return !(/^none/i.test(x) || x === 'None identified' || x === 'Intact / no issues' || x === 'Within normal limits'); }).concat([val]);
+        } else {
+          arr = arr.filter(function (x) { return x !== val; });
+        }
+        // keep the schema order
+        current.data[id] = f.options.filter(function (o) { return arr.indexOf(o) !== -1; });
+        scheduleSave(); renderAssess();
+      });
+    });
+
+    var prev = el('btnPrev'), next = el('btnNext'), fin = el('btnFinish');
+    if (prev) prev.addEventListener('click', function () { if (secIndex > 0) { secIndex--; renderAssess(); } });
+    if (next) next.addEventListener('click', function () { if (secIndex < S.SECTIONS.length - 1) { secIndex++; renderAssess(); } });
+    if (fin) fin.addEventListener('click', generatePoc);
+  }
+
+  function refreshComputed() {
+    var sec = S.SECTIONS[secIndex], d = current.data;
+    var comps = sec.fields.filter(function (f) { return f.type === 'computed' && S.visible(f, d); });
+    if (!comps.length) return;
+    var blocks = el('secCard').querySelectorAll('.computed');
+    Array.prototype.forEach.call(blocks, function (n, i) {
+      if (!comps[i]) return;
+      var res = S.COMPUTERS[comps[i].compute](d);
+      n.innerHTML = esc(res.text) +
+        (res.level && res.text !== '-' ? '<span class="tag ' + res.level + '">' + esc(res.tag || (res.level + ' risk')) + '</span>' : '');
+    });
+  }
+
+  /* ---------------- plan of care ---------------- */
+  function generatePoc() {
+    if (!current) return;
+    var d = current.data;
+    var missing = [];
+    if (!d.pt_last && !d.pt_first) missing.push('patient name');
+    if (!d.dx_primary) missing.push('primary diagnosis');
+    if (!d.soc_date) missing.push('start of care date');
+    if (missing.length && !confirm('The following are not documented: ' + missing.join(', ') +
+      '.\n\nGenerate the plan of care anyway?')) return;
+
+    lastPoc = ENGINE.generate(d);
+    current.poc = { generatedAt: lastPoc.generatedAt };
+    persist();
+    show('poc');
+    renderPoc();
+  }
+
+  function renderPoc() {
+    var d = current.data, poc = lastPoc;
+    var body = el('pocBody');
+    if (pocView === 'narrative') { body.innerHTML = narrativeHtml(d, poc); wirePocBody(); return; }
+    if (pocView === 'summary') { body.innerHTML = summaryHtml(d); return; }
+
+    var h = '';
+
+    if (poc.urgent.length) {
+      h += '<div class="alert"><b>Immediate action required</b><ul>' +
+        poc.urgent.map(function (u) { return '<li>' + esc(u) + '</li>'; }).join('') + '</ul></div>';
+    }
+
+    /* header block */
+    h += '<div class="card"><div class="poc-head">' +
+      '<div><h2 style="font-size:22px">Personalized Plan of Care</h2>' +
+      '<p class="muted small" style="margin:4px 0 0">' + esc(nameOf(current)) +
+      (d.pt_mrn ? ' &middot; MRN ' + esc(d.pt_mrn) : '') +
+      (d.pt_dob ? ' &middot; DOB ' + esc(fmtDate(d.pt_dob)) : '') + '</p></div>' +
+      '<div class="chips">' +
+      '<span class="chip teal">' + poc.problems.length + ' problems</span>' +
+      '<span class="chip ' + (poc.scores.morse.level === 'high' ? 'warn' : '') + '">Fall risk: ' + esc(poc.scores.morse.risk) + '</span>' +
+      (poc.scores.braden.complete ? '<span class="chip ' + (poc.scores.braden.level === 'high' ? 'warn' : '') + '">Braden ' + poc.scores.braden.value + '</span>' : '') +
+      (poc.scores.phq2.positive ? '<span class="chip warn">PHQ-2 positive</span>' : '') +
+      '</div></div>';
+
+    h += '<div class="kv">' +
+      kv('Start of care', fmtDate(d.soc_date) || 'not set') +
+      kv('Certification period', poc.certStart ? fmtDate(poc.certStart) + ' - ' + fmtDate(poc.certEnd) : 'set SOC date') +
+      kv('Primary diagnosis', d.dx_primary || 'not documented') +
+      kv('Physician', d.md_name || 'not documented') +
+      kv('Payer', d.payer || 'not documented') +
+      kv('Allergies', d.allergies || 'not documented') +
+      kv('Emergency triage', (d.emerg_triage || 'not set').split(' - ')[0]) +
+      kv('Prognosis', d.prognosis || 'not documented') +
+      '</div>';
+
+    /* orders */
+    h += '<h3 style="font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:20px 0 8px">Disciplines &amp; frequency</h3>';
+    h += '<div class="chips">' + poc.disciplines.map(function (x) {
+      return '<span class="chip teal">' + esc(x.name) + (x.source === 'indicated' ? ' <span style="opacity:.6">(indicated)</span>' : '') + '</span>';
+    }).join('') + '</div>';
+    h += '<div class="kv" style="margin-top:12px">' +
+      kv('Skilled nursing frequency', d.sn_frequency || poc.suggestedFrequency + ' (suggested)') +
+      kv('Therapy frequency', d.therapy_frequency || 'per therapy evaluation') +
+      kv('Aide frequency', d.aide_frequency || 'not ordered') +
+      kv('Homebound', (function () {
+        var hb = Array.isArray(d.homebound) ? d.homebound : [];
+        return hb.length ? hb.length + ' criteria met' : 'not documented';
+      })()) + '</div>';
+
+    /* safety */
+    h += '<h3 style="font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:20px 0 8px">Safety measures</h3>' +
+      '<div class="chips">' + poc.safety.map(function (s) { return '<span class="chip">' + esc(s) + '</span>'; }).join('') + '</div>';
+
+    /* DME */
+    var dme = (Array.isArray(d.dme_current) ? d.dme_current : []).filter(function (x) { return x !== 'None'; });
+    h += '<h3 style="font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:20px 0 8px">Equipment &amp; supplies</h3>' +
+      '<p class="small" style="margin:0">' + (dme.length ? esc(dme.join(', ')) : 'None in the home') +
+      (d.dme_needed ? '<br><b>To be ordered:</b> ' + esc(d.dme_needed) : '') + '</p>';
+
+    if (d.diet_order || d.labs_ordered) {
+      h += '<div class="kv" style="margin-top:16px">' +
+        (d.diet_order ? kv('Diet', d.diet_order) : '') +
+        (d.labs_ordered ? kv('Labs / diagnostics', d.labs_ordered) : '') + '</div>';
+    }
+    h += '</div>'; // header card
+
+    /* problem list */
+    h += '<div class="card" style="margin-top:16px">' +
+      '<h2 style="font-size:19px">Problem list, goals &amp; interventions</h2>' +
+      '<p class="muted small" style="margin:4px 0 0">Generated from the documented assessment findings and ordered by priority. ' +
+      'Review, individualize and obtain physician approval before implementation.</p>';
+
+    poc.problems.forEach(function (p, i) {
+      h += '<div class="prob"><div class="prob-h"><div class="n">' + (i + 1) + '</div>' +
+        '<h3>' + esc(p.problem) + '</h3>' +
+        '<span class="chip ' + (p.priority === 1 ? 'warn' : 'teal') + '">Priority ' + p.priority + '</span></div>';
+      if (p.disciplines.length) {
+        h += '<div class="chips" style="margin-bottom:4px">' + p.disciplines.map(function (c) {
+          return '<span class="chip">' + esc(ENGINE.DISC_NAMES[c] || c) + '</span>';
+        }).join('') + '</div>';
+      }
+      h += '<h5>Goals / expected outcomes</h5><ul>' +
+        p.goals.map(function (g) { return '<li>' + esc(g) + '</li>'; }).join('') + '</ul>';
+      h += '<h5>Interventions</h5><ul>' +
+        p.interventions.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>';
+      h += '</div>';
+    });
+
+    if (d.poc_notes) {
+      h += '<div class="prob"><div class="prob-h"><div class="n">+</div><h3>Additional orders and clinician notes</h3></div>' +
+        '<p style="margin:0;white-space:pre-wrap;font-size:14px">' + esc(d.poc_notes) + '</p></div>';
+    }
+
+    /* goals in the patient's words + discharge */
+    if (d.patient_goals || d.caregiver_goals || d.discharge_plan) {
+      h += '<div class="prob"><div class="prob-h"><div class="n">&#9733;</div><h3>Patient-centered goals &amp; discharge plan</h3></div>';
+      if (d.patient_goals) h += '<h5>Patient-stated goals</h5><p style="margin:0;font-size:14px">' + esc(d.patient_goals) + '</p>';
+      if (d.caregiver_goals) h += '<h5>Caregiver goals &amp; learning needs</h5><p style="margin:0;font-size:14px">' + esc(d.caregiver_goals) + '</p>';
+      if (d.discharge_plan) h += '<h5>Anticipated discharge plan</h5><p style="margin:0;font-size:14px">' + esc(d.discharge_plan) + '</p>';
+      h += '</div>';
+    }
+
+    /* signatures */
+    h += '<div class="sig">' +
+      '<div><div class="line"></div>Assessing clinician (RN) - ' + esc(d.nurse_name || '') + '<br>Date: ' + esc(fmtDate(d.visit_date) || '') + '</div>' +
+      '<div><div class="line"></div>Physician signature - ' + esc(d.md_name || '') + '<br>Date: ______________</div>' +
+      '</div>';
+    h += '<p class="xsmall muted" style="margin-top:18px">Generated ' + new Date(poc.generatedAt).toLocaleString() +
+      '. Clinical decision support only - content must be reviewed by the assessing licensed clinician and signed by the physician before it becomes the plan of care.</p>';
+    h += '</div>';
+
+    /* CTA */
+    h += '<div class="cta no-print"><div><h3>Ready for the chart</h3>' +
+      '<p>Print or save this plan of care as a PDF for the physician signature packet, or export the full record as JSON to move it into your clinical system.</p></div>' +
+      '<div style="display:flex;gap:10px"><button class="btn" id="ctaPrint">Print / save as PDF</button>' +
+      '<button class="btn ghost" id="ctaBack" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.35)">Edit assessment</button></div></div>';
+
+    body.innerHTML = h;
+    wirePocBody();
+  }
+
+  function kv(label, value) {
+    return '<div><b>' + esc(label) + '</b><span>' + esc(value) + '</span></div>';
+  }
+
+  function narrativeHtml(d, poc) {
+    var text = ENGINE.narrative(d, poc);
+    return '<div class="card"><div class="poc-head"><div><h2 style="font-size:20px">Start of care narrative note</h2>' +
+      '<p class="muted small" style="margin:4px 0 0">Assembled from the documented assessment. Edit as needed after copying into the clinical record.</p></div>' +
+      '<button class="btn ghost small no-print" id="btnCopy">Copy text</button></div>' +
+      '<pre class="narrative" id="narrativeText">' + esc(text) + '</pre></div>';
+  }
+
+  function summaryHtml(d) {
+    var h = '<div class="card"><h2 style="font-size:20px">Assessment summary</h2>' +
+      '<p class="muted small" style="margin:4px 0 14px">Everything documented for this patient. Unanswered items are omitted.</p>';
+    S.SECTIONS.forEach(function (sec) {
+      var rows = sec.fields.filter(function (f) {
+        if (f.type === 'note') return false;
+        if (!S.visible(f, d)) return false;
+        if (f.type === 'computed') return true;
+        var v = d[f.id];
+        return Array.isArray(v) ? v.length : (v !== undefined && v !== null && v !== '');
+      });
+      if (!rows.length) return;
+      h += '<h3 style="font-size:14px;margin:18px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line)">' + esc(sec.title) + '</h3>';
+      h += '<div class="kv" style="grid-template-columns:repeat(2,1fr)">';
+      rows.forEach(function (f) {
+        var val;
+        if (f.type === 'computed') { val = S.COMPUTERS[f.compute](d).text; if (val === '-') return; }
+        else val = Array.isArray(d[f.id]) ? d[f.id].join('; ') : d[f.id];
+        h += kv(f.label, val);
+      });
+      h += '</div>';
+    });
+    return h + '</div>';
+  }
+
+  function wirePocBody() {
+    var c = el('ctaPrint'); if (c) c.addEventListener('click', function () { window.print(); });
+    var b = el('ctaBack'); if (b) b.addEventListener('click', function () { show('assess'); renderAssess(); });
+    var cp = el('btnCopy');
+    if (cp) cp.addEventListener('click', function () {
+      var t = el('narrativeText').textContent;
+      if (navigator.clipboard) navigator.clipboard.writeText(t).then(function () { toast('Narrative copied'); },
+        function () { toast('Copy failed - select the text manually'); });
+      else toast('Copy not supported in this browser');
+    });
+  }
+
+  /* ---------------- import / export ---------------- */
+  function exportRecord() {
+    if (!current) return;
+    var payload = {
+      format: 'ltc-soc-assessment',
+      version: 1,
+      exported: new Date().toISOString(),
+      record: current,
+      planOfCare: lastPoc || ENGINE.generate(current.data),
+      narrative: ENGINE.narrative(current.data, lastPoc || ENGINE.generate(current.data))
+    };
+    var text = JSON.stringify(payload, null, 2);
+    var filename = (nameOf(current).replace(/[^a-z0-9]+/gi, '_') || 'record') +
+      '_SOC_' + (current.data.soc_date || today()) + '.json';
+    saveFile(filename, text);
+  }
+
+  // Plain download links are inert inside the Artifact viewer, so hand the file
+  // to the host's download bridge when the page is running in one.
+  function saveFile(filename, text) {
+    function browserSave() {
+      var blob = new Blob([text], { type: 'application/json' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+      toast('Record exported');
+    }
+    if (!(window.claude && typeof window.claude.use === 'function')) return browserSave();
+    window.claude.use('downloads').then(function (dl) {
+      if (!dl) return browserSave();
+      dl.save({ filename: filename, data: text }).then(
+        function () { toast('Record exported'); },
+        function (err) {
+          toast(err && err.code === 'declined' ? 'Export cancelled' : 'Export unavailable here');
+        }
+      );
+    }, browserSave);
+  }
+
+  function importRecord(file) {
+    var fr = new FileReader();
+    fr.onload = function () {
+      try {
+        var p = JSON.parse(fr.result);
+        var rec = p.record || p;
+        if (!rec || !rec.data) throw new Error('unrecognized file');
+        rec.id = uid();
+        rec.updated = new Date().toISOString();
+        db.records.unshift(rec);
+        persist(); renderHome(); toast('Record imported');
+      } catch (e) { toast('Could not read that file'); }
+    };
+    fr.readAsText(file);
+  }
+
+  /* ---------------- wiring ---------------- */
+  function init() {
+    load();
+    renderHome();
+
+    el('btnNew').addEventListener('click', newRecord);
+    el('navNew').addEventListener('click', newRecord);
+    el('navHome').addEventListener('click', function () { show('home'); renderHome(); });
+    el('btnImport').addEventListener('click', function () { el('fileImport').click(); });
+    el('fileImport').addEventListener('change', function (e) {
+      if (e.target.files && e.target.files[0]) importRecord(e.target.files[0]);
+      e.target.value = '';
+    });
+
+    el('ptList').addEventListener('click', function (e) {
+      var b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.open) open(b.dataset.open);
+      else if (b.dataset.del) removeRecord(b.dataset.del);
+      else if (b.dataset.poc) { open(b.dataset.poc); generatePoc(); }
+    });
+
+    el('railList').addEventListener('click', function (e) {
+      var b = e.target.closest('.rail-item'); if (!b) return;
+      secIndex = parseInt(b.dataset.sec, 10);
+      renderAssess();
+    });
+
+    el('btnGenerate').addEventListener('click', generatePoc);
+    el('btnBackAssess').addEventListener('click', function () { show('assess'); renderAssess(); });
+    el('btnExport').addEventListener('click', exportRecord);
+    el('btnPrint').addEventListener('click', function () { window.print(); });
+
+    Array.prototype.forEach.call(document.querySelectorAll('.tab[data-view]'), function (t) {
+      t.addEventListener('click', function () {
+        Array.prototype.forEach.call(document.querySelectorAll('.tab[data-view]'), function (x) { x.classList.remove('on'); });
+        t.classList.add('on');
+        pocView = t.dataset.view;
+        renderPoc();
+      });
+    });
+
+    window.addEventListener('beforeprint', function () {
+      Array.prototype.forEach.call(document.querySelectorAll('.screen'), function (s) {
+        s.classList.toggle('print-me', s.classList.contains('on'));
+      });
+    });
+    // Flush only genuinely pending edits; an unconditional write here would let
+    // an idle tab overwrite records saved in another tab.
+    window.addEventListener('beforeunload', function () {
+      if (!dirty) return;
+      clearTimeout(saveTimer);
+      saveCurrent();
+    });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+
+</script>
+<script>
+document.getElementById('btnResetDemo').addEventListener('click', function () {
+  if (!confirm('Reset the demo back to the three sample patients? Anything you changed or added here is discarded.')) return;
+  try { window.LTC_DEMO.seed('ltc_soc_demo_v1'); } catch (e) {}
+  location.reload();
+});
+</script>
+</body>
+</html>

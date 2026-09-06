@@ -541,13 +541,34 @@
       planOfCare: lastPoc || ENGINE.generate(current.data),
       narrative: ENGINE.narrative(current.data, lastPoc || ENGINE.generate(current.data))
     };
-    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = (nameOf(current).replace(/[^a-z0-9]+/gi, '_') || 'record') + '_SOC_' + (current.data.soc_date || today()) + '.json';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
-    toast('Record exported');
+    var text = JSON.stringify(payload, null, 2);
+    var filename = (nameOf(current).replace(/[^a-z0-9]+/gi, '_') || 'record') +
+      '_SOC_' + (current.data.soc_date || today()) + '.json';
+    saveFile(filename, text);
+  }
+
+  // Plain download links are inert inside the Artifact viewer, so hand the file
+  // to the host's download bridge when the page is running in one.
+  function saveFile(filename, text) {
+    function browserSave() {
+      var blob = new Blob([text], { type: 'application/json' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+      toast('Record exported');
+    }
+    if (!(window.claude && typeof window.claude.use === 'function')) return browserSave();
+    window.claude.use('downloads').then(function (dl) {
+      if (!dl) return browserSave();
+      dl.save({ filename: filename, data: text }).then(
+        function () { toast('Record exported'); },
+        function (err) {
+          toast(err && err.code === 'declined' ? 'Export cancelled' : 'Export unavailable here');
+        }
+      );
+    }, browserSave);
   }
 
   function importRecord(file) {
