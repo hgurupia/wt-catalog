@@ -126,12 +126,14 @@ def build():
 
     scripts = ('<script src="schema.js"></script>\n'
                '<script src="poc-engine.js"></script>\n'
+               '<script src="print-view.js"></script>\n'
                '<script src="app.js"></script>')
     if scripts not in out:
         sys.exit('build-demo: could not find the script tags in index.html')
     out = out.replace(scripts, '\n'.join([
         '<script>', read('schema.js'), '</script>',
         '<script>', read('poc-engine.js'), '</script>',
+        '<script>', read('print-view.js'), '</script>',
         '<script>', read('demo-data.js'), '</script>',
         '<script>' + SEED_JS + '</script>',
         '<script>', app_demo, '</script>',

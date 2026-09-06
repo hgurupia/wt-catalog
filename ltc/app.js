@@ -598,6 +598,16 @@
     }, browserSave);
   }
 
+  // The print view paginates the document on screen, because an embedded browser
+  // view will not let a page open a print dialog.
+  function openPrintView() {
+    if (!current) return;
+    var poc = lastPoc || ENGINE.generate(current.data);
+    lastPoc = poc;
+    if (!window.LTC_PRINT) { window.print(); return; }
+    window.LTC_PRINT.open(current, poc, ENGINE.narrative(current.data, poc));
+  }
+
   function importRecord(file) {
     var fr = new FileReader();
     fr.onload = function () {
@@ -655,8 +665,8 @@
 
     el('btnBackAssess').addEventListener('click', function () { show('assess'); renderAssess(); });
     el('btnExport').addEventListener('click', exportRecord);
-    el('btnPrint').addEventListener('click', function () { window.print(); });
-    el('btnPrintTop').addEventListener('click', function () { window.print(); });
+    el('btnPrint').addEventListener('click', openPrintView);
+    el('btnPrintTop').addEventListener('click', openPrintView);
 
     Array.prototype.forEach.call(document.querySelectorAll('.seg[data-view]'), function (t) {
       t.addEventListener('click', function () {

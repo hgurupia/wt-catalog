@@ -266,9 +266,76 @@ pre.narrative{background:#fff;border:1px solid var(--line);border-radius:var(--r
 
 @media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
 
+/* ---------- print view: letter pages on screen ---------- */
+body.pv-open{overflow:hidden}
+.pv{position:fixed;inset:0;z-index:70;background:#4b5c6b;display:flex;flex-direction:column}
+.pv-bar{background:var(--navy);color:#fff;display:flex;align-items:center;gap:10px;
+  padding:calc(10px + var(--safe-t)) 12px 10px;flex:none}
+.pv-x{width:40px;height:40px;flex:none;border:none;border-radius:12px;background:rgba(255,255,255,.13);
+  color:#fff;font-size:19px}
+.pv-bar-t{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25}
+.pv-bar-t b{font-size:15px;font-weight:800}
+.pv-bar-t span{font-size:11.5px;opacity:.72}
+.pv-print{border:none;border-radius:999px;background:var(--teal);color:#fff;font-size:13.5px;
+  font-weight:700;padding:0 16px;min-height:40px;flex:none}
+.pv-scroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;
+  padding:14px 12px calc(18px + var(--safe-b))}
+.pv-stage{position:relative}
+.pv-pages{width:816px;transform-origin:top left}
+.pv-hint{color:#e6eef5;font-size:12px;text-align:center;margin:14px auto 0;max-width:520px;line-height:1.45}
+.pv-hint-warn{color:#ffd9d3}
+.pv-measure{position:absolute;left:-10000px;top:0;visibility:hidden}
+.pv-page{width:816px;height:1056px;background:#fff;margin:0 0 18px;overflow:hidden;
+  box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.pv-page-in{height:100%;padding:56px;display:flex;flex-direction:column}
+.pv-head{height:36px;margin-bottom:16px;flex:none;display:flex;justify-content:space-between;
+  gap:16px;font-size:10.5px;color:var(--muted);border-bottom:1px solid var(--line);
+  padding-bottom:9px;letter-spacing:.02em;align-items:flex-start}
+.pv-body{height:858px;flex:none;overflow:hidden}
+.pv-foot{height:34px;flex:none;display:flex;justify-content:space-between;gap:16px;
+  align-items:flex-end;font-size:10px;color:var(--muted);border-top:1px solid var(--line);
+  padding-top:9px}
+/* document typography - shared by the measuring pass, so pagination is exact */
+.pv-measure,.pv-body{font-size:11.5px;line-height:1.5;color:#22384d}
+.pv-h1{font-size:20px;margin:0 0 3px;color:var(--navy)}
+.pv-sub{font-size:11px;color:var(--muted);margin:0 0 14px}
+.pv-h2{font-size:12px;margin:16px 0 7px;text-transform:uppercase;letter-spacing:.07em;color:var(--navy)}
+.pv-h2.pv-rule{border-top:2px solid var(--navy);padding-top:11px;margin-top:20px}
+.pv-h3{font-size:12.5px;margin:13px 0 4px;display:flex;gap:8px;align-items:baseline;color:var(--navy)}
+.pv-num{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;
+  flex:none;border-radius:5px;background:var(--teal);color:#fff;font-size:9.5px;font-weight:800}
+.pv-pri{margin-left:auto;flex:none;font-size:9px;color:var(--muted);font-weight:700;
+  text-transform:uppercase;letter-spacing:.05em}
+.pv-label{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);
+  font-weight:700;margin:9px 0 3px}
+.pv-p{font-size:11.5px;line-height:1.5;margin:0 0 8px}
+.pv-pre{white-space:pre-wrap}
+.pv-urgent{border-left:3px solid var(--red);padding-left:10px;color:var(--red)}
+.pv-ul{margin:0 0 3px;padding-left:16px}
+.pv-ul li{font-size:11.5px;line-height:1.45;margin-bottom:2px}
+.pv-kv{width:100%;border-collapse:collapse;margin:0 0 10px;table-layout:fixed}
+.pv-kv th{text-align:left;width:31%;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--muted);font-weight:700;padding:5px 10px 5px 0;vertical-align:top;
+  border-bottom:1px solid #eef3f8;overflow-wrap:anywhere}
+.pv-kv td{font-size:11.5px;color:var(--navy);font-weight:500;padding:5px 0;vertical-align:top;
+  border-bottom:1px solid #eef3f8;overflow-wrap:anywhere}
+.pv-sig{display:flex;gap:34px;margin-top:18px;font-size:10.5px;color:var(--muted)}
+.pv-sig>div{flex:1}
+.pv-line{border-bottom:1px solid var(--navy);height:34px;margin-bottom:5px}
+.pv-fine{font-size:9.5px;color:var(--muted);margin:14px 0 0;line-height:1.45}
+
 /* ---------- print ---------- */
 @media print{
   .topbar,.bottombar,.segmented,.sheet,.backdrop,.toast,.no-print{display:none !important}
+  body.pv-open .app{display:none !important}
+  body.pv-open{overflow:visible}
+  .pv{position:static;background:#fff;display:block}
+  .pv-scroll{overflow:visible;padding:0}
+  .pv-stage{height:auto !important}
+  .pv-pages{transform:none !important;margin:0 !important;width:auto !important}
+  .pv-page{box-shadow:none;margin:0;break-after:page;page-break-after:always}
+  .pv-page:last-child{break-after:auto;page-break-after:auto}
+  @page{size:letter portrait;margin:0}
   body,.app{background:#fff;box-shadow:none;max-width:none}
   .content{padding:0}
   .screen{display:none !important}
@@ -398,6 +465,7 @@ pre.narrative{background:#fff;border:1px solid var(--line);border-radius:var(--r
 
 <script src="schema.js"></script>
 <script src="poc-engine.js"></script>
+<script src="print-view.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -265,6 +265,64 @@ pre.narrative{background:#fff;border:1px solid var(--line);border-radius:var(--r
 
 @media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
 
+/* ---------- print view: letter pages on screen ---------- */
+body.pv-open{overflow:hidden}
+.pv{position:fixed;inset:0;z-index:70;background:#4b5c6b;display:flex;flex-direction:column}
+.pv-bar{background:var(--navy);color:#fff;display:flex;align-items:center;gap:10px;
+  padding:calc(10px + var(--safe-t)) 12px 10px;flex:none}
+.pv-x{width:40px;height:40px;flex:none;border:none;border-radius:12px;background:rgba(255,255,255,.13);
+  color:#fff;font-size:19px}
+.pv-bar-t{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25}
+.pv-bar-t b{font-size:15px;font-weight:800}
+.pv-bar-t span{font-size:11.5px;opacity:.72}
+.pv-print{border:none;border-radius:999px;background:var(--teal);color:#fff;font-size:13.5px;
+  font-weight:700;padding:0 16px;min-height:40px;flex:none}
+.pv-scroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;
+  padding:14px 12px calc(18px + var(--safe-b))}
+.pv-stage{position:relative}
+.pv-pages{width:816px;transform-origin:top left}
+.pv-hint{color:#e6eef5;font-size:12px;text-align:center;margin:14px auto 0;max-width:520px;line-height:1.45}
+.pv-hint-warn{color:#ffd9d3}
+.pv-measure{position:absolute;left:-10000px;top:0;visibility:hidden}
+.pv-page{width:816px;height:1056px;background:#fff;margin:0 0 18px;overflow:hidden;
+  box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.pv-page-in{height:100%;padding:56px;display:flex;flex-direction:column}
+.pv-head{height:36px;margin-bottom:16px;flex:none;display:flex;justify-content:space-between;
+  gap:16px;font-size:10.5px;color:var(--muted);border-bottom:1px solid var(--line);
+  padding-bottom:9px;letter-spacing:.02em;align-items:flex-start}
+.pv-body{height:858px;flex:none;overflow:hidden}
+.pv-foot{height:34px;flex:none;display:flex;justify-content:space-between;gap:16px;
+  align-items:flex-end;font-size:10px;color:var(--muted);border-top:1px solid var(--line);
+  padding-top:9px}
+/* document typography - shared by the measuring pass, so pagination is exact */
+.pv-measure,.pv-body{font-size:11.5px;line-height:1.5;color:#22384d}
+.pv-h1{font-size:20px;margin:0 0 3px;color:var(--navy)}
+.pv-sub{font-size:11px;color:var(--muted);margin:0 0 14px}
+.pv-h2{font-size:12px;margin:16px 0 7px;text-transform:uppercase;letter-spacing:.07em;color:var(--navy)}
+.pv-h2.pv-rule{border-top:2px solid var(--navy);padding-top:11px;margin-top:20px}
+.pv-h3{font-size:12.5px;margin:13px 0 4px;display:flex;gap:8px;align-items:baseline;color:var(--navy)}
+.pv-num{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;
+  flex:none;border-radius:5px;background:var(--teal);color:#fff;font-size:9.5px;font-weight:800}
+.pv-pri{margin-left:auto;flex:none;font-size:9px;color:var(--muted);font-weight:700;
+  text-transform:uppercase;letter-spacing:.05em}
+.pv-label{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);
+  font-weight:700;margin:9px 0 3px}
+.pv-p{font-size:11.5px;line-height:1.5;margin:0 0 8px}
+.pv-pre{white-space:pre-wrap}
+.pv-urgent{border-left:3px solid var(--red);padding-left:10px;color:var(--red)}
+.pv-ul{margin:0 0 3px;padding-left:16px}
+.pv-ul li{font-size:11.5px;line-height:1.45;margin-bottom:2px}
+.pv-kv{width:100%;border-collapse:collapse;margin:0 0 10px;table-layout:fixed}
+.pv-kv th{text-align:left;width:31%;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--muted);font-weight:700;padding:5px 10px 5px 0;vertical-align:top;
+  border-bottom:1px solid #eef3f8;overflow-wrap:anywhere}
+.pv-kv td{font-size:11.5px;color:var(--navy);font-weight:500;padding:5px 0;vertical-align:top;
+  border-bottom:1px solid #eef3f8;overflow-wrap:anywhere}
+.pv-sig{display:flex;gap:34px;margin-top:18px;font-size:10.5px;color:var(--muted)}
+.pv-sig>div{flex:1}
+.pv-line{border-bottom:1px solid var(--navy);height:34px;margin-bottom:5px}
+.pv-fine{font-size:9.5px;color:var(--muted);margin:14px 0 0;line-height:1.45}
+
 /* ---------- demo strip ---------- */
 .demo-strip{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
   background:var(--teal-soft);border:1px solid #cfe4f4;border-radius:var(--radius);
@@ -308,6 +366,15 @@ body.tour-on .sheet{padding-bottom:calc(var(--safe-b) + var(--tour-h,0px))}
 /* ---------- print ---------- */
 @media print{
   .topbar,.bottombar,.segmented,.sheet,.backdrop,.toast,.no-print{display:none !important}
+  body.pv-open .app{display:none !important}
+  body.pv-open{overflow:visible}
+  .pv{position:static;background:#fff;display:block}
+  .pv-scroll{overflow:visible;padding:0}
+  .pv-stage{height:auto !important}
+  .pv-pages{transform:none !important;margin:0 !important;width:auto !important}
+  .pv-page{box-shadow:none;margin:0;break-after:page;page-break-after:always}
+  .pv-page:last-child{break-after:auto;page-break-after:auto}
+  @page{size:letter portrait;margin:0}
   body,.app{background:#fff;box-shadow:none;max-width:none}
   .content{padding:0}
   .screen{display:none !important}
@@ -1757,6 +1824,293 @@ body.tour-on .sheet{padding-bottom:calc(var(--safe-b) + var(--tour-h,0px))}
 </script>
 <script>
 /* =========================================================================
+   Print view - lays the plan of care and the start of care note onto real
+   letter-size pages, on screen. Browsers embedded in another page often
+   refuse window.print(), so the preview is the document: same pagination,
+   same running header and footer, same page numbering that comes out of the
+   printer. The Print button still calls window.print() where it is allowed.
+   ========================================================================= */
+(function (root) {
+  'use strict';
+
+  var PAGE_W = 816;     // 8.5in at 96dpi
+  var PAGE_H = 1056;    // 11in
+  var MARGIN = 56;
+  var HEAD_H = 52;   // running header plus the gap under it
+  var FOOT_H = 34;
+  var BODY_H = PAGE_H - (MARGIN * 2) - HEAD_H - FOOT_H;
+  var BODY_W = PAGE_W - (MARGIN * 2);
+
+  var host = null, measure = null;
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function fmtDate(s) {
+    if (!s) return '';
+    var d = new Date(s + 'T00:00:00');
+    if (isNaN(d)) return s;
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+  function ptName(rec) {
+    var d = rec.data || {};
+    return [d.pt_last, d.pt_first].filter(Boolean).join(', ') || 'Unnamed patient';
+  }
+
+  /* ---------------- content, as atoms that can be packed onto pages ------- */
+  function atom(html, opts) {
+    opts = opts || {};
+    return { html: html, keepWithNext: !!opts.keepWithNext, newPage: !!opts.newPage };
+  }
+
+  function buildAtoms(rec, poc, narrative) {
+    var d = rec.data, out = [];
+
+    out.push(atom('<h1 class="pv-h1">Plan of Care</h1>' +
+      '<p class="pv-sub">Home health start of care &middot; certification period ' +
+      esc(poc.certStart ? fmtDate(poc.certStart) + ' to ' + fmtDate(poc.certEnd) : 'not set') + '</p>',
+      { keepWithNext: true }));
+
+    out.push(atom(kvTable([
+      ['Patient', ptName(rec)],
+      ['Medical record #', d.pt_mrn || '-'],
+      ['Date of birth', fmtDate(d.pt_dob) || '-'],
+      ['Start of care', fmtDate(d.soc_date) || '-'],
+      ['Physician', d.md_name || '-'],
+      ['Physician phone', d.md_phone || '-'],
+      ['Payer', d.payer || '-'],
+      ['Allergies', d.allergies || 'NKDA'],
+      ['Primary diagnosis', d.dx_primary || '-'],
+      ['Other diagnoses', (d.dx_secondary || '-').split('\n').filter(Boolean).join('; ')],
+      ['Emergency contact', [d.emerg_name, d.emerg_rel, d.emerg_phone].filter(Boolean).join(', ') || '-'],
+      ['Emergency triage', d.emerg_triage || '-']
+    ])));
+
+    out.push(atom('<h2 class="pv-h2">Homebound status</h2>', { keepWithNext: true }));
+    var hb = Array.isArray(d.homebound) ? d.homebound : [];
+    out.push(atom('<p class="pv-p">' + (hb.length ? esc(hb.join('; ')) + '.' : 'Not documented.') +
+      (d.homebound_narrative ? ' ' + esc(d.homebound_narrative) : '') + '</p>'));
+
+    out.push(atom('<h2 class="pv-h2">Orders: disciplines and frequency</h2>', { keepWithNext: true }));
+    out.push(atom(kvTable([
+      ['Disciplines', poc.disciplines.map(function (x) { return x.name; }).join(', ') || '-'],
+      ['Skilled nursing', d.sn_frequency || poc.suggestedFrequency + ' (suggested)'],
+      ['Therapy', d.therapy_frequency || 'per therapy evaluation'],
+      ['Home health aide', d.aide_frequency || 'not ordered'],
+      ['Diet', d.diet_order || '-'],
+      ['Labs / diagnostics', d.labs_ordered || '-'],
+      ['Equipment in the home', (Array.isArray(d.dme_current) ? d.dme_current : [])
+        .filter(function (x) { return x !== 'None'; }).join(', ') || 'None'],
+      ['Equipment to order', d.dme_needed || '-']
+    ])));
+
+    out.push(atom('<h2 class="pv-h2">Risk scores</h2>', { keepWithNext: true }));
+    out.push(atom(kvTable([
+      ['Morse Fall Scale', poc.scores.morse.value + ' - ' + poc.scores.morse.risk],
+      ['Braden Scale', poc.scores.braden.complete ? poc.scores.braden.value + ' - ' + poc.scores.braden.risk : 'not completed'],
+      ['PHQ-2', poc.scores.phq2.text === '-' ? 'not completed' : poc.scores.phq2.text],
+      ['BMI', poc.scores.bmi.text === '-' ? 'not calculated' : poc.scores.bmi.text]
+    ])));
+
+    out.push(atom('<h2 class="pv-h2">Safety measures</h2>', { keepWithNext: true }));
+    out.push(atom('<ul class="pv-ul">' + poc.safety.map(function (s) {
+      return '<li>' + esc(s) + '</li>';
+    }).join('') + '</ul>'));
+
+    if (poc.urgent.length) {
+      out.push(atom('<h2 class="pv-h2">Immediate actions</h2>', { keepWithNext: true }));
+      poc.urgent.forEach(function (u) { out.push(atom('<p class="pv-p pv-urgent">' + esc(u) + '</p>')); });
+    }
+
+    /* problem list */
+    out.push(atom('<h2 class="pv-h2 pv-rule">Problems, goals and interventions</h2>', { keepWithNext: true }));
+    poc.problems.forEach(function (p, i) {
+      out.push(atom('<h3 class="pv-h3"><span class="pv-num">' + (i + 1) + '</span>' + esc(p.problem) +
+        '<span class="pv-pri">Priority ' + p.priority + ' &middot; ' +
+        esc(p.disciplines.map(function (c) { return c; }).join(', ')) + '</span></h3>',
+        { keepWithNext: true }));
+      out.push(atom('<p class="pv-label">Goals / expected outcomes</p>', { keepWithNext: true }));
+      p.goals.forEach(function (g, n) {
+        out.push(atom('<ul class="pv-ul"><li>' + esc(g) + '</li></ul>',
+          { keepWithNext: n === 0 && p.goals.length > 1 }));
+      });
+      out.push(atom('<p class="pv-label">Interventions</p>', { keepWithNext: true }));
+      p.interventions.forEach(function (x, n) {
+        out.push(atom('<ul class="pv-ul"><li>' + esc(x) + '</li></ul>',
+          { keepWithNext: n === 0 && p.interventions.length > 1 }));
+      });
+    });
+
+    /* goals in the patient's words */
+    if (d.patient_goals || d.caregiver_goals || d.discharge_plan || d.poc_notes) {
+      out.push(atom('<h2 class="pv-h2 pv-rule">Patient-centered goals and discharge plan</h2>', { keepWithNext: true }));
+      if (d.patient_goals) {
+        out.push(atom('<p class="pv-label">Patient-stated goals</p>', { keepWithNext: true }));
+        out.push(atom('<p class="pv-p">' + esc(d.patient_goals) + '</p>'));
+      }
+      if (d.caregiver_goals) {
+        out.push(atom('<p class="pv-label">Caregiver goals and learning needs</p>', { keepWithNext: true }));
+        out.push(atom('<p class="pv-p">' + esc(d.caregiver_goals) + '</p>'));
+      }
+      if (d.discharge_plan) {
+        out.push(atom('<p class="pv-label">Anticipated discharge plan</p>', { keepWithNext: true }));
+        out.push(atom('<p class="pv-p">' + esc(d.discharge_plan) + ' Rehabilitation prognosis ' +
+          esc((d.prognosis || 'not documented').toLowerCase()) + '.</p>'));
+      }
+      if (d.poc_notes) {
+        out.push(atom('<p class="pv-label">Additional orders and clinician notes</p>', { keepWithNext: true }));
+        out.push(atom('<p class="pv-p">' + esc(d.poc_notes) + '</p>'));
+      }
+    }
+
+    /* signatures */
+    out.push(atom('<h2 class="pv-h2 pv-rule">Signatures</h2>', { keepWithNext: true }));
+    out.push(atom('<div class="pv-sig">' +
+      '<div><div class="pv-line"></div>Assessing clinician (RN)' +
+      (d.nurse_name ? ' - ' + esc(d.nurse_name) : '') +
+      '<br>Date: ' + esc(fmtDate(d.visit_date) || '______________') + '</div>' +
+      '<div><div class="pv-line"></div>Physician' +
+      (d.md_name ? ' - ' + esc(d.md_name) : '') +
+      '<br>Date: ______________</div></div>'));
+    out.push(atom('<p class="pv-fine">Clinical decision support only. Reviewed and individualized by the ' +
+      'assessing licensed clinician; requires physician review and signature before implementation. ' +
+      'Generated ' + esc(new Date(poc.generatedAt).toLocaleString()) + '.</p>'));
+
+    /* start of care note, on its own page */
+    out.push(atom('<h1 class="pv-h1">Start of Care Note</h1>', { newPage: true, keepWithNext: true }));
+    narrative.split('\n\n').forEach(function (para) {
+      if (!para.trim()) return;
+      out.push(atom('<p class="pv-p pv-pre">' + esc(para.trim()) + '</p>'));
+    });
+
+    return out;
+  }
+
+  function kvTable(rows) {
+    return '<table class="pv-kv">' + rows.map(function (r) {
+      return '<tr><th>' + esc(r[0]) + '</th><td>' + esc(r[1]) + '</td></tr>';
+    }).join('') + '</table>';
+  }
+
+  /* ---------------- pack atoms onto pages ---------------- */
+  function paginate(atoms) {
+    measure.style.width = BODY_W + 'px';
+    var pages = [], page = [], used = 0;
+
+    function flush() { if (page.length) { pages.push(page); page = []; used = 0; } }
+
+    for (var i = 0; i < atoms.length; i++) {
+      var a = atoms[i];
+      if (a.newPage) flush();
+      measure.innerHTML = a.html;
+      var h = measure.offsetHeight;
+
+      if (used + h > BODY_H && page.length) { flush(); }
+
+      // a label must not be stranded as the last line on a page
+      if (a.keepWithNext && page.length) {
+        var next = atoms[i + 1];
+        if (next) {
+          measure.innerHTML = next.html;
+          var hNext = measure.offsetHeight;
+          if (used + h + hNext > BODY_H) flush();
+        }
+      }
+      page.push(a.html);
+      used += h;
+    }
+    flush();
+    return pages;
+  }
+
+  /* ---------------- render ---------------- */
+  function open(rec, poc, narrative) {
+    close();
+    var pages = [];
+    host = document.createElement('div');
+    host.className = 'pv';
+    host.innerHTML =
+      '<div class="pv-bar no-print">' +
+      '<button class="pv-x" id="pvClose" aria-label="Close print view">&#8249;</button>' +
+      '<div class="pv-bar-t"><b>Print view</b><span id="pvCount">paginating…</span></div>' +
+      '<button class="pv-print" id="pvPrint">Print</button>' +
+      '</div>' +
+      '<div class="pv-scroll"><div class="pv-stage" id="pvStage"><div class="pv-pages" id="pvPages"></div></div>' +
+      '<p class="pv-hint no-print" id="pvHint">Letter, portrait. This is exactly what comes out of the printer or the PDF.</p></div>';
+    document.body.appendChild(host);
+    document.body.classList.add('pv-open');
+
+    measure = document.createElement('div');
+    measure.className = 'pv-measure';
+    document.body.appendChild(measure);
+
+    pages = paginate(buildAtoms(rec, poc, narrative));
+
+    var head = esc(ptName(rec)) + (rec.data.pt_mrn ? ' &middot; MRN ' + esc(rec.data.pt_mrn) : '') +
+      ' &middot; SOC ' + esc(fmtDate(rec.data.soc_date) || 'not set');
+    document.getElementById('pvPages').innerHTML = pages.map(function (blocks, i) {
+      return '<div class="pv-page"><div class="pv-page-in">' +
+        '<div class="pv-head"><span>' + head + '</span><span>Plan of Care</span></div>' +
+        '<div class="pv-body">' + blocks.join('') + '</div>' +
+        '<div class="pv-foot"><span>' + esc(rec.data.md_name ? 'For physician review and signature' : 'Requires physician signature') + '</span>' +
+        '<span>Page ' + (i + 1) + ' of ' + pages.length + '</span></div>' +
+        '</div></div>';
+    }).join('');
+    document.getElementById('pvCount').textContent = pages.length + (pages.length === 1 ? ' page' : ' pages');
+
+    measure.remove(); measure = null;
+    fit();
+    window.addEventListener('resize', fit);
+    document.getElementById('pvClose').addEventListener('click', close);
+    var printed = false;
+    var onBefore = function () { printed = true; };
+    window.addEventListener('beforeprint', onBefore);
+    document.getElementById('pvPrint').addEventListener('click', function () {
+      printed = false;
+      try { window.print(); } catch (e) { /* handled below */ }
+      // an embedded viewer refuses silently, so say so instead of leaving them waiting
+      setTimeout(function () { if (!printed) blocked(); }, 700);
+    });
+  }
+
+  function blocked() {
+    var hint = document.getElementById('pvHint');
+    if (hint) {
+      hint.textContent = 'This browser view will not let a page start a print job. ' +
+        'Open the app in its own tab to print or save as PDF - the pages above are what it produces.';
+      hint.classList.add('pv-hint-warn');
+    }
+  }
+
+  // scale the fixed-width pages down to whatever the screen actually is
+  function fit() {
+    if (!host) return;
+    var wrap = host.querySelector('.pv-scroll');
+    var stage = host.querySelector('.pv-stage');
+    var pages = host.querySelector('.pv-pages');
+    if (!wrap || !stage || !pages) return;
+    var avail = wrap.clientWidth - 24;
+    var scale = Math.min(1, avail / PAGE_W);
+    pages.style.transform = 'scale(' + scale + ')';
+    pages.style.marginLeft = Math.max(0, (avail - PAGE_W * scale) / 2) + 'px';
+    stage.style.height = (pages.scrollHeight * scale) + 'px';
+  }
+
+  function close() {
+    window.removeEventListener('resize', fit);
+    if (host) { host.remove(); host = null; }
+    if (measure) { measure.remove(); measure = null; }
+    document.body.classList.remove('pv-open');
+  }
+
+  root.LTC_PRINT = { open: open, close: close };
+})(window);
+
+</script>
+<script>
+/* =========================================================================
    Demo data - three fictional patients used to show the program working.
    Not real people and not real clinical records: every name, MRN, address
    and finding here is invented for demonstration.
@@ -2686,6 +3040,16 @@ body.tour-on .sheet{padding-bottom:calc(var(--safe-b) + var(--tour-h,0px))}
     }, browserSave);
   }
 
+  // The print view paginates the document on screen, because an embedded browser
+  // view will not let a page open a print dialog.
+  function openPrintView() {
+    if (!current) return;
+    var poc = lastPoc || ENGINE.generate(current.data);
+    lastPoc = poc;
+    if (!window.LTC_PRINT) { window.print(); return; }
+    window.LTC_PRINT.open(current, poc, ENGINE.narrative(current.data, poc));
+  }
+
   function importRecord(file) {
     var fr = new FileReader();
     fr.onload = function () {
@@ -2743,8 +3107,8 @@ body.tour-on .sheet{padding-bottom:calc(var(--safe-b) + var(--tour-h,0px))}
 
     el('btnBackAssess').addEventListener('click', function () { show('assess'); renderAssess(); });
     el('btnExport').addEventListener('click', exportRecord);
-    el('btnPrint').addEventListener('click', function () { window.print(); });
-    el('btnPrintTop').addEventListener('click', function () { window.print(); });
+    el('btnPrint').addEventListener('click', openPrintView);
+    el('btnPrintTop').addEventListener('click', openPrintView);
 
     Array.prototype.forEach.call(document.querySelectorAll('.seg[data-view]'), function (t) {
       t.addEventListener('click', function () {

@@ -64,6 +64,19 @@ is documented), and the section rail shows what is complete.
 
 Print or save as PDF for the physician signature packet, or export the record as JSON.
 
+## Printing
+
+The **Print** button opens a print view that lays the plan of care and the start of care
+note onto real letter pages on screen — running header, page numbering, signature block —
+and then prints them 1:1. The pagination is measured, not guessed: the same page breaks
+you see are the ones that come out of the printer (Rosa Alvarez's demo record produces ten
+pages either way).
+
+The preview exists because an embedded browser view — an artifact viewer, an iframe, some
+in-app browsers — will not let a page start a print job. There the preview is the document:
+you can still show and read exactly what would print. If `window.print()` is refused, the
+view says so and tells you to open the app in its own tab.
+
 ## How the plan of care is built
 
 `poc-engine.js` holds the rules. Each rule is data — a condition over the assessment,
@@ -99,6 +112,7 @@ from the schema. Field ids are referenced by the rules, so keep them stable.
 | `app.js` | Rendering, navigation, autosave, JSON import/export, print |
 | `demo-data.js` | Three fictional sample patients used by the demo |
 | `demo.html` | Single-file demo: the whole program plus the sample patients inlined |
+| `print-view.js` | Paginates the plan of care and the note onto letter pages, on screen and in print |
 | `demo-tour.js` | The guided walkthrough that drives the real UI for a live demo |
 | `build-demo.py` | Rebuilds `demo.html` from the sources — run it after changing any of them |
 | `manifest.json` | Web app manifest for add-to-home-screen / standalone display |
